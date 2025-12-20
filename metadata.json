@@ -1,0 +1,5 @@
+{
+  "name": "RadarIPTU Tracker",
+  "description": "Uma plataforma completa para gestão e acompanhamento de IPTUs para carteiras imobiliárias, com visão geral de vencimentos, histórico detalhado por imóvel e gestão financeira.",
+  "requestFramePermissions": []
+}
