@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Property, PropertyType, IptuStatus } from '../types';
+import { Property, PropertyType, IptuStatus, PropertyUnit } from '../types';
 
 interface AddPropertyModalProps {
   onClose: () => void;
@@ -16,10 +16,15 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
     iptuHistory: [],
     landArea: 0,
     builtArea: 0,
-    appraisalValue: 0
+    appraisalValue: 0,
+    isComplex: false,
+    units: [],
+    registrationNumber: '',
+    sequential: ''
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [classSelected, setClassSelected] = useState<boolean>(!!initialData);
 
   const propertyTypes: PropertyType[] = ['Loja', 'Galpão', 'Terreno', 'Sala', 'Apartamento', 'Casa', 'Industrial', 'Prédio Comercial', 'Sala Comercial'];
 
@@ -27,10 +32,49 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'appraisalValue'
+      [name]: name === 'appraisalValue' || name === 'landArea' || name === 'builtArea'
         ? Number(value)
         : value
     }));
+  };
+
+  const handleClassChange = (isComplex: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      isComplex,
+      units: isComplex ? (prev.units?.length ? prev.units : [{ registrationNumber: prev.registrationNumber || '', sequential: prev.sequential || '' }]) : []
+    }));
+    setClassSelected(true);
+  };
+
+  const handleUnitChange = (index: number, field: keyof PropertyUnit, value: string) => {
+    const newUnits = [...(formData.units || [])];
+    newUnits[index] = { ...newUnits[index], [field]: value };
+
+    // Sincronizar primeiro sequencial com os campos principais para compatibilidade legada se for Único
+    if (!formData.isComplex && index === 0) {
+      setFormData(prev => ({
+        ...prev,
+        units: newUnits,
+        registrationNumber: field === 'registrationNumber' ? value : prev.registrationNumber,
+        sequential: field === 'sequential' ? value : prev.sequential
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, units: newUnits }));
+    }
+  };
+
+  const addUnit = () => {
+    setFormData(prev => ({
+      ...prev,
+      units: [...(prev.units || []), { registrationNumber: '', sequential: '' }]
+    }));
+  };
+
+  const removeUnit = (index: number) => {
+    if ((formData.units?.length || 0) <= 1) return;
+    const newUnits = (formData.units || []).filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, units: newUnits }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,8 +88,19 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Assegurar que registrationNumber e sequential reflitam a primeira unidade se for Único
+    const finalData = { ...formData };
+    if (!finalData.isComplex && finalData.units?.length) {
+      finalData.registrationNumber = finalData.units[0].registrationNumber;
+      finalData.sequential = finalData.units[0].sequential;
+    } else if (finalData.isComplex && finalData.units?.length) {
+      finalData.registrationNumber = finalData.units[0].registrationNumber;
+      finalData.sequential = finalData.units[0].sequential;
+    }
+
     const newProperty: Property = {
-      ...formData as Property,
+      ...finalData as Property,
       id: initialData?.id || crypto.randomUUID(),
       lastUpdated: new Date().toLocaleDateString('pt-BR'),
       imageUrl: previewUrl || formData.imageUrl || `https://picsum.photos/seed/${Math.random()}/400/400`,
@@ -92,7 +147,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Tipo do Imóvel</label>
+                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Categoria do Imóvel</label>
                     <select name="type" value={formData.type} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none text-[#111418] dark:text-white">
                       {propertyTypes.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
@@ -154,38 +209,116 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
               </div>
             </div>
 
-            {/* Section: Registro do Imóvel */}
-            <div className="space-y-6 md:col-span-2">
-              <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">app_registration</span> Registro do Imóvel
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Nº Inscrição</label>
-                  <input required name="registrationNumber" value={formData.registrationNumber || ''} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-mono outline-none text-[#111418] dark:text-white" placeholder="000.000.000-00" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Sequencial</label>
-                  <input required name="sequential" value={formData.sequential || ''} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-mono outline-none text-[#111418] dark:text-white" placeholder="0000" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Área Terreno (m²)</label>
-                  <input required type="number" name="landArea" value={formData.landArea || 0} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none text-[#111418] dark:text-white" placeholder="0" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Área Construída (m²)</label>
-                  <input required type="number" name="builtArea" value={formData.builtArea || 0} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none text-[#111418] dark:text-white" placeholder="0" />
-                </div>
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Valor Venal (R$)</label>
-                  <input required type="number" name="appraisalValue" value={formData.appraisalValue || 0} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none text-[#111418] dark:text-white" placeholder="0.00" />
-                </div>
+            {/* Section: Tipo do Imóvel */}
+            <div className="md:col-span-2 space-y-4 border-t border-gray-100 dark:border-[#2a3644] pt-8 bg-gray-50/30 dark:bg-gray-800/10 -mx-8 px-8 pb-6">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">category</span> Tipo do Imóvel
+                </h3>
+                <p className="text-[11px] text-[#617289] dark:text-[#9ca3af]">Selecione se o cadastro será para um registro único ou complexo (múltiplos sequenciais)</p>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <button
+                  type="button"
+                  onClick={() => handleClassChange(false)}
+                  className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all shadow-sm ${!formData.isComplex && classSelected ? 'border-primary bg-white dark:bg-[#1a2634] text-primary ring-4 ring-primary/10 scale-[1.02]' : 'border-gray-200 dark:border-[#2a3644] bg-white dark:bg-[#1a2634] text-gray-400 hover:border-gray-300 hover:scale-[1.01]'}`}
+                >
+                  <div className={`size-12 rounded-full flex items-center justify-center ${!formData.isComplex && classSelected ? 'bg-primary/10' : 'bg-gray-100 dark:bg-[#2a3644]'}`}>
+                    <span className="material-symbols-outlined text-3xl">home</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="font-bold text-sm">Único</span>
+                    <span className="text-[10px] opacity-70 font-medium">Um único sequencial</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleClassChange(true)}
+                  className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all shadow-sm ${formData.isComplex && classSelected ? 'border-primary bg-white dark:bg-[#1a2634] text-primary ring-4 ring-primary/10 scale-[1.02]' : 'border-gray-200 dark:border-[#2a3644] bg-white dark:bg-[#1a2634] text-gray-400 hover:border-gray-300 hover:scale-[1.01]'}`}
+                >
+                  <div className={`size-12 rounded-full flex items-center justify-center ${formData.isComplex && classSelected ? 'bg-primary/10' : 'bg-gray-100 dark:bg-[#2a3644]'}`}>
+                    <span className="material-symbols-outlined text-3xl">domain</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="font-bold text-sm">Complexo</span>
+                    <span className="text-[10px] opacity-70 font-medium">Dois ou mais sequenciais</span>
+                  </div>
+                </button>
               </div>
             </div>
 
+            {/* Section: Registro do Imóvel (Conditional) */}
+            {classSelected && (
+              <div className="space-y-6 md:col-span-2 animate-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">app_registration</span> Registro do Imóvel
+                  </h3>
+                  {formData.isComplex && (
+                    <button
+                      type="button"
+                      onClick={addUnit}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">add</span>
+                      ADICIONAR SEQUENCIAL
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {(formData.units?.length ? formData.units : [{ registrationNumber: '', sequential: '' }]).map((unit, index) => (
+                    <div key={index} className={`grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl border ${index > 0 ? 'border-dashed border-gray-200 dark:border-gray-700' : 'border-transparent bg-gray-50/50 dark:bg-gray-800/30'}`}>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Nº Inscrição {formData.isComplex ? `#${index + 1}` : ''}</label>
+                        <input
+                          required
+                          value={unit.registrationNumber}
+                          onChange={(e) => handleUnitChange(index, 'registrationNumber', e.target.value)}
+                          className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-mono outline-none text-[#111418] dark:text-white"
+                          placeholder="000.000.000-00"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 relative">
+                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Sequencial {formData.isComplex ? `#${index + 1}` : ''}</label>
+                        <div className="flex gap-2">
+                          <input
+                            required
+                            value={unit.sequential}
+                            onChange={(e) => handleUnitChange(index, 'sequential', e.target.value)}
+                            className="flex-1 h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-mono outline-none text-[#111418] dark:text-white"
+                            placeholder="0000"
+                          />
+                          {formData.isComplex && index > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => removeUnit(index)}
+                              className="size-11 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-all"
+                            >
+                              <span className="material-symbols-outlined text-[20px]">delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Área Terreno (m²)</label>
+                      <input required type="number" name="landArea" value={formData.landArea || 0} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none text-[#111418] dark:text-white" placeholder="0" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Área Construída (m²)</label>
+                      <input required type="number" name="builtArea" value={formData.builtArea || 0} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none text-[#111418] dark:text-white" placeholder="0" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Section: Foto do Imóvel */}
-            <div className="space-y-6 md:col-span-2">
+            <div className="space-y-6 md:col-span-2 border-t border-gray-100 dark:border-[#2a3644] pt-8">
               <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px]">add_a_photo</span> Foto do Imóvel
               </h3>
@@ -194,9 +327,11 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
                 <div className="w-full sm:w-48 h-48 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-900/30">
                   {previewUrl ? (
                     <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (formData.imageUrl ? (
+                    <img src={formData.imageUrl} alt="Current" className="w-full h-full object-cover" />
                   ) : (
                     <span className="material-symbols-outlined text-gray-400 text-4xl">image</span>
-                  )}
+                  ))}
                 </div>
 
                 <div className="flex-1 space-y-4">
@@ -227,7 +362,11 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
             <button type="button" onClick={onCancel} className="px-8 h-12 bg-white dark:bg-transparent border border-gray-200 dark:border-gray-700 text-[#111418] dark:text-white rounded-xl text-sm font-bold hover:bg-gray-50 transition-all">
               Cancelar
             </button>
-            <button type="submit" className="px-10 h-12 bg-primary text-white rounded-xl text-sm font-bold hover:bg-[#a64614] shadow-lg shadow-primary/20 transition-all active:scale-95">
+            <button
+              type="submit"
+              disabled={!classSelected}
+              className={`px-10 h-12 rounded-xl text-sm font-bold shadow-lg transition-all active:scale-95 ${classSelected ? 'bg-primary text-white hover:bg-[#a64614] shadow-primary/20' : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'}`}
+            >
               {initialData ? 'Atualizar Imóvel' : 'Salvar Imóvel'}
             </button>
           </div>
@@ -238,3 +377,4 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
 };
 
 export default AddPropertyModal;
+

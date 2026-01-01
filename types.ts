@@ -25,6 +25,11 @@ export interface IptuRecord {
 
 export type PropertyType = 'Loja' | 'Galpão' | 'Terreno' | 'Sala' | 'Apartamento' | 'Casa' | 'Industrial' | 'Comercial' | 'Residencial' | 'Prédio Comercial' | 'Sala Comercial';
 
+export interface PropertyUnit {
+  registrationNumber: string;
+  sequential: string;
+}
+
 export interface Property {
   id: string;
   name: string;
@@ -38,6 +43,8 @@ export interface Property {
   possession: 'Grupo' | 'Terceiros';
   registrationNumber: string;
   sequential: string;
+  isComplex: boolean;
+  units: PropertyUnit[];
   landArea: number;
   builtArea: number;
   type: PropertyType;
