@@ -86,6 +86,23 @@ const IptuDetailModal: React.FC<IptuDetailModalProps> = ({ iptu, property, onClo
             </div>
           </div>
 
+          {/* Nova Seção: Sequenciais Atrelados */}
+          {iptu.selectedSequentials && iptu.selectedSequentials.length > 0 && (
+            <div className="bg-gray-50 dark:bg-[#1e2a3b] p-5 rounded-xl border border-gray-100 dark:border-[#2a3644] space-y-3">
+              <span className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px]">list_alt</span>
+                Sequenciais Atrelados
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {iptu.selectedSequentials.map(seq => (
+                  <span key={seq} className="px-3 py-1 bg-white dark:bg-[#1a2634] border border-primary/30 text-primary text-xs font-bold rounded-lg shadow-sm">
+                    {seq}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-[#2a3644]">
             <div className="p-4 bg-primary/10 dark:bg-primary/5 rounded-xl flex items-center justify-between border border-primary/20">
               <span className="text-xs font-bold text-[#111418] dark:text-primary uppercase tracking-tighter">Diferença Única x Parcelada</span>

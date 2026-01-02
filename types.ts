@@ -21,6 +21,7 @@ export interface IptuRecord {
   status: IptuStatus;
   value: number;
   receiptUrl?: string;
+  selectedSequentials?: string[];
 }
 
 export type PropertyType = 'Loja' | 'Galpão' | 'Terreno' | 'Sala' | 'Apartamento' | 'Casa' | 'Industrial' | 'Comercial' | 'Residencial' | 'Prédio Comercial' | 'Sala Comercial';

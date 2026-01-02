@@ -2,6 +2,7 @@
 import React from 'react';
 import { ViewType, UserRole } from '../types';
 import logo from '../assets/logo.png';
+import packageJson from '../package.json';
 
 interface NavbarProps {
     currentView: ViewType;
@@ -54,7 +55,10 @@ const Navbar: React.FC<NavbarProps> = ({
                             <div className="size-10 bg-white dark:bg-[#1a2634] rounded-lg flex items-center justify-center p-0.5 shadow-sm overflow-hidden">
                                 <img src={logo} alt="RadarIPTU Logo" className="w-full h-full object-contain" />
                             </div>
-                            <h2 className="text-[#111418] dark:text-white text-lg font-bold tracking-tight">RadarIPTU</h2>
+                            <div className="flex flex-col">
+                                <h2 className="text-[#111418] dark:text-white text-lg font-bold tracking-tight leading-none">RadarIPTU</h2>
+                                <span className="text-[10px] font-bold text-primary dark:text-primary/80 opacity-60">v{packageJson.version}</span>
+                            </div>
                         </div>
 
                         <div className="hidden md:flex items-center gap-6">

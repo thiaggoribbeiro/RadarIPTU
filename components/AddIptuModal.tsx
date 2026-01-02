@@ -25,7 +25,8 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
     installmentsCount: initialData?.installmentsCount || 1,
     chosenMethod: (initialData?.chosenMethod || 'Cota Única') as PaymentMethod,
     holmesCompany: initialData?.holmesCompany || HOLMES_COMPANIES[0],
-    startDate: initialData?.startDate || new Date().toISOString().split('T')[0]
+    startDate: initialData?.startDate || new Date().toISOString().split('T')[0],
+    selectedSequentials: initialData?.selectedSequentials || (property.isComplex ? [] : [property.sequential])
   });
 
   const diffSingleVsParcel = useMemo(() => {
@@ -43,6 +44,17 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
     return currentBase - lastBase;
   }, [lastYearIptu, formData.singleValue, formData.installmentValue, formData.chosenMethod]);
 
+  const toggleSequential = (seq: string) => {
+    setFormData(prev => {
+      const current = prev.selectedSequentials;
+      if (current.includes(seq)) {
+        return { ...prev, selectedSequentials: current.filter(s => s !== seq) };
+      } else {
+        return { ...prev, selectedSequentials: [...current, seq] };
+      }
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalValue = formData.chosenMethod === 'Cota Única' ? formData.singleValue : formData.installmentValue;
@@ -55,6 +67,13 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
 
     onSubmit(newIptu);
   };
+
+  const availableSequentials = useMemo(() => {
+    if (property.isComplex) {
+      return property.units.map(u => u.sequential);
+    }
+    return [property.sequential];
+  }, [property]);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
@@ -79,7 +98,7 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
           </button>
         </header>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase tracking-tighter">Ano de Referência</label>
@@ -103,6 +122,42 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
                 onChange={e => setFormData({ ...formData, holmesCompany: e.target.value })}
                 className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
               />
+            </div>
+
+            {/* Nova Seção: Seleção de Sequenciais */}
+            <div className="md:col-span-2 space-y-3 bg-gray-50 dark:bg-[#1e2a3b] p-4 rounded-xl border border-gray-100 dark:border-[#2a3644]">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase tracking-tighter flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-[18px]">list_alt</span>
+                  Sequenciais Atrelados à Empresa
+                </label>
+                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  {formData.selectedSequentials.length} selecionado(s)
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableSequentials.map(seq => (
+                  <button
+                    key={seq}
+                    type="button"
+                    onClick={() => toggleSequential(seq)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all flex items-center gap-2 ${formData.selectedSequentials.includes(seq)
+                        ? 'bg-primary border-primary text-white shadow-sm'
+                        : 'bg-white dark:bg-[#1a2634] border-gray-200 dark:border-gray-700 text-[#617289] dark:text-[#9ca3af] hover:border-primary/50'
+                      }`}
+                  >
+                    {formData.selectedSequentials.includes(seq) && (
+                      <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                    )}
+                    {seq}
+                  </button>
+                ))}
+              </div>
+              {formData.selectedSequentials.length === 0 && (
+                <p className="text-[10px] text-red-500 font-bold animate-pulse">
+                  * Selecione pelo menos um sequencial para este lançamento
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -190,7 +245,11 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
             <button type="button" onClick={onClose} className="px-6 h-11 text-sm font-bold text-[#617289] hover:text-[#111418] transition-colors uppercase tracking-tight">
               Cancelar
             </button>
-            <button type="submit" className="px-10 h-11 bg-primary text-white rounded-xl text-sm font-bold hover:bg-[#a64614] shadow-lg shadow-primary/30 transition-all uppercase tracking-tight">
+            <button
+              type="submit"
+              disabled={formData.selectedSequentials.length === 0}
+              className="px-10 h-11 bg-primary text-white rounded-xl text-sm font-bold hover:bg-[#a64614] shadow-lg shadow-primary/30 transition-all uppercase tracking-tight disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
               {initialData ? 'SALVAR ALTERAÇÕES' : 'CONFIRMAR LANÇAMENTO'}
             </button>
           </div>
@@ -201,3 +260,4 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
 };
 
 export default AddIptuModal;
+

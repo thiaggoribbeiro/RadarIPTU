@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import logo from '../assets/logo.png';
+import packageJson from '../package.json';
 
 interface LoginProps {
   onLoginSuccess: (name: string, email: string, isDemo?: boolean, mustChange?: boolean) => void;
@@ -189,6 +190,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 {mode === 'login' ? 'Criar uma agora' : 'Fazer login'}
               </button>
             </p>
+          </div>
+
+          {/* Version in Login Card */}
+          <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em]">
+              Versão {packageJson.version}
+            </span>
           </div>
         </div>
       </div>
