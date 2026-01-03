@@ -82,7 +82,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, use
                   { label: 'Proprietário', value: property.ownerName },
                   { label: 'Cadastro Imob.', value: property.registryOwner },
                   { label: 'Inscrição', value: property.registrationNumber },
-                  { label: 'Sequencial', value: property.sequential },
+                  ...(property.isComplex ? [] : [{ label: 'Sequencial', value: property.sequential }]),
                   { label: 'Área Terreno', value: `${property.landArea} m²` },
                   { label: 'Área Const.', value: `${property.builtArea} m²` },
                   { label: 'V. Venal', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(property.appraisalValue) },
@@ -92,9 +92,67 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, use
                     <span className="text-sm font-bold text-[#111418] dark:text-white">{item.value}</span>
                   </div>
                 ))}
+
+                {property.isComplex && property.units && property.units.length > 0 && (
+                  <div className="mt-4 space-y-3 bg-gray-50 dark:bg-[#1a2634] p-3 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                    <h5 className="text-[10px] font-bold text-primary uppercase">Sequenciais Detalhados</h5>
+                    {property.units.map((unit, idx) => (
+                      <div key={idx} className="flex flex-col border-b border-gray-100 dark:border-gray-700/50 pb-2 last:border-0 last:pb-0">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-[#111418] dark:text-white">#{idx + 1} - {unit.sequential}</span>
+                        </div>
+                        <div className="flex gap-4 text-[10px] font-semibold text-[#617289]">
+                          {unit.singleValue > 0 && <span className="text-emerald-600">Cota Única: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(unit.singleValue)}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </section>
+
+          {property.tenants && property.tenants.length > 0 && (
+            <section className="space-y-4 animate-in slide-in-from-bottom-2 duration-500">
+              <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                <span className="material-symbols-outlined text-primary font-semibold">group</span> Rateio por Locatário
+              </h3>
+              <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
+                    <tr>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase text-gray-500 dark:text-[#9ca3af]">Empresa</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase text-gray-500 dark:text-[#9ca3af]">Área Ocupada</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase text-gray-500 dark:text-[#9ca3af]">Percentual</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase text-gray-500 dark:text-[#9ca3af] text-right">Valor Rateio (Ref. Atual)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                    {(() => {
+                      const totalIptu = property.units.reduce((acc, u) => acc + (u.singleValue || 0), 0);
+                      const totalArea = property.tenants.reduce((acc, t) => acc + (t.occupiedArea || 0), 0);
+                      return property.tenants.map((tenant) => {
+                        const percentage = totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0;
+                        const apportionment = totalArea > 0 ? (tenant.occupiedArea / totalArea) * totalIptu : 0;
+                        return (
+                          <tr key={tenant.id} className="hover:bg-primary/5 transition-colors">
+                            <td className="px-6 py-4 text-sm font-bold uppercase">{tenant.name}</td>
+                            <td className="px-6 py-4 text-sm font-semibold text-[#617289] dark:text-[#9ca3af]">{tenant.occupiedArea.toLocaleString('pt-BR')} m²</td>
+                            <td className="px-6 py-4">
+                              <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">{percentage.toFixed(1)}%</span>
+                            </td>
+                            <td className="px-6 py-4 text-sm font-black text-emerald-600 text-right">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(apportionment)}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
 
           <section className="space-y-4">
             <div className="flex items-center justify-between">
@@ -115,6 +173,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, use
                 <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
                   <tr>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Ano</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Sequenciais</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Detalhamento</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Valor Total</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Status</th>
@@ -122,11 +181,20 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, use
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                  {property.iptuHistory.length > 0 ? property.iptuHistory.map((iptu, idx) => {
+                  {property.iptuHistory.length > 0 ? property.iptuHistory.sort((a, b) => b.year - a.year).map((iptu, idx) => {
                     const status = getDynamicStatus(iptu);
                     return (
                       <tr key={idx} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors">
                         <td className="px-6 py-4 text-sm font-bold">{iptu.year}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1 max-w-[150px]">
+                            {iptu.selectedSequentials?.map(seq => (
+                              <span key={seq} className="px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-[9px] font-bold">
+                                {seq}
+                              </span>
+                            )) || <span className="text-[10px] text-gray-400 italic">Nenhum</span>}
+                          </div>
+                        </td>
                         <td className="px-6 py-4">
                           {iptu.chosenMethod === 'Parcelado' ? (
                             <div className="flex flex-col">
@@ -158,7 +226,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, use
                           <div className="flex items-center justify-end gap-2">
                             {canDelete && (
                               <button
-                                onClick={() => onDeleteIptu(property.id, iptu.year)}
+                                onClick={() => onDeleteIptu(property.id, iptu.id)}
                                 className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
                               >
                                 <span className="material-symbols-outlined text-[18px]">delete</span>

@@ -10,6 +10,7 @@ export enum IptuStatus {
 export type PaymentMethod = 'Cota Única' | 'Parcelado' | 'Em aberto';
 
 export interface IptuRecord {
+  id: string;
   year: number;
   singleValue?: number;
   installmentValue?: number;
@@ -27,8 +28,19 @@ export interface IptuRecord {
 export type PropertyType = 'Loja' | 'Galpão' | 'Terreno' | 'Sala' | 'Apartamento' | 'Casa' | 'Industrial' | 'Comercial' | 'Residencial' | 'Prédio Comercial' | 'Sala Comercial';
 
 export interface PropertyUnit {
-  registrationNumber: string;
   sequential: string;
+  singleValue: number;
+  installmentValue: number;
+  installmentsCount: number;
+  year: number;
+  chosenMethod: PaymentMethod;
+}
+
+export interface Tenant {
+  id: string;
+  name: string;
+  year: number;
+  occupiedArea: number;
 }
 
 export interface Property {
@@ -46,10 +58,12 @@ export interface Property {
   sequential: string;
   isComplex: boolean;
   units: PropertyUnit[];
+  tenants: Tenant[];
   landArea: number;
   builtArea: number;
   type: PropertyType;
   appraisalValue: number;
+  baseYear: number;
   lastUpdated: string;
   imageUrl: string;
   iptuHistory: IptuRecord[];

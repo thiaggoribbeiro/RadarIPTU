@@ -33,6 +33,12 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
     return Math.abs(formData.installmentValue - formData.singleValue);
   }, [formData.singleValue, formData.installmentValue]);
 
+  const usedSequentialsForYear = useMemo(() => {
+    return property.iptuHistory
+      .filter(h => h.year === formData.year && h.id !== initialData?.id)
+      .flatMap(h => h.selectedSequentials || []);
+  }, [property.iptuHistory, formData.year, initialData]);
+
   const lastYearIptu = useMemo(() => {
     return property.iptuHistory.find(h => h.year === formData.year - 1);
   }, [property.iptuHistory, formData.year]);
@@ -45,6 +51,7 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
   }, [lastYearIptu, formData.singleValue, formData.installmentValue, formData.chosenMethod]);
 
   const toggleSequential = (seq: string) => {
+    if (usedSequentialsForYear.includes(seq)) return;
     setFormData(prev => {
       const current = prev.selectedSequentials;
       if (current.includes(seq)) {
@@ -61,6 +68,7 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
 
     const newIptu: IptuRecord = {
       ...formData,
+      id: initialData?.id || crypto.randomUUID(),
       status: initialData?.status || IptuStatus.PENDING,
       value: finalValue,
     };
@@ -131,27 +139,46 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
                   <span className="material-symbols-outlined text-primary text-[18px]">list_alt</span>
                   Sequenciais Atrelados à Empresa
                 </label>
-                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                  {formData.selectedSequentials.length} selecionado(s)
-                </span>
+                <div className="flex items-center gap-2">
+                  {usedSequentialsForYear.length > 0 && (
+                    <span className="text-[9px] font-bold text-orange-500 uppercase flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px]">warning</span>
+                      Alguns sequenciais já têm IPTU em {formData.year}
+                    </span>
+                  )}
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    {formData.selectedSequentials.length} selecionado(s)
+                  </span>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                {availableSequentials.map(seq => (
-                  <button
-                    key={seq}
-                    type="button"
-                    onClick={() => toggleSequential(seq)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all flex items-center gap-2 ${formData.selectedSequentials.includes(seq)
+                {availableSequentials.map(seq => {
+                  const isUsed = usedSequentialsForYear.includes(seq);
+                  const isSelected = formData.selectedSequentials.includes(seq);
+                  return (
+                    <button
+                      key={seq}
+                      type="button"
+                      disabled={isUsed}
+                      onClick={() => toggleSequential(seq)}
+                      title={isUsed ? "Este sequencial já foi utilizado em outro lançamento para este ano." : ""}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all flex items-center gap-2 relative ${isSelected
                         ? 'bg-primary border-primary text-white shadow-sm'
-                        : 'bg-white dark:bg-[#1a2634] border-gray-200 dark:border-gray-700 text-[#617289] dark:text-[#9ca3af] hover:border-primary/50'
-                      }`}
-                  >
-                    {formData.selectedSequentials.includes(seq) && (
-                      <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                    )}
-                    {seq}
-                  </button>
-                ))}
+                        : isUsed
+                          ? 'bg-gray-100 dark:bg-[#1a2634] border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                          : 'bg-white dark:bg-[#1a2634] border-gray-200 dark:border-gray-700 text-[#617289] dark:text-[#9ca3af] hover:border-primary/50'
+                        }`}
+                    >
+                      {isSelected && (
+                        <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                      )}
+                      {isUsed && (
+                        <span className="material-symbols-outlined text-[14px]">block</span>
+                      )}
+                      {seq}
+                    </button>
+                  );
+                })}
               </div>
               {formData.selectedSequentials.length === 0 && (
                 <p className="text-[10px] text-red-500 font-bold animate-pulse">
@@ -189,11 +216,11 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
               <select
                 value={formData.chosenMethod}
                 onChange={e => setFormData({ ...formData, chosenMethod: e.target.value as PaymentMethod })}
-                className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
+                className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="Cota Única">Cota Única</option>
-                <option value="Parcelado">Parcelado</option>
-                <option value="Em aberto">Em aberto</option>
+                <option value="Cota Única" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Cota Única</option>
+                <option value="Parcelado" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Parcelado</option>
+                <option value="Em aberto" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Em aberto</option>
               </select>
             </div>
 

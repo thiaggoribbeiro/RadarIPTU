@@ -253,10 +253,10 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onAdd }) => {
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase text-[#617289]">Nível de Acesso</label>
-            <select className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none focus:ring-2 focus:ring-primary" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value as UserRole })}>
-              <option value="Usuário">Usuário</option>
-              <option value="Gestor">Gestor</option>
-              <option value="Administrador">Administrador</option>
+            <select className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value as UserRole })}>
+              <option value="Usuário" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Usuário</option>
+              <option value="Gestor" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Gestor</option>
+              <option value="Administrador" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Administrador</option>
             </select>
           </div>
           <div className="space-y-1.5">

@@ -138,9 +138,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="h-10 px-3 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+              className="h-10 px-3 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
             >
-              {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+              {availableYears.map(y => (
+                <option key={y} value={y} className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">
+                  {y}
+                </option>
+              ))}
             </select>
           </div>
           <button

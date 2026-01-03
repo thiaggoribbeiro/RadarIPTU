@@ -1,69 +1,92 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RadarIPTU Dashboard</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    <script>
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              primary: "#C4541B",
-              secondary: "#DEAA8B",
-              "background-light": "#FDFCFB",
-              "background-dark": "#100D0B",
-            },
-            fontFamily: {
-              display: ["Montserrat", "sans-serif"]
-            },
-            borderRadius: {
-              DEFAULT: "0.5rem",
-              lg: "1rem",
-              xl: "1.5rem",
-              full: "9999px"
-            },
-            animation: {
-              'progress-indeterminate': 'progress 1.5s infinite linear',
-            },
-            keyframes: {
-              progress: {
-                '0%': { transform: 'translateX(-100%)' },
-                '100%': { transform: 'translateX(200%)' },
-              }
-            }
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RadarIPTU Dashboard</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;900&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#C4541B",
+            secondary: "#DEAA8B",
+            "background-light": "#FDFCFB",
+            "background-dark": "#100D0B",
           },
+          fontFamily: {
+            display: ["Montserrat", "sans-serif"]
+          },
+          borderRadius: {
+            DEFAULT: "0.5rem",
+            lg: "1rem",
+            xl: "1.5rem",
+            full: "9999px"
+          },
+          animation: {
+            'progress-indeterminate': 'progress 1.5s infinite linear',
+          },
+          keyframes: {
+            progress: {
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(200%)' },
+            }
+          }
         },
-      }
-    </script>
-    <style>
-      body {
-        font-family: 'Montserrat', sans-serif;
-      }
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-      /* Custom scrollbar for better aesthetics with yellow theme */
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #C4541B;
-        border-radius: 10px;
-      }
-    </style>
+      },
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Custom scrollbar for better aesthetics with yellow theme */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #C4541B;
+      border-radius: 10px;
+    }
+
+    /* Dark mode input fixes for contrast */
+    .dark input,
+    .dark select,
+    .dark textarea,
+    .dark input:-webkit-autofill {
+      background-color: #1a2634 !important;
+      color: white !important;
+      -webkit-text-fill-color: white !important;
+      box-shadow: 0 0 0px 1000px #1a2634 inset !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+
+    .dark input::placeholder {
+      color: #9ca3af !important;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -74,10 +97,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white transition-colors duration-200">
-    <div id="root"></div>
+
+<body class="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white transition-colors duration-200">
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

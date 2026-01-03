@@ -69,8 +69,10 @@ const App: React.FC = () => {
           builtArea: item.built_area || 0,
           type: item.type || 'Apartamento',
           appraisalValue: item.appraisal_value || 0,
+          baseYear: item.base_year || new Date().getFullYear(),
           lastUpdated: item.last_updated || new Date().toLocaleDateString('pt-BR'),
           imageUrl: item.image_url || `https://picsum.photos/seed/${item.id}/400/400`,
+          tenants: item.tenants || [],
           iptuHistory: item.iptu_history || []
         }));
         setProperties(mappedData);
@@ -201,7 +203,7 @@ const App: React.FC = () => {
           onAddIptu={async (pid, data) => {
             const target = properties.find(p => p.id === pid);
             if (target) {
-              const historyIndex = target.iptuHistory.findIndex(h => h.year === data.year);
+              const historyIndex = target.iptuHistory.findIndex(h => h.id === data.id);
               let newHistory = [...target.iptuHistory];
               if (historyIndex > -1) newHistory[historyIndex] = data;
               else newHistory = [data, ...newHistory].sort((a, b) => b.year - a.year);
@@ -210,10 +212,10 @@ const App: React.FC = () => {
               if (!error) fetchProperties();
             }
           }}
-          onDeleteIptu={async (pid, year) => {
+          onDeleteIptu={async (pid, iptuId) => {
             const target = properties.find(p => p.id === pid);
-            if (target && confirm(`Excluir IPTU ${year}?`)) {
-              const newHistory = target.iptuHistory.filter(h => h.year !== year);
+            if (target && confirm(`Excluir este lançamento de IPTU?`)) {
+              const newHistory = target.iptuHistory.filter(h => h.id !== iptuId);
               const { error } = await supabase.from('properties').update({ iptu_history: newHistory }).eq('id', pid);
               if (!error) fetchProperties();
             }
@@ -269,6 +271,8 @@ const App: React.FC = () => {
                   built_area: p.builtArea,
                   type: p.type,
                   appraisal_value: p.appraisalValue,
+                  base_year: p.baseYear,
+                  tenants: p.tenants,
                   last_updated: p.lastUpdated,
                   image_url: finalImageUrl
                 }).eq('id', p.id);
@@ -295,6 +299,8 @@ const App: React.FC = () => {
                   built_area: p.builtArea,
                   type: p.type,
                   appraisal_value: p.appraisalValue,
+                  base_year: p.baseYear,
+                  tenants: p.tenants,
                   last_updated: p.lastUpdated,
                   image_url: finalImageUrl,
                   iptu_history: p.iptuHistory
