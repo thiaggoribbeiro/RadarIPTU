@@ -32,12 +32,24 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'appraisalValue' || name === 'landArea' || name === 'builtArea'
-        ? Number(value)
-        : value
-    }));
+    const numValue = name === 'appraisalValue' || name === 'landArea' || name === 'builtArea' || name === 'baseYear'
+      ? Number(value)
+      : value;
+
+    setFormData(prev => {
+      const updated = { ...prev, [name]: numValue };
+
+      // Se mudar o ano base, atualiza todos os units e tenants para manter consistência
+      if (name === 'baseYear') {
+        if (updated.units) {
+          updated.units = updated.units.map(u => ({ ...u, year: numValue as number }));
+        }
+        if (updated.tenants) {
+          updated.tenants = updated.tenants.map(t => ({ ...t, year: numValue as number }));
+        }
+      }
+      return updated;
+    });
   };
 
   const handleClassChange = (isComplex: boolean) => {
@@ -79,14 +91,14 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
   const addUnit = () => {
     setFormData(prev => ({
       ...prev,
-      units: [...(prev.units || []), {
+      units: [{
         sequential: '',
         singleValue: 0,
         installmentValue: 0,
         installmentsCount: 1,
         year: formData.baseYear || new Date().getFullYear(),
         chosenMethod: 'Cota Única'
-      }]
+      }, ...(prev.units || [])]
     }));
   };
 
@@ -99,12 +111,12 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
   const addTenant = () => {
     setFormData(prev => ({
       ...prev,
-      tenants: [...(prev.tenants || []), {
+      tenants: [{
         id: crypto.randomUUID(),
         name: '',
         year: formData.baseYear || new Date().getFullYear(),
         occupiedArea: 0
-      }]
+      }, ...(prev.tenants || [])]
     }));
   };
 
@@ -214,15 +226,9 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
               </h3>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2 flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Nome do Imóvel</label>
-                    <input required name="name" value={formData.name || ''} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Ex: Edifício Central" />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Ano Base</label>
-                    <input required type="number" name="baseYear" value={formData.baseYear || ''} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="2024" />
-                  </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Nome do Imóvel</label>
+                  <input required name="name" value={formData.name || ''} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Ex: Edifício Central" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -325,6 +331,22 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
                   </div>
                 </button>
               </div>
+
+              {/* Ano de Referência Unificado */}
+              {classSelected && (
+                <div className="flex flex-col gap-1.5 mt-4">
+                  <label className="text-xs font-bold text-primary uppercase tracking-wider">Ano de Referência</label>
+                  <input
+                    required
+                    type="number"
+                    name="baseYear"
+                    value={formData.baseYear || ''}
+                    onChange={handleInputChange}
+                    className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm focus:ring-2 focus:ring-primary outline-none font-bold"
+                    placeholder="2025"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Section: Registro de Sequencial (Conditional) */}
@@ -358,7 +380,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
                     <div key={index} className={`flex flex-col gap-6 p-6 rounded-2xl border ${index > 0 ? 'border-dashed border-gray-200 dark:border-gray-700' : 'border-transparent bg-gray-50/50 dark:bg-gray-800/30'}`}>
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
                         {/* Linha 1: Identificação */}
-                        <div className="sm:col-span-6 flex flex-col gap-1.5">
+                        <div className="sm:col-span-8 flex flex-col gap-1.5">
                           <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Sequencial {formData.isComplex ? `#${index + 1}` : ''}</label>
                           <input
                             required
@@ -367,17 +389,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
                             onChange={(e) => handleUnitChange(index, 'sequential', e.target.value)}
                             className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-mono outline-none"
                             placeholder="0000"
-                          />
-                        </div>
-                        <div className="sm:col-span-2 flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Ano</label>
-                          <input
-                            required
-                            type="number"
-                            value={unit.year}
-                            onChange={(e) => handleUnitChange(index, 'year', Number(e.target.value))}
-                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none"
-                            placeholder="2024"
                           />
                         </div>
                         <div className="sm:col-span-4 flex justify-end gap-2 pb-0.5">
@@ -504,7 +515,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
                 <div className="grid grid-cols-1 gap-4">
                   {(formData.tenants || []).map((tenant) => (
                     <div key={tenant.id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end p-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-700">
-                      <div className="sm:col-span-5 flex flex-col gap-1.5">
+                      <div className="sm:col-span-7 flex flex-col gap-1.5">
                         <label className="text-[10px] font-bold text-gray-500 uppercase">Nome da Empresa</label>
                         <input
                           required
@@ -512,17 +523,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
                           onChange={(e) => handleTenantChange(tenant.id, 'name', e.target.value)}
                           className="h-10 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm focus:ring-2 focus:ring-primary outline-none"
                           placeholder="Digite o nome da empresa"
-                        />
-                      </div>
-                      <div className="sm:col-span-2 flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Ano</label>
-                        <input
-                          required
-                          type="number"
-                          value={tenant.year}
-                          onChange={(e) => handleTenantChange(tenant.id, 'year', Number(e.target.value))}
-                          className="h-10 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm focus:ring-2 focus:ring-primary outline-none"
-                          placeholder="2024"
                         />
                       </div>
                       <div className="sm:col-span-3 flex flex-col gap-1.5">
