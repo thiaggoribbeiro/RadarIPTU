@@ -16,14 +16,28 @@ interface PropertyListViewProps {
 const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, onAddProperty, onEditProperty, onDeleteProperty, onOpenIptuConfig, properties, userRole }) => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  const [filterCity, setFilterCity] = useState<string>('all');
+  const [filterUF, setFilterUF] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const uniqueCities = React.useMemo(() => {
+    const cities = properties.map(p => p.city).filter(Boolean) as string[];
+    return Array.from(new Set(cities)).sort();
+  }, [properties]);
+
+  const uniqueUFs = React.useMemo(() => {
+    const states = properties.map(p => p.state).filter(Boolean) as string[];
+    return Array.from(new Set(states)).sort();
+  }, [properties]);
 
   const filteredProperties = properties.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.address.toLowerCase().includes(search.toLowerCase()) ||
       p.registrationNumber.includes(search);
     const matchesType = filterType === 'all' || p.type.toLowerCase() === filterType.toLowerCase();
-    return matchesSearch && matchesType;
+    const matchesCity = filterCity === 'all' || p.city === filterCity;
+    const matchesUF = filterUF === 'all' || p.state === filterUF;
+    return matchesSearch && matchesType && matchesCity && matchesUF;
   });
 
   const canDelete = userRole === 'Gestor' || userRole === 'Administrador';
@@ -54,6 +68,38 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             onChange={(e) => setSearch(e.target.value)}
             className="w-full h-11 pl-10 pr-4 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white"
           />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[140px]">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">location_city</span>
+            <select
+              value={filterCity}
+              onChange={(e) => setFilterCity(e.target.value)}
+              className="w-full h-11 pl-9 pr-10 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-medium"
+            >
+              <option value="all">Cidades</option>
+              {uniqueCities.map(city => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
+          </div>
+
+          <div className="relative min-w-[100px]">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">map</span>
+            <select
+              value={filterUF}
+              onChange={(e) => setFilterUF(e.target.value)}
+              className="size-full h-11 pl-9 pr-10 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-medium"
+            >
+              <option value="all">UF</option>
+              {uniqueUFs.map(uf => (
+                <option key={uf} value={uf}>{uf}</option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
