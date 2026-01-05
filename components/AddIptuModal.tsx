@@ -24,6 +24,7 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
     installmentValue: initialData?.installmentValue || 0,
     installmentsCount: initialData?.installmentsCount || 1,
     chosenMethod: (initialData?.chosenMethod || 'Cota Única') as PaymentMethod,
+    status: initialData?.status || IptuStatus.PENDING,
     holmesCompany: initialData?.holmesCompany || HOLMES_COMPANIES[0],
     startDate: initialData?.startDate || new Date().toISOString().split('T')[0],
     selectedSequentials: initialData?.selectedSequentials || (property.isComplex ? [] : [property.sequential])
@@ -218,9 +219,21 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
                 onChange={e => setFormData({ ...formData, chosenMethod: e.target.value as PaymentMethod })}
                 className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="Cota Única" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Cota Única</option>
-                <option value="Parcelado" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Parcelado</option>
-                <option value="Em aberto" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Em aberto</option>
+                <option value="Cota Única">Cota Única</option>
+                <option value="Parcelado">Parcelado</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase tracking-tighter">Status do Pagamento</label>
+              <select
+                value={formData.status}
+                onChange={e => setFormData({ ...formData, status: e.target.value as IptuStatus })}
+                className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
+              >
+                {Object.values(IptuStatus).map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
               </select>
             </div>
 
@@ -243,11 +256,10 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
               <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase tracking-tighter">Data Pagamento/Início</label>
               <input
                 type="date"
-                required={formData.chosenMethod !== 'Em aberto'}
-                disabled={formData.chosenMethod === 'Em aberto'}
+                required
                 value={formData.startDate}
                 onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:bg-gray-50 dark:disabled:bg-slate-800"
+                className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>

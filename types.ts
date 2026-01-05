@@ -1,13 +1,12 @@
 
 export enum IptuStatus {
   PAID = 'Pago',
+  IN_PROGRESS = 'Em andamento',
   PENDING = 'Pendente',
-  OVERDUE = 'Atrasado',
-  ARCHIVED = 'Arquivado',
-  IN_PAYMENT = 'Em pagamento'
+  OPEN = 'Em aberto'
 }
 
-export type PaymentMethod = 'Cota Única' | 'Parcelado' | 'Em aberto';
+export type PaymentMethod = 'Cota Única' | 'Parcelado';
 
 export interface IptuRecord {
   id: string;
@@ -34,6 +33,7 @@ export interface PropertyUnit {
   installmentsCount: number;
   year: number;
   chosenMethod: PaymentMethod;
+  status: IptuStatus;
 }
 
 export interface Tenant {
@@ -41,6 +41,7 @@ export interface Tenant {
   name: string;
   year: number;
   occupiedArea: number;
+  isSingleTenant?: boolean;
 }
 
 export interface Property {

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Property, PropertyUnit, Tenant, PaymentMethod } from '../types';
+import { Property, PropertyUnit, Tenant, PaymentMethod, IptuStatus } from '../types';
 
 interface IptuConfigModalProps {
     property: Property;
@@ -26,7 +26,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
             installmentValue: 0,
             installmentsCount: 1,
             year: baseYear,
-            chosenMethod: 'Cota Única'
+            chosenMethod: 'Cota Única',
+            status: IptuStatus.OPEN
         }, ...units]);
     };
 
@@ -39,7 +40,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
             id: crypto.randomUUID(),
             name: '',
             year: baseYear,
-            occupiedArea: 0
+            occupiedArea: 0,
+            isSingleTenant: false
         }, ...tenants]);
     };
 
@@ -62,6 +64,16 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
 
     const tenantCalculations = useMemo(() => {
         const yearTenants = tenants.filter(t => t.year === baseYear);
+        const singleTenant = yearTenants.find(t => t.isSingleTenant);
+
+        if (singleTenant) {
+            return yearTenants.map(t => ({
+                ...t,
+                percentage: t.id === singleTenant.id ? 100 : 0,
+                apportionment: t.id === singleTenant.id ? subtotals.total : 0
+            }));
+        }
+
         const totalArea = yearTenants.reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
         return yearTenants.map(t => {
             const percentage = totalArea > 0 ? (t.occupiedArea / totalArea) * 100 : 0;
@@ -69,6 +81,10 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
             return { ...t, percentage, apportionment };
         });
     }, [tenants, baseYear, subtotals.total]);
+
+    const hasSingleTenant = useMemo(() => {
+        return tenants.some(t => t.year === baseYear && t.isSingleTenant);
+    }, [tenants, baseYear]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -110,15 +126,13 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
                             <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
                                 <span className="material-symbols-outlined text-[18px]">app_registration</span> Sequenciais ({baseYear})
                             </h3>
-                            {property.isComplex && (
-                                <button type="button" onClick={addUnit} className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-all">
-                                    <span className="material-symbols-outlined text-[18px]">add</span> ADICIONAR SEQUENCIAL
-                                </button>
-                            )}
+                            <button type="button" onClick={addUnit} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-md">
+                                <span className="material-symbols-outlined text-[18px]">add</span> ADICIONAR SEQUENCIAL
+                            </button>
                         </div>
 
                         <div className="space-y-4">
-                            {(units.length > 0 ? units.filter(u => u.year === baseYear) : [{ sequential: '', singleValue: 0, installmentValue: 0, installmentsCount: 1, year: baseYear, chosenMethod: 'Cota Única' }]).map((unit, index) => (
+                            {(units.length > 0 ? units.filter(u => u.year === baseYear) : [{ sequential: '', singleValue: 0, installmentValue: 0, installmentsCount: 1, year: baseYear, chosenMethod: 'Cota Única', status: IptuStatus.OPEN }]).map((unit, index) => (
                                 <div key={index} className="p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
                                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
                                         <div className="sm:col-span-8 flex flex-col gap-1.5">
@@ -131,7 +145,7 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
                                             />
                                         </div>
                                         <div className="sm:col-span-4 flex justify-end">
-                                            {property.isComplex && units.length > 1 && (
+                                            {units.length > 1 && (
                                                 <button type="button" onClick={() => removeUnit(index)} className="size-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 border border-red-100">
                                                     <span className="material-symbols-outlined">delete</span>
                                                 </button>
@@ -150,11 +164,18 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
                                             <input type="number" min="1" max="12" value={unit.installmentsCount} onChange={(e) => handleUnitChange(index, 'installmentsCount', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-bold text-[#111418] dark:text-white" />
                                         </div>
                                         <div className="sm:col-span-3 flex flex-col gap-1.5">
-                                            <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Forma Escolhida</label>
-                                            <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(index, 'chosenMethod', e.target.value)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-bold">
+                                            <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Forma</label>
+                                            <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(index, 'chosenMethod', e.target.value)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-bold">
                                                 <option value="Cota Única">Cota Única</option>
                                                 <option value="Parcelado">Parcelado</option>
-                                                <option value="Em aberto">Em aberto</option>
+                                            </select>
+                                        </div>
+                                        <div className="sm:col-span-3 flex flex-col gap-1.5">
+                                            <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Status</label>
+                                            <select value={unit.status} onChange={(e) => handleUnitChange(index, 'status', e.target.value)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-bold">
+                                                {Object.values(IptuStatus).map(status => (
+                                                    <option key={status} value={status}>{status}</option>
+                                                ))}
                                             </select>
                                         </div>
                                     </div>
@@ -182,9 +203,29 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
                                     </div>
                                     <div className="sm:col-span-3 flex flex-col gap-1.5">
                                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Área Ocupada (m²)</label>
-                                        <input type="number" step="0.01" value={tenant.occupiedArea} onChange={(e) => handleTenantChange(tenant.id, 'occupiedArea', Number(e.target.value))} className="h-10 px-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-bold" />
+                                        <input type="number" step="0.01" disabled={tenant.isSingleTenant} value={tenant.occupiedArea} onChange={(e) => handleTenantChange(tenant.id, 'occupiedArea', Number(e.target.value))} className="h-10 px-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-bold disabled:opacity-50" />
                                     </div>
-                                    <div className="sm:col-span-2 flex justify-end">
+                                    <div className="sm:col-span-2 flex flex-col gap-1.5">
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Único Locatário</label>
+                                        <div className="h-10 flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={tenant.isSingleTenant || false}
+                                                onChange={(e) => {
+                                                    // Se marcar um como único, desmarca os outros do mesmo ano
+                                                    const updatedTenants = tenants.map(t => {
+                                                        if (t.year === baseYear) {
+                                                            return { ...t, isSingleTenant: t.id === tenant.id ? e.target.checked : false };
+                                                        }
+                                                        return t;
+                                                    });
+                                                    setTenants(updatedTenants);
+                                                }}
+                                                className="size-5 rounded border-gray-300 text-primary focus:ring-primary"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="sm:col-span-1 flex justify-end">
                                         <button type="button" onClick={() => removeTenant(tenant.id)} className="size-10 rounded-lg text-red-500 hover:bg-red-50">
                                             <span className="material-symbols-outlined">delete</span>
                                         </button>
@@ -200,7 +241,7 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
                                         <tr>
                                             <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500">Empresa</th>
                                             <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500">Percentual</th>
-                                            <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 text-right">Valor Rateio</th>
+                                            <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 text-right">{hasSingleTenant ? 'Valor' : 'Valor Rateio'}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">

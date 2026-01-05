@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Property, IptuRecord, UserRole } from '../types';
+import { Property, IptuRecord, UserRole, IptuStatus } from '../types';
 import AddIptuModal from './AddIptuModal';
 import IptuDetailModal from './IptuDetailModal';
 
@@ -148,7 +148,10 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black text-[#111418] dark:text-white flex items-center gap-2 uppercase tracking-tight">
-                <span className="material-symbols-outlined text-primary text-xl font-bold">group</span> Rateio por Locatário
+                <span className="material-symbols-outlined text-primary text-xl font-bold">group</span> {(() => {
+                  const hasSingle = property.tenants.some(t => t.year === selectedYear && t.isSingleTenant);
+                  return hasSingle ? 'Único Responsável' : 'Rateio por Locatário';
+                })()}
               </h3>
               <div className="flex items-center gap-3">
                 <div className="relative flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gray-100/80 dark:bg-[#1e2a3b] border border-transparent hover:border-primary/40 transition-all group overflow-hidden cursor-pointer shadow-sm">
@@ -182,7 +185,9 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     <th className="px-6 py-4 text-[9px] font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Locatário / Empresa</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Área Ocupada</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Percentual</th>
-                    <th className="px-6 py-4 text-[9px] font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-right">Valor Rateio</th>
+                    <th className="px-6 py-4 text-[9px] font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-right">
+                      {property.tenants.some(t => t.year === selectedYear && t.isSingleTenant) ? 'Valor' : 'Valor Rateio'}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50 text-sm">
@@ -201,8 +206,9 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     }
 
                     return yearTenants.map((tenant) => {
-                      const percentage = totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0;
-                      const apportionment = totalArea > 0 ? (tenant.occupiedArea / totalArea) * totalIptu : 0;
+                      const isSingle = tenant.isSingleTenant;
+                      const percentage = isSingle ? 100 : (totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0);
+                      const apportionment = isSingle ? totalIptu : (totalArea > 0 ? (tenant.occupiedArea / totalArea) * totalIptu : 0);
                       return (
                         <tr key={tenant.id} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors group">
                           <td className="px-6 py-4 font-black text-[#111418] dark:text-white uppercase group-hover:text-primary transition-colors">{tenant.name}</td>
@@ -230,9 +236,10 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               </h3>
               <button
                 onClick={() => onOpenIptuConfig(property)}
-                className="size-8 flex items-center justify-center bg-primary text-white rounded-lg shadow-lg shadow-primary/30 hover:scale-110 active:scale-95 transition-all"
+                className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-black transition-all shadow-md uppercase active:scale-95"
               >
-                <span className="material-symbols-outlined font-black text-lg">add</span>
+                <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                Inserir Sequencial
               </button>
             </div>
 
@@ -243,7 +250,8 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Sequencial</th>
                     <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Cota Única</th>
                     <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Parcelado</th>
-                    <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Forma Escolhida</th>
+                    <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Forma</th>
+                    <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Status</th>
                     <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px] text-right">Ações</th>
                   </tr>
                 </thead>
@@ -262,13 +270,22 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${unit.chosenMethod === 'Cota Única' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
-                              unit.chosenMethod === 'Parcelado' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' : 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300'
+                              'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
                               }`}>
                               {unit.chosenMethod}
                             </span>
                           </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${unit.status === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
+                              unit.status === IptuStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' :
+                                unit.status === IptuStatus.PENDING ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300' :
+                                  'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'
+                              }`}>
+                              {unit.status}
+                            </span>
+                          </td>
                           <td className="px-6 py-4 text-right">
-                            <button onClick={() => handleEditIptu(unit)} className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-all">
+                            <button onClick={() => onOpenIptuConfig(property)} className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-all">
                               <span className="material-symbols-outlined text-[18px]">edit</span>
                             </button>
                           </td>

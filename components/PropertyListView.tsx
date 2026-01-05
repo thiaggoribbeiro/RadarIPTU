@@ -193,8 +193,11 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                 </div>
                 <div className="p-5 flex-1" onClick={() => onSelectProperty(property.id)}>
                   <h3 className="text-lg font-bold text-[#111418] dark:text-white group-hover:text-secondary transition-colors">{property.name}</h3>
-                  <p className="text-sm font-medium text-[#617289] dark:text-[#9ca3af] mt-1 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">location_on</span>
+                  <p className="text-[13px] font-medium text-[#617289] dark:text-[#9ca3af] mt-1 line-clamp-1" title={property.address}>
+                    {property.address}
+                  </p>
+                  <p className="text-[12px] font-medium text-[#94a3b8] dark:text-[#64748b] mt-0.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">location_on</span>
                     {property.neighborhood}, {property.city}
                   </p>
                   <div className="mt-6 pt-4 border-t border-gray-100 dark:border-[#2a3644] flex justify-between items-center">
@@ -224,7 +227,6 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
               <thead className="bg-gray-50 dark:bg-[#22303e] border-b-2 border-primary">
                 <tr>
                   <th className="px-6 py-4 text-[10px] font-semibold uppercase text-[#111418] dark:text-[#9ca3af]">Imóvel</th>
-                  <th className="px-6 py-4 text-[10px] font-semibold uppercase text-[#111418] dark:text-[#9ca3af]">Inscrição</th>
                   <th className="px-6 py-4 text-[10px] font-semibold uppercase text-[#111418] dark:text-[#9ca3af]">Posse</th>
                   <th className="px-6 py-4 text-[10px] font-semibold uppercase text-[#111418] dark:text-[#9ca3af]">Status</th>
                   <th className="px-6 py-4 text-right text-[10px] font-semibold uppercase text-[#111418] dark:text-[#9ca3af]">Ações</th>
@@ -239,8 +241,12 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
 
                   return (
                     <tr key={property.id} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors cursor-pointer" onClick={() => onSelectProperty(property.id)}>
-                      <td className="px-6 py-4 text-sm font-bold">{property.name}</td>
-                      <td className="px-6 py-4 text-sm font-mono tracking-tight">{property.registrationNumber}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-[#111418] dark:text-white">{property.name}</span>
+                          <span className="text-[12px] text-[#617289] dark:text-[#9ca3af] mt-0.5 line-clamp-1">{property.address}</span>
+                        </div>
+                      </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${property.possession === 'Grupo' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
                           {property.possession}
