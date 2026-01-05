@@ -1,7 +1,5 @@
-
-import React, { useState } from 'react';
-import { Property, IptuStatus, IptuRecord, PaymentMethod, UserRole } from '../types';
-import { getDynamicStatus, formatDate } from '../utils/iptu';
+import React, { useState, useMemo } from 'react';
+import { Property, IptuRecord, UserRole } from '../types';
 import AddIptuModal from './AddIptuModal';
 import IptuDetailModal from './IptuDetailModal';
 
@@ -11,15 +9,29 @@ interface PropertyDetailModalProps {
   onClose: () => void;
   onAddIptu: (propertyId: string, newIptu: IptuRecord) => void;
   onDeleteIptu: (propertyId: string, year: number) => void;
+  onOpenIptuConfig: (property: Property) => void;
 }
 
-const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, userRole, onClose, onAddIptu, onDeleteIptu }) => {
+const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
+  property,
+  userRole,
+  onClose,
+  onAddIptu,
+  onOpenIptuConfig
+}) => {
   const [isAddIptuOpen, setIsAddIptuOpen] = useState(false);
   const [selectedIptuDetails, setSelectedIptuDetails] = useState<IptuRecord | null>(null);
   const [iptuToEdit, setIptuToEdit] = useState<IptuRecord | null>(null);
 
-  const canDelete = userRole === 'Gestor' || userRole === 'Administrador';
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    property.units.forEach(u => years.add(u.year));
+    property.tenants.forEach(t => years.add(t.year));
+    if (years.size === 0) years.add(new Date().getFullYear());
+    return Array.from(years).sort((a, b) => b - a);
+  }, [property.units, property.tenants]);
 
+  const [selectedYear, setSelectedYear] = useState<number>(availableYears[0]);
 
   const handleEditIptu = (iptu: IptuRecord) => {
     setIptuToEdit(iptu);
@@ -27,228 +39,335 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, use
     setIsAddIptuOpen(true);
   };
 
+  const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
       <div
-        className="bg-white dark:bg-[#1a2634] w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-gray-200 dark:border-[#2a3644] overflow-hidden animate-in zoom-in-95 duration-300"
+        className="bg-white dark:bg-[#1a2634] w-full max-w-6xl max-h-[95vh] flex flex-col rounded-3xl shadow-2xl border border-gray-200 dark:border-[#2a3644] overflow-hidden animate-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between px-8 py-5 border-b-4 border-primary bg-gray-50 dark:bg-[#1e2a3b]">
+        <header className="flex items-center justify-between px-8 py-5 border-b-2 border-primary bg-gray-50 dark:bg-[#1e2a3b]">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
-              <span className="material-symbols-outlined">apartment</span>
+            <div className="size-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="material-symbols-outlined text-xl">apartment</span>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#111418] dark:text-white uppercase tracking-tight">{property.name}</h2>
-              <p className="text-xs font-semibold text-[#617289] dark:text-[#9ca3af]">Inscrição: {property.registrationNumber}</p>
+              <h2 className="text-xl font-black text-[#111418] dark:text-white uppercase tracking-tight">{property.name}</h2>
+              <p className="text-[10px] font-bold text-primary/80 uppercase tracking-widest">Inscrição: #{property.registrationNumber}</p>
             </div>
           </div>
-          <button onClick={onClose} className="size-10 flex items-center justify-center rounded-full hover:bg-primary/20 transition-colors">
-            <span className="material-symbols-outlined text-[#111418] dark:text-white font-semibold text-[24px]">close</span>
+          <button onClick={onClose} className="size-10 flex items-center justify-center rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-95">
+            <span className="material-symbols-outlined text-[#111418] dark:text-white font-bold text-xl">close</span>
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 flex flex-col md:flex-row gap-6 p-6 bg-gray-50 dark:bg-[#1e2a3b] rounded-2xl border border-gray-100 dark:border-[#2a3644]">
-              <img src={property.imageUrl} alt={property.name} className="w-full md:w-56 h-56 object-cover rounded-xl shadow-md border-2 border-white dark:border-gray-700" />
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-2xl font-bold text-[#111418] dark:text-white uppercase">Localização</h3>
-                  <p className="text-[#617289] dark:text-[#9ca3af] flex items-center gap-1 mt-1 font-medium">
-                    <span className="material-symbols-outlined text-[18px] text-primary">location_on</span>
-                    {property.address}, {property.neighborhood}
-                  </p>
-                  <p className="text-[#617289] dark:text-[#9ca3af] ml-6 font-medium">{property.city} - {property.state}, CEP {property.zipCode}</p>
-                  <div className="flex gap-2 mt-4">
-                    <span className="px-3 py-1 bg-primary text-white rounded-lg text-xs font-bold uppercase">
-                      {property.type}
-                    </span>
-                    <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase ${property.possession === 'Grupo' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                      Posse: {property.possession}
-                    </span>
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-10 custom-scrollbar">
+          {/* Seção Superior: Foto e Localização */}
+          <section className="bg-gray-50/50 dark:bg-[#1a2634] p-6 rounded-3xl border border-gray-100 dark:border-[#2a3644] shadow-sm">
+            <div className="flex flex-col md:flex-row gap-8 items-start">
+              <div className="w-full md:w-80 h-64 bg-gray-200 dark:bg-[#1e2a3b] rounded-2xl overflow-hidden shadow-lg flex-shrink-0 border-2 border-white dark:border-gray-700 relative group">
+                {property.imageUrl ? (
+                  <img src={property.imageUrl} alt={property.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-[#617289]">
+                    <span className="material-symbols-outlined text-5xl mb-1">image_not_supported</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-center">SEM FOTO</span>
                   </div>
+                )}
+              </div>
+
+              <div className="flex-1 space-y-5 self-center">
+                <div>
+                  <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] font-bold">location_on</span> Localização
+                  </h3>
+                  <p className="text-3xl font-black text-[#111418] dark:text-white leading-tight mb-2">
+                    {property.address}
+                  </p>
+                  <p className="text-base font-bold text-[#617289] dark:text-[#9ca3af]">
+                    {property.neighborhood} • {property.city} - {property.state}
+                  </p>
+                  <p className="text-[11px] font-semibold text-primary/70 mt-1 uppercase tracking-widest">CEP: {property.zipCode}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 bg-primary text-white text-[9px] font-black rounded-lg uppercase shadow-sm">
+                    {property.type}
+                  </span>
+                  <span className="px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[9px] font-black rounded-lg uppercase">
+                    POSSE: {property.possessionType}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#1e2a3b] p-6 rounded-2xl border border-gray-100 dark:border-[#2a3644] shadow-sm">
-              <h4 className="text-sm font-bold text-[#111418] dark:text-primary uppercase tracking-wider flex items-center gap-2 mb-6 border-b-2 border-primary/50 pb-2">
-                <span className="material-symbols-outlined font-semibold">assignment</span>
-                Dados do Imóvel
-              </h4>
-              <div className="space-y-3">
+            {/* Dados do Imóvel: Compactado abaixo da localização */}
+            <div className="mt-8 bg-white dark:bg-[#1e2a3b] p-6 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
+              <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-6 flex items-center gap-2 border-b border-gray-50 dark:border-gray-700 pb-3">
+                <span className="material-symbols-outlined text-[16px] font-bold">analytics</span> Dados do Imóvel
+              </h3>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
                 {[
-                  { label: 'Proprietário', value: property.ownerName },
-                  { label: 'Cadastro Imob.', value: property.registryOwner },
-                  { label: 'Inscrição', value: property.registrationNumber },
-                  ...(property.isComplex ? [] : [{ label: 'Sequencial', value: property.sequential }]),
-                  { label: 'Área Terreno', value: `${property.landArea} m²` },
-                  { label: 'Área Const.', value: `${property.builtArea} m²` },
-                  { label: 'V. Venal', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(property.appraisalValue) },
+                  { label: 'Proprietário', value: property.ownerName, icon: 'person' },
+                  { label: 'Cadas. Imob.', value: property.registryOwner, icon: 'domain' },
+                  { label: 'Inscrição', value: property.registrationNumber, icon: 'tag' },
+                  { label: 'V. Venal', value: currencyFormatter.format(property.appraisalValue), icon: 'payments', highlight: 'text-emerald-600' },
+                  { label: 'Área Terreno', value: `${property.landArea.toLocaleString('pt-BR')} m²`, icon: 'straighten' },
+                  { label: 'Área Constr.', value: `${property.builtArea.toLocaleString('pt-BR')} m²`, icon: 'architecture' },
                 ].map((item, i) => (
-                  <div key={i} className="flex flex-col border-b border-gray-100 dark:border-gray-700/50 pb-2 last:border-0">
-                    <span className="text-[9px] font-bold text-[#617289] uppercase tracking-tighter">{item.label}</span>
-                    <span className="text-sm font-bold text-[#111418] dark:text-white">{item.value}</span>
+                  <div key={i} className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 opacity-50">
+                      <span className="material-symbols-outlined text-[14px] text-[#617289] dark:text-[#9ca3af]">{item.icon}</span>
+                      <span className="text-[8px] font-black uppercase tracking-wider">{item.label}</span>
+                    </div>
+                    <span className={`text-xs font-bold ${item.highlight || 'text-[#111418] dark:text-white'} truncate`}>{item.value}</span>
                   </div>
                 ))}
+              </div>
 
-                {property.isComplex && property.units && property.units.length > 0 && (
-                  <div className="mt-4 space-y-3 bg-gray-50 dark:bg-[#1a2634] p-3 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
-                    <h5 className="text-[10px] font-bold text-primary uppercase">Sequenciais Detalhados</h5>
-                    {property.units.map((unit, idx) => (
-                      <div key={idx} className="flex flex-col border-b border-gray-100 dark:border-gray-700/50 pb-2 last:border-0 last:pb-0">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-[#111418] dark:text-white">#{idx + 1} - {unit.sequential}</span>
-                        </div>
-                        <div className="flex gap-4 text-[10px] font-semibold text-[#617289]">
-                          {unit.singleValue > 0 && <span className="text-emerald-600">Cota Única: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(unit.singleValue)}</span>}
-                        </div>
+              {/* Sequenciais em Complexos */}
+              {property.isComplex && property.units && property.units.length > 0 && (
+                <div className="mt-8 pt-5 border-t border-gray-50 dark:border-gray-700">
+                  <h4 className="text-[9px] font-black text-[#617289] dark:text-[#9ca3af] uppercase tracking-widest mb-3">Sequenciais Vinculados</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from(new Set(property.units.map(u => u.sequential))).map((seq, idx) => (
+                      <div key={idx} className="bg-primary/5 dark:bg-primary/10 px-3 py-1 rounded-lg border border-primary/10 flex items-center gap-2">
+                        <span className="text-[9px] font-black text-primary">#{idx + 1}</span>
+                        <span className="text-xs font-mono font-bold text-[#111418] dark:text-white">{seq}</span>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </section>
 
-          {property.tenants && property.tenants.length > 0 && (
-            <section className="space-y-4 animate-in slide-in-from-bottom-2 duration-500">
-              <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-2 uppercase tracking-tight">
-                <span className="material-symbols-outlined text-primary font-semibold">group</span> Rateio por Locatário
-              </h3>
-              <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
-                    <tr>
-                      <th className="px-6 py-4 text-[10px] font-bold uppercase text-gray-500 dark:text-[#9ca3af]">Empresa</th>
-                      <th className="px-6 py-4 text-[10px] font-bold uppercase text-gray-500 dark:text-[#9ca3af]">Área Ocupada</th>
-                      <th className="px-6 py-4 text-[10px] font-bold uppercase text-gray-500 dark:text-[#9ca3af]">Percentual</th>
-                      <th className="px-6 py-4 text-[10px] font-bold uppercase text-gray-500 dark:text-[#9ca3af] text-right">Valor Rateio (Ref. Atual)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                    {(() => {
-                      const totalIptu = property.units.reduce((acc, u) => acc + (u.singleValue || 0), 0);
-                      const totalArea = property.tenants.reduce((acc, t) => acc + (t.occupiedArea || 0), 0);
-                      return property.tenants.map((tenant) => {
-                        const percentage = totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0;
-                        const apportionment = totalArea > 0 ? (tenant.occupiedArea / totalArea) * totalIptu : 0;
-                        return (
-                          <tr key={tenant.id} className="hover:bg-primary/5 transition-colors">
-                            <td className="px-6 py-4 text-sm font-bold uppercase">{tenant.name}</td>
-                            <td className="px-6 py-4 text-sm font-semibold text-[#617289] dark:text-[#9ca3af]">{tenant.occupiedArea.toLocaleString('pt-BR')} m²</td>
-                            <td className="px-6 py-4">
-                              <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">{percentage.toFixed(1)}%</span>
-                            </td>
-                            <td className="px-6 py-4 text-sm font-black text-emerald-600 text-right">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(apportionment)}
-                            </td>
-                          </tr>
-                        );
-                      });
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
-
-          <section className="space-y-4">
+          {/* Seção de Rateio */}
+          <section className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-2 uppercase tracking-tight">
-                <span className="material-symbols-outlined text-primary font-semibold">history</span> Histórico de IPTU
+              <h3 className="text-lg font-black text-[#111418] dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                <span className="material-symbols-outlined text-primary text-xl font-bold">group</span> Rateio por Locatário
               </h3>
-              <button
-                onClick={() => { setIptuToEdit(null); setIsAddIptuOpen(true); }}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-[#a64614] rounded-xl text-sm font-bold transition-all shadow-md"
-              >
-                <span className="material-symbols-outlined text-[18px] font-semibold">add</span>
-                NOVO IPTU
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="relative flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gray-100/80 dark:bg-[#1e2a3b] border border-transparent hover:border-primary/40 transition-all group overflow-hidden cursor-pointer shadow-sm">
+                  <div className="flex items-center gap-1.5 pointer-events-none">
+                    <span className="text-[9px] font-black text-primary uppercase tracking-widest select-none">Ano:</span>
+                    <span className="text-sm font-black text-[#111418] dark:text-white select-none">{selectedYear}</span>
+                    <span className="material-symbols-outlined text-[16px] text-primary transition-transform group-hover:translate-y-0.5">expand_more</span>
+                  </div>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full appearance-none z-10"
+                  >
+                    {availableYears.map(y => <option key={y} value={y} className="dark:bg-[#1a2634]">{y}</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={() => onOpenIptuConfig(property)}
+                  className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-black transition-all shadow-md uppercase active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[18px]">person_add</span>
+                  Inserir Locatário
+                </button>
+              </div>
             </div>
 
             <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
                   <tr>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Ano</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Sequenciais</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Detalhamento</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Valor Total</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Status</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af] text-right">Ações</th>
+                    <th className="px-6 py-4 text-[9px] font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Locatário / Empresa</th>
+                    <th className="px-6 py-4 text-[9px] font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Área Ocupada</th>
+                    <th className="px-6 py-4 text-[9px] font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Percentual</th>
+                    <th className="px-6 py-4 text-[9px] font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-right">Valor Rateio</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                  {property.iptuHistory.length > 0 ? property.iptuHistory.sort((a, b) => b.year - a.year).map((iptu, idx) => {
-                    const status = getDynamicStatus(iptu);
-                    return (
-                      <tr key={idx} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors">
-                        <td className="px-6 py-4 text-sm font-bold">{iptu.year}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-1 max-w-[150px]">
-                            {iptu.selectedSequentials?.map(seq => (
-                              <span key={seq} className="px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-[9px] font-bold">
-                                {seq}
-                              </span>
-                            )) || <span className="text-[10px] text-gray-400 italic">Nenhum</span>}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {iptu.chosenMethod === 'Parcelado' ? (
-                            <div className="flex flex-col">
-                              <span className="text-xs font-bold text-secondary">Parcelado ({iptu.installmentsCount}x)</span>
-                              <span className="text-[10px] font-semibold text-[#617289] dark:text-[#9ca3af]">Início: {formatDate(iptu.startDate)}</span>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col">
-                              <span className="text-xs font-bold text-emerald-600">Cota Única</span>
-                              <span className="text-[10px] font-semibold text-[#617289] dark:text-[#9ca3af]">Pago: {formatDate(iptu.startDate)}</span>
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-bold text-[#111418] dark:text-white">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(iptu.value)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${status === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
-                            status === IptuStatus.IN_PAYMENT ? 'bg-blue-100 text-blue-700' :
-                              'bg-primary/20 text-[#111418] dark:text-primary'
-                            }`}>
-                            <span className={`size-1.5 rounded-full ${status === IptuStatus.PAID ? 'bg-emerald-500' :
-                              status === IptuStatus.IN_PAYMENT ? 'bg-blue-500' : 'bg-primary'
-                              }`}></span>
-                            {status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {canDelete && (
-                              <button
-                                onClick={() => onDeleteIptu(property.id, iptu.id)}
-                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
-                              >
-                                <span className="material-symbols-outlined text-[18px]">delete</span>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setSelectedIptuDetails(iptu)}
-                              className="px-3 py-1 text-[11px] font-bold uppercase text-white bg-primary hover:bg-[#a64614] rounded-lg transition-all shadow-sm"
-                            >
-                              Detalhes
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50 text-sm">
+                  {(() => {
+                    const yearUnits = property.units.filter(u => u.year === selectedYear);
+                    const yearTenants = property.tenants.filter(t => t.year === selectedYear);
+                    const totalIptu = yearUnits.reduce((acc, u) => acc + (u.singleValue || 0), 0);
+                    const totalArea = yearTenants.reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
+
+                    if (yearTenants.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-12 text-center text-[#617289] dark:text-[#9ca3af] font-bold italic opacity-60">Nenhum locatário cadastrado para {selectedYear}.</td>
+                        </tr>
+                      );
+                    }
+
+                    return yearTenants.map((tenant) => {
+                      const percentage = totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0;
+                      const apportionment = totalArea > 0 ? (tenant.occupiedArea / totalArea) * totalIptu : 0;
+                      return (
+                        <tr key={tenant.id} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors group">
+                          <td className="px-6 py-4 font-black text-[#111418] dark:text-white uppercase group-hover:text-primary transition-colors">{tenant.name}</td>
+                          <td className="px-6 py-4 font-bold text-[#617289] dark:text-[#9ca3af]">{tenant.occupiedArea.toLocaleString('pt-BR')} m²</td>
+                          <td className="px-6 py-4">
+                            <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[9px] font-black tracking-widest">{percentage.toFixed(1)}%</span>
+                          </td>
+                          <td className="px-6 py-4 font-black text-emerald-600 text-right">
+                            {currencyFormatter.format(apportionment)}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Histórico: Ocupando agora toda a largura */}
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-[#111418] dark:text-white flex items-center gap-3 uppercase tracking-tight">
+                <span className="material-symbols-outlined text-primary text-xl font-bold">history</span> Histórico {selectedYear}
+              </h3>
+              <button
+                onClick={() => onOpenIptuConfig(property)}
+                className="size-8 flex items-center justify-center bg-primary text-white rounded-lg shadow-lg shadow-primary/30 hover:scale-110 active:scale-95 transition-all"
+              >
+                <span className="material-symbols-outlined font-black text-lg">add</span>
+              </button>
+            </div>
+
+            <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
+                  <tr>
+                    <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Sequencial</th>
+                    <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Cota Única</th>
+                    <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Parcelado</th>
+                    <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Forma Escolhida</th>
+                    <th className="px-6 py-3 font-black uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px] text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                  {property.units && property.units.filter(u => u.year === selectedYear).length > 0 ? (
+                    [...property.units]
+                      .filter(u => u.year === selectedYear)
+                      .sort((a, b) => a.sequential.localeCompare(b.sequential))
+                      .map((unit, idx) => (
+                        <tr key={idx} className="hover:bg-primary/5 dark:hover:bg-primary/20 transition-colors group">
+                          <td className="px-6 py-4 font-mono font-bold text-sm text-primary">{unit.sequential}</td>
+                          <td className="px-6 py-4 font-black text-emerald-600">{currencyFormatter.format(unit.singleValue)}</td>
+                          <td className="px-6 py-4 font-bold text-orange-600">
+                            {currencyFormatter.format(unit.installmentValue)}
+                            <span className="text-[10px] opacity-60 ml-1">({unit.installmentsCount}x)</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${unit.chosenMethod === 'Cota Única' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
+                              unit.chosenMethod === 'Parcelado' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' : 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300'
+                              }`}>
+                              {unit.chosenMethod}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button onClick={() => handleEditIptu(unit)} className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-all">
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  }) : (
+                          </td>
+                        </tr>
+                      ))
+                  ) : (
                     <tr>
-                      <td colSpan={5} className="px-6 py-10 text-center text-[#617289] font-semibold">Sem histórico de IPTU registrado.</td>
+                      <td colSpan={5} className="px-6 py-12 text-center text-[#617289] dark:text-[#9ca3af] font-black italic text-xs uppercase opacity-40">Sem dados.</td>
                     </tr>
                   )}
                 </tbody>
               </table>
+            </div>
+          </section>
+
+          {/* Analítica: Também ocupando toda a largura, abaixo do Histórico */}
+          <section className="space-y-6 pt-4">
+            <h3 className="text-lg font-black text-[#111418] dark:text-white flex items-center gap-3 uppercase tracking-tight">
+              <span className="material-symbols-outlined text-primary text-xl font-bold">query_stats</span> Análise Comparativa
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {(() => {
+                const currentUnits = property.units.filter(u => u.year === selectedYear);
+                const prevUnits = property.units.filter(u => u.year === selectedYear - 1);
+                const totalSingleCur = currentUnits.reduce((acc, u) => acc + (u.singleValue || 0), 0);
+                const totalInstallCur = currentUnits.reduce((acc, u) => acc + (u.installmentValue || 0), 0);
+                const totalSinglePrev = prevUnits.reduce((acc, u) => acc + (u.singleValue || 0), 0);
+                const totalInstallPrev = prevUnits.reduce((acc, u) => acc + (u.installmentValue || 0), 0);
+
+                // Card 1: Economia Cota Única vs Parcelado
+                const econSingle = totalInstallCur - totalSingleCur;
+
+                // Card 2: Cota Única Ano Anterior vs Ano Atual
+                const diffSingle = totalSingleCur - totalSinglePrev;
+                const varSingle = totalSinglePrev > 0 ? (diffSingle / totalSinglePrev) * 100 : 0;
+
+                // Card 3: Parcelado Ano Anterior vs Ano Atual
+                const diffInstall = totalInstallCur - totalInstallPrev;
+                const varInstall = totalInstallPrev > 0 ? (diffInstall / totalInstallPrev) * 100 : 0;
+
+                return (
+                  <>
+                    {/* Card 1: Cota Única vs Parcelado */}
+                    <div className="bg-emerald-600 text-white p-6 rounded-2xl shadow-lg flex flex-col gap-2 relative overflow-hidden">
+                      <span className="material-symbols-outlined absolute -bottom-2 -right-2 text-6xl opacity-10">savings</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest opacity-80">Cota Única vs Parcelado</span>
+                      <span className="text-2xl font-black">{currencyFormatter.format(econSingle)}</span>
+                      <span className="text-[9px] font-bold bg-white/20 w-fit px-2 py-0.5 rounded-lg uppercase">Economia ao pagar à vista</span>
+                    </div>
+
+                    {/* Card 2: Cota Única Ano Anterior vs Ano Atual */}
+                    <div className="bg-white dark:bg-[#1a2634] p-6 rounded-2xl border border-gray-100 dark:border-[#2a3644] shadow-sm flex flex-col gap-2 relative overflow-hidden">
+                      <span className="material-symbols-outlined absolute -bottom-2 -right-2 text-6xl opacity-5">calendar_today</span>
+                      <span className="text-[9px] font-black text-primary uppercase tracking-widest">Cota Única {selectedYear - 1} vs {selectedYear}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-2xl font-black ${totalSinglePrev > 0 ? (varSingle > 0 ? 'text-red-500' : 'text-emerald-500') : 'text-[#617289]'}`}>
+                          {totalSinglePrev > 0 ? `${varSingle > 0 ? '+' : ''}${varSingle.toFixed(1)}%` : 'N/A'}
+                        </span>
+                        {totalSinglePrev > 0 && (
+                          <span className={`material-symbols-outlined text-lg ${varSingle > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                            {varSingle > 0 ? 'trending_up' : 'trending_down'}
+                          </span>
+                        )}
+                      </div>
+                      {totalSinglePrev > 0 ? (
+                        <span className={`text-xs font-bold ${varSingle > 0 ? 'text-red-500/80' : 'text-emerald-500/80'}`}>
+                          {varSingle > 0 ? '+' : ''}{currencyFormatter.format(diffSingle)}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-[#617289] opacity-60">Sem dados do ano anterior</span>
+                      )}
+                    </div>
+
+                    {/* Card 3: Parcelado Ano Anterior vs Ano Atual */}
+                    <div className="bg-white dark:bg-[#1a2634] p-6 rounded-2xl border border-gray-100 dark:border-[#2a3644] shadow-sm flex flex-col gap-2 relative overflow-hidden">
+                      <span className="material-symbols-outlined absolute -bottom-2 -right-2 text-6xl opacity-5">event_repeat</span>
+                      <span className="text-[9px] font-black text-primary uppercase tracking-widest">Parcelado {selectedYear - 1} vs {selectedYear}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-2xl font-black ${totalInstallPrev > 0 ? (varInstall > 0 ? 'text-red-500' : 'text-emerald-500') : 'text-[#617289]'}`}>
+                          {totalInstallPrev > 0 ? `${varInstall > 0 ? '+' : ''}${varInstall.toFixed(1)}%` : 'N/A'}
+                        </span>
+                        {totalInstallPrev > 0 && (
+                          <span className={`material-symbols-outlined text-lg ${varInstall > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                            {varInstall > 0 ? 'trending_up' : 'trending_down'}
+                          </span>
+                        )}
+                      </div>
+                      {totalInstallPrev > 0 ? (
+                        <span className={`text-xs font-bold ${varInstall > 0 ? 'text-red-500/80' : 'text-emerald-500/80'}`}>
+                          {varInstall > 0 ? '+' : ''}{currencyFormatter.format(diffInstall)}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-[#617289] opacity-60">Sem dados do ano anterior</span>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </section>
         </div>

@@ -11,6 +11,7 @@ import AddPropertyModal from './components/AddPropertyModal';
 import ReportsView from './components/ReportsView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import Navbar from './components/Navbar';
+import IptuConfigModal from './components/IptuConfigModal';
 import { supabase } from './lib/supabase';
 
 const App: React.FC = () => {
@@ -26,6 +27,8 @@ const App: React.FC = () => {
   const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState<boolean>(false);
   const [propertyToEdit, setPropertyToEdit] = useState<Property | null>(null);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState<boolean>(false);
+  const [isIptuConfigModalOpen, setIsIptuConfigModalOpen] = useState<boolean>(false);
+  const [propertyForConfig, setPropertyForConfig] = useState<Property | null>(null);
   const [userEmail, setUserEmail] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
   const [userRole, setUserRole] = useState<UserRole>('Usuário');
@@ -189,6 +192,10 @@ const App: React.FC = () => {
                 if (!error) fetchProperties();
               }
             }}
+            onOpenIptuConfig={(p) => {
+              setPropertyForConfig(p);
+              setIsIptuConfigModalOpen(true);
+            }}
             userRole={userRole}
           />
         )}
@@ -219,6 +226,10 @@ const App: React.FC = () => {
               const { error } = await supabase.from('properties').update({ iptu_history: newHistory }).eq('id', pid);
               if (!error) fetchProperties();
             }
+          }}
+          onOpenIptuConfig={(p) => {
+            setPropertyForConfig(p);
+            setIsIptuConfigModalOpen(true);
           }}
         />
       )}
@@ -315,6 +326,40 @@ const App: React.FC = () => {
             } catch (err: any) {
               console.error('Erro ao salvar imóvel:', err.message);
               alert('Erro ao salvar imóvel: ' + err.message);
+            } finally {
+              setLoading(false);
+            }
+          }}
+        />
+      )}
+      {isIptuConfigModalOpen && propertyForConfig && (
+        <IptuConfigModal
+          property={propertyForConfig}
+          onClose={() => {
+            setIsIptuConfigModalOpen(false);
+            setPropertyForConfig(null);
+          }}
+          onSubmit={async (propertyId, units, tenants, baseYear) => {
+            setLoading(true);
+            try {
+              const { error } = await supabase
+                .from('properties')
+                .update({
+                  units,
+                  tenants,
+                  base_year: baseYear,
+                  last_updated: new Date().toLocaleDateString('pt-BR')
+                })
+                .eq('id', propertyId);
+
+              if (error) throw error;
+
+              fetchProperties();
+              setIsIptuConfigModalOpen(false);
+              setPropertyForConfig(null);
+            } catch (err: any) {
+              console.error('Erro ao configurar IPTU:', err.message);
+              alert('Erro ao configurar IPTU: ' + err.message);
             } finally {
               setLoading(false);
             }

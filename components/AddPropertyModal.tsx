@@ -1,6 +1,5 @@
-
-import React, { useState, useMemo } from 'react';
-import { Property, PropertyType, IptuStatus, PropertyUnit, Tenant } from '../types';
+import React, { useState } from 'react';
+import { Property, PropertyType, Tenant } from '../types';
 
 interface AddPropertyModalProps {
   onClose: () => void;
@@ -21,8 +20,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
     units: [],
     tenants: [],
     registrationNumber: '',
-    sequential: '',
-    baseYear: new Date().getFullYear()
+    sequential: ''
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -53,120 +51,12 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
   };
 
   const handleClassChange = (isComplex: boolean) => {
-    const initialUnit: PropertyUnit = {
-      sequential: formData.sequential || '',
-      singleValue: 0,
-      installmentValue: 0,
-      installmentsCount: 1,
-      year: formData.baseYear || new Date().getFullYear(),
-      chosenMethod: 'Cota Única'
-    };
-
     setFormData(prev => ({
       ...prev,
-      isComplex,
-      units: isComplex
-        ? (prev.units?.length ? prev.units : [initialUnit])
-        : []
+      isComplex
     }));
     setClassSelected(true);
   };
-
-  const handleUnitChange = (index: number, field: keyof PropertyUnit, value: any) => {
-    const newUnits = [...(formData.units || [])];
-    newUnits[index] = { ...newUnits[index], [field]: value } as PropertyUnit;
-
-    // Sincronizar primeiro sequencial com os campos principais para compatibilidade legada se for Único
-    if (!formData.isComplex && index === 0) {
-      setFormData(prev => ({
-        ...prev,
-        units: newUnits,
-        sequential: field === 'sequential' ? (value as string) : prev.sequential,
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, units: newUnits }));
-    }
-  };
-
-  const addUnit = () => {
-    setFormData(prev => ({
-      ...prev,
-      units: [{
-        sequential: '',
-        singleValue: 0,
-        installmentValue: 0,
-        installmentsCount: 1,
-        year: formData.baseYear || new Date().getFullYear(),
-        chosenMethod: 'Cota Única'
-      }, ...(prev.units || [])]
-    }));
-  };
-
-  const removeUnit = (index: number) => {
-    if ((formData.units?.length || 0) <= 1) return;
-    const newUnits = (formData.units || []).filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, units: newUnits }));
-  };
-
-  const addTenant = () => {
-    setFormData(prev => ({
-      ...prev,
-      tenants: [{
-        id: crypto.randomUUID(),
-        name: '',
-        year: formData.baseYear || new Date().getFullYear(),
-        occupiedArea: 0
-      }, ...(prev.tenants || [])]
-    }));
-  };
-
-  const removeTenant = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tenants: (prev.tenants || []).filter(t => t.id !== id)
-    }));
-  };
-
-  const handleTenantChange = (id: string, field: keyof Tenant, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      tenants: (prev.tenants || []).map(t => t.id === id ? { ...t, [field]: value } : t)
-    }));
-  };
-
-  const tenantCalculations = useMemo(() => {
-    const allTenants = formData.tenants || [];
-    const tenants = allTenants.filter(t => t.year === formData.baseYear);
-    const unitsList = (formData.units || []).filter(u => u.year === formData.baseYear);
-    const totalIptu = unitsList.reduce((acc, unit) => {
-      const value = unit.chosenMethod === 'Parcelado' ? (Number(unit.installmentValue) || 0) : (Number(unit.singleValue) || 0);
-      return acc + value;
-    }, 0);
-    const totalArea = tenants.reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
-
-    return tenants.map(t => {
-      const percentage = totalArea > 0 ? (t.occupiedArea / totalArea) * 100 : 0;
-      const apportionment = totalArea > 0 ? (t.occupiedArea / totalArea) * totalIptu : 0;
-      return {
-        ...t,
-        percentage,
-        apportionment
-      };
-    });
-  }, [formData.tenants, formData.units, formData.baseYear]);
-
-  const totalOccupiedArea = useMemo(() => {
-    return (formData.tenants || []).reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
-  }, [formData.tenants]);
-
-  const subtotals = useMemo(() => {
-    const units = (formData.units || []).filter(u => u.year === formData.baseYear);
-    const total = units.reduce((acc, unit) => {
-      const value = unit.chosenMethod === 'Parcelado' ? (Number(unit.installmentValue) || 0) : (Number(unit.singleValue) || 0);
-      return acc + value;
-    }, 0);
-    return { total };
-  }, [formData.units, formData.baseYear]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -180,17 +70,14 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const finalData = { ...formData };
-    if (finalData.units?.length) {
-      finalData.sequential = finalData.units[0].sequential;
-    }
-
     const newProperty: Property = {
-      ...finalData as Property,
+      ...formData as Property,
       id: initialData?.id || crypto.randomUUID(),
       lastUpdated: new Date().toLocaleDateString('pt-BR'),
       imageUrl: previewUrl || formData.imageUrl || '/assets/default-property.png',
-      iptuHistory: initialData?.iptuHistory || []
+      iptuHistory: initialData?.iptuHistory || [],
+      units: initialData?.units || [],
+      tenants: initialData?.tenants || []
     };
     onSubmit(newProperty, selectedFile || undefined);
   };
@@ -332,272 +219,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
                 </button>
               </div>
 
-              {/* Ano de Referência Unificado */}
-              {classSelected && (
-                <div className="flex flex-col gap-1.5 mt-4">
-                  <label className="text-xs font-bold text-primary uppercase tracking-wider">Ano de Referência</label>
-                  <input
-                    required
-                    type="number"
-                    name="baseYear"
-                    value={formData.baseYear || ''}
-                    onChange={handleInputChange}
-                    className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm focus:ring-2 focus:ring-primary outline-none font-bold"
-                    placeholder="2025"
-                  />
-                </div>
-              )}
             </div>
-
-            {/* Section: Registro de Sequencial (Conditional) */}
-            {classSelected && (
-              <div className="space-y-6 md:col-span-2 animate-in slide-in-from-top-4 duration-500">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">app_registration</span> Registro de Sequencial
-                  </h3>
-                  {formData.isComplex && (
-                    <button
-                      type="button"
-                      onClick={addUnit}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-all"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">add</span>
-                      ADICIONAR SEQUENCIAL
-                    </button>
-                  )}
-                </div>
-
-                <div className="space-y-6">
-                  {(formData.units?.length ? formData.units : [{
-                    sequential: formData.sequential || '',
-                    singleValue: 0,
-                    installmentValue: 0,
-                    installmentsCount: 1,
-                    year: formData.baseYear || new Date().getFullYear(),
-                    chosenMethod: 'Cota Única'
-                  }]).map((unit, index) => (
-                    <div key={index} className={`flex flex-col gap-6 p-6 rounded-2xl border ${index > 0 ? 'border-dashed border-gray-200 dark:border-gray-700' : 'border-transparent bg-gray-50/50 dark:bg-gray-800/30'}`}>
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
-                        {/* Linha 1: Identificação */}
-                        <div className="sm:col-span-8 flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Sequencial {formData.isComplex ? `#${index + 1}` : ''}</label>
-                          <input
-                            required
-                            id={`seq-input-${index}`}
-                            value={unit.sequential}
-                            onChange={(e) => handleUnitChange(index, 'sequential', e.target.value)}
-                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-mono outline-none"
-                            placeholder="0000"
-                          />
-                        </div>
-                        <div className="sm:col-span-4 flex justify-end gap-2 pb-0.5">
-                          {formData.isComplex && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => document.getElementById(`seq-input-${index}`)?.focus()}
-                                className="size-10 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all border border-gray-100 dark:border-gray-700"
-                                title="Editar"
-                              >
-                                <span className="material-symbols-outlined text-[18px]">edit</span>
-                              </button>
-                              {(formData.units?.length || 0) > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => removeUnit(index)}
-                                  className="size-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all border border-red-100 dark:border-red-900/20"
-                                  title="Excluir"
-                                >
-                                  <span className="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
-                              )}
-                            </>
-                          )}
-                        </div>
-
-                        {/* Linha 2: Valores Financeiros */}
-                        <div className="sm:col-span-4 flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Valor Cota Única (R$)</label>
-                          <input
-                            required
-                            type="number"
-                            step="0.01"
-                            value={unit.singleValue}
-                            onChange={(e) => handleUnitChange(index, 'singleValue', Number(e.target.value))}
-                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none text-emerald-600"
-                          />
-                        </div>
-                        <div className="sm:col-span-4 flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Valor Total Parcelado (R$)</label>
-                          <input
-                            required
-                            type="number"
-                            step="0.01"
-                            value={unit.installmentValue}
-                            onChange={(e) => handleUnitChange(index, 'installmentValue', Number(e.target.value))}
-                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none text-orange-600"
-                          />
-                        </div>
-                        <div className="sm:col-span-4 flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Quantidade de Parcelas</label>
-                          <input
-                            required
-                            type="number"
-                            min="1"
-                            max="12"
-                            value={unit.installmentsCount}
-                            onChange={(e) => handleUnitChange(index, 'installmentsCount', Number(e.target.value))}
-                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none text-[#111418] dark:text-white"
-                          />
-                        </div>
-
-                        {/* Linha 3: Forma de Pagamento */}
-                        <div className="sm:col-span-12 flex flex-col gap-1.5 pt-2">
-                          <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Forma de Pagamento Escolhida</label>
-                          <div className="flex flex-wrap gap-2">
-                            {['Cota Única', 'Parcelado', 'Em aberto'].map((method) => (
-                              <button
-                                key={method}
-                                type="button"
-                                onClick={() => handleUnitChange(index, 'chosenMethod', method)}
-                                className={`px-4 h-10 rounded-lg text-xs font-bold border-2 transition-all ${unit.chosenMethod === method
-                                  ? 'bg-primary border-primary text-white shadow-sm'
-                                  : 'bg-white dark:bg-[#1a2634] border-gray-200 dark:border-gray-700 text-gray-400 hover:border-primary/50'
-                                  }`}
-                              >
-                                {method}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Subtotal Section */}
-                  <div className="bg-primary/5 dark:bg-primary/10 p-6 rounded-2xl border-2 border-primary/20 space-y-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700">
-                    <div className="flex items-center gap-2 text-primary">
-                      <span className="material-symbols-outlined text-[20px]">calculate</span>
-                      <h4 className="text-xs font-black uppercase tracking-widest">Resumo Subtotal ({formData.baseYear || ''})</h4>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-[#111418] dark:text-primary uppercase tracking-tighter">Subtotal Geral (Baseado na escolha de cada sequencial)</span>
-                      <span className="text-3xl font-black text-primary">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(subtotals.total)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Section: Registro de Locatário */}
-            {classSelected && (
-              <div className="space-y-6 md:col-span-2 border-t border-gray-100 dark:border-[#2a3644] pt-8 animate-in slide-in-from-top-4 duration-500">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px]">group</span> Registro de Locatários ({formData.baseYear || ''})
-                    </h3>
-                    <p className="text-[11px] text-[#617289] dark:text-[#9ca3af]">Cadastre as empresas e suas respectivas áreas para o rateio do IPTU</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addTenant}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-[#a64614] transition-all shadow-md active:scale-95"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">add</span>
-                    ADICIONAR LOCATÁRIO
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  {(formData.tenants || []).map((tenant) => (
-                    <div key={tenant.id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end p-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-700">
-                      <div className="sm:col-span-7 flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Nome da Empresa</label>
-                        <input
-                          required
-                          value={tenant.name}
-                          onChange={(e) => handleTenantChange(tenant.id, 'name', e.target.value)}
-                          className="h-10 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm focus:ring-2 focus:ring-primary outline-none"
-                          placeholder="Digite o nome da empresa"
-                        />
-                      </div>
-                      <div className="sm:col-span-3 flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Área Ocupada (m²)</label>
-                        <input
-                          required
-                          type="number"
-                          step="0.01"
-                          value={tenant.occupiedArea}
-                          onChange={(e) => handleTenantChange(tenant.id, 'occupiedArea', Number(e.target.value))}
-                          className="h-10 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm focus:ring-2 focus:ring-primary outline-none"
-                        />
-                      </div>
-                      <div className="sm:col-span-2 flex justify-end pb-0.5">
-                        <button
-                          type="button"
-                          onClick={() => removeTenant(tenant.id)}
-                          className="size-10 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all border border-red-100 dark:border-red-900/20"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">delete</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Apportionment Summary Table */}
-                {(formData.tenants?.length || 0) > 0 && (
-                  <div className="overflow-hidden rounded-2xl border border-gray-100 dark:border-[#2a3644] bg-white dark:bg-[#1a2634] shadow-sm">
-                    <table className="w-full text-left border-collapse">
-                      <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
-                        <tr>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 dark:text-[#9ca3af]">Empresa</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 dark:text-[#9ca3af]">Área</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 dark:text-[#9ca3af]">Percentual</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 dark:text-[#9ca3af] text-right">Valor Rateio</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                        {tenantCalculations.map((calc) => (
-                          <tr key={calc.id} className="hover:bg-primary/5 transition-colors">
-                            <td className="px-6 py-4 text-xs font-bold text-[#111418] dark:text-white uppercase truncate max-w-[200px]">{calc.name || '---'}</td>
-                            <td className="px-6 py-4 text-xs font-semibold text-[#617289] dark:text-[#9ca3af]">{calc.occupiedArea.toLocaleString('pt-BR')} m²</td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-primary transition-all duration-500"
-                                    style={{ width: `${calc.percentage}%` }}
-                                  />
-                                </div>
-                                <span className="text-[10px] font-black text-primary">{calc.percentage.toFixed(1)}%</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-xs font-black text-emerald-600 text-right">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calc.apportionment)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot className="bg-gray-50/50 dark:bg-[#1e2a3b]/50 border-t-2 border-gray-100 dark:border-[#2a3644]">
-                        <tr>
-                          <td className="px-6 py-3 text-[10px] font-black uppercase text-primary">Total</td>
-                          <td className="px-6 py-3 text-xs font-black text-[#111418] dark:text-white">{totalOccupiedArea.toLocaleString('pt-BR')} m²</td>
-                          <td className="px-6 py-3 text-[10px] font-black text-primary">100%</td>
-                          <td className="px-6 py-3 text-xs font-black text-emerald-600 text-right">
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(subtotals.total)}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Section: Foto do Imóvel */}
             <div className="space-y-6 md:col-span-2 border-t border-gray-100 dark:border-[#2a3644] pt-8">

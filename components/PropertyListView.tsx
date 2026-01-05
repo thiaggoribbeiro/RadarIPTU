@@ -8,11 +8,12 @@ interface PropertyListViewProps {
   onAddProperty: () => void;
   onEditProperty: (property: Property) => void;
   onDeleteProperty: (id: string) => void;
+  onOpenIptuConfig: (property: Property) => void;
   properties: Property[];
   userRole: UserRole;
 }
 
-const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, onAddProperty, onEditProperty, onDeleteProperty, properties, userRole }) => {
+const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, onAddProperty, onEditProperty, onDeleteProperty, onOpenIptuConfig, properties, userRole }) => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -122,9 +123,19 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                     </div>
                   </div>
 
-                  <div className="absolute bottom-4 right-4 flex gap-2">
+                  <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property); }}
+                        className="h-8 px-3 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-lg backdrop-blur-sm text-[10px] font-black uppercase tracking-tighter"
+                        title="Configurar Sequenciais e Locatários"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                        INSERIR IPTU
+                      </button>
+                    </div>
                     {canDelete && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 self-end">
                         <button
                           onClick={(e) => { e.stopPropagation(); onEditProperty(property); }}
                           className="size-8 flex items-center justify-center rounded-lg bg-white/90 text-[#111418] hover:bg-white transition-all shadow-lg backdrop-blur-sm"
@@ -209,9 +220,16 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                            INSERIR IPTU
+                          </button>
                           {canDelete && (
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 border-l border-gray-100 dark:border-gray-700 pl-3 ml-1">
                               <button
                                 onClick={(e) => { e.stopPropagation(); onEditProperty(property); }}
                                 className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
