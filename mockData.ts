@@ -21,6 +21,7 @@ export const mockProperties: Property[] = [
       singleValue: 1250,
       installmentValue: 1350,
       installmentsCount: 10,
+      year: 2024,
       chosenMethod: 'Cota Única'
     }],
     tenants: [],
@@ -28,6 +29,7 @@ export const mockProperties: Property[] = [
     builtArea: 85,
     type: 'Apartamento',
     appraisalValue: 850000,
+    baseYear: 2024,
     lastUpdated: '15/01/2024',
     imageUrl: 'https://picsum.photos/seed/horizon/400/400',
     iptuHistory: [
@@ -54,6 +56,7 @@ export const mockProperties: Property[] = [
       singleValue: 4500,
       installmentValue: 4800,
       installmentsCount: 12,
+      year: 2024,
       chosenMethod: 'Parcelado'
     }],
     tenants: [],
@@ -61,6 +64,7 @@ export const mockProperties: Property[] = [
     builtArea: 2500,
     type: 'Galpão',
     appraisalValue: 4500000,
+    baseYear: 2024,
     lastUpdated: '05/01/2024',
     imageUrl: 'https://picsum.photos/seed/factory/400/400',
     iptuHistory: [

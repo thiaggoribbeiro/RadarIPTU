@@ -124,16 +124,6 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                   </div>
 
                   <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property); }}
-                        className="h-8 px-3 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-lg backdrop-blur-sm text-[10px] font-black uppercase tracking-tighter"
-                        title="Configurar Sequenciais e Locatários"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">receipt_long</span>
-                        INSERIR IPTU
-                      </button>
-                    </div>
                     {canDelete && (
                       <div className="flex gap-2 self-end">
                         <button
@@ -162,9 +152,15 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                     {property.neighborhood}, {property.city}
                   </p>
                   <div className="mt-6 pt-4 border-t border-gray-100 dark:border-[#2a3644] flex justify-between items-center">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-[#617289] uppercase tracking-tighter">Referência</span>
-                      <span className="text-sm font-bold text-[#111418] dark:text-white">{property.registrationNumber}</span>
+                    <div className="flex items-center">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property); }}
+                        className="h-9 px-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md text-[10px] font-black uppercase tracking-tight"
+                        title="Configurar Sequenciais e Locatários"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                        INSERIR IPTU
+                      </button>
                     </div>
                     <button className="text-primary font-bold text-sm flex items-center gap-1 hover:text-secondary">
                       DETALHES <span className="material-symbols-outlined text-[18px]">chevron_right</span>

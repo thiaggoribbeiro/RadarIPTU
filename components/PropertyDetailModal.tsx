@@ -96,7 +96,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     {property.type}
                   </span>
                   <span className="px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[9px] font-black rounded-lg uppercase">
-                    POSSE: {property.possessionType}
+                    POSSE: {property.possession}
                   </span>
                 </div>
               </div>
