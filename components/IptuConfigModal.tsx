@@ -10,15 +10,18 @@ interface IptuConfigModalProps {
 
 const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, onSubmit }) => {
     const [baseYear, setBaseYear] = useState<number>(property.baseYear || new Date().getFullYear());
-    const [units, setUnits] = useState<PropertyUnit[]>(property.units || []);
+    const [units, setUnits] = useState<(PropertyUnit & { tempId?: string })[]>(
+        (property.units || []).map(u => ({ ...u, tempId: crypto.randomUUID() }))
+    );
     const [tenants, setTenants] = useState<Tenant[]>(property.tenants || []);
 
-    const handleUnitChange = (unitToUpdate: PropertyUnit, field: keyof PropertyUnit, value: any) => {
-        setUnits(prev => prev.map(u => u === unitToUpdate ? { ...u, [field]: value } : u));
+    const handleUnitChange = (unitToUpdate: (PropertyUnit & { tempId?: string }), field: keyof PropertyUnit, value: any) => {
+        setUnits(prev => prev.map(u => u.tempId === unitToUpdate.tempId ? { ...u, [field]: value } : u));
     };
 
     const addUnit = () => {
-        const newUnit: PropertyUnit = {
+        const newUnit: PropertyUnit & { tempId?: string } = {
+            tempId: crypto.randomUUID(),
             sequential: '',
             singleValue: 0,
             installmentValue: 0,
@@ -30,8 +33,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
         setUnits([newUnit, ...units]);
     };
 
-    const removeUnit = (unitToRemove: PropertyUnit) => {
-        setUnits(units.filter(u => u !== unitToRemove));
+    const removeUnit = (unitToRemove: (PropertyUnit & { tempId?: string })) => {
+        setUnits(units.filter(u => u.tempId !== unitToRemove.tempId));
     };
 
     const addTenant = () => {
@@ -53,41 +56,48 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
     };
 
     const subtotals = useMemo(() => {
-        const activeUnits = units.filter(u => u.year === baseYear);
-        const total = activeUnits.reduce((acc, unit) => {
-            const value = unit.chosenMethod === 'Parcelado' ? (Number(unit.installmentValue) || 0) : (Number(unit.singleValue) || 0);
-            return acc + value;
-        }, 0);
-        return { total };
+        const yearUnits = units.filter(u => u.year === baseYear);
+        return {
+            single: yearUnits.reduce((acc, curr) => acc + curr.singleValue, 0),
+            installment: yearUnits.reduce((acc, curr) => acc + curr.installmentValue, 0)
+        };
     }, [units, baseYear]);
 
     const tenantCalculations = useMemo(() => {
         const yearTenants = tenants.filter(t => t.year === baseYear);
         const singleTenant = yearTenants.find(t => t.isSingleTenant);
 
+        const totalIptuValue = units
+            .filter(u => u.year === baseYear)
+            .reduce((acc, unit) => {
+                return acc + (unit.chosenMethod === 'Parcelado' ? (Number(unit.installmentValue) || 0) : (Number(unit.singleValue) || 0));
+            }, 0);
+
         if (singleTenant) {
             return yearTenants.map(t => ({
                 ...t,
                 percentage: t.id === singleTenant.id ? 100 : 0,
-                apportionment: t.id === singleTenant.id ? subtotals.total : 0
+                apportionment: t.id === singleTenant.id ? totalIptuValue : 0
             }));
         }
 
         const totalArea = yearTenants.reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
         return yearTenants.map(t => {
             const percentage = totalArea > 0 ? (t.occupiedArea / totalArea) * 100 : 0;
-            const apportionment = totalArea > 0 ? (t.occupiedArea / totalArea) * subtotals.total : 0;
+            const apportionment = totalArea > 0 ? (t.occupiedArea / totalArea) * totalIptuValue : 0;
             return { ...t, percentage, apportionment };
         });
-    }, [tenants, baseYear, subtotals.total]);
+    }, [tenants, baseYear, units]);
 
     const hasSingleTenant = useMemo(() => {
         return tenants.some(t => t.year === baseYear && t.isSingleTenant);
     }, [tenants, baseYear]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(property.id, units, tenants, baseYear);
+        // Remover tempId antes de salvar
+        const cleanedUnits = units.map(({ tempId, ...u }) => u);
+        onSubmit(property.id, cleanedUnits, tenants, baseYear);
     };
 
     return (
@@ -108,7 +118,7 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
                     </button>
                 </header>
 
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
+                <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
                     <div className="flex flex-col gap-1.5 p-4 bg-primary/5 rounded-xl border border-primary/20">
                         <label className="text-xs font-black text-primary uppercase tracking-wider">Ano de Referência das Configurações</label>
                         <input
@@ -140,8 +150,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
                                         </div>
                                     );
                                 }
-                                return yearUnits.map((unit, index) => (
-                                    <div key={`${unit.sequential}-${index}`} className="p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+                                return yearUnits.map((unit) => (
+                                    <div key={unit.tempId} className="p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
                                         <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
                                             <div className="sm:col-span-8 flex flex-col gap-1.5">
                                                 <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Sequencial</label>
