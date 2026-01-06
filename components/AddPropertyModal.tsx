@@ -182,6 +182,25 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
               </div>
             </div>
 
+            {/* Section: Áreas */}
+            <div className="space-y-6">
+              <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">square_foot</span> Áreas
+              </h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Área Total (m²)</label>
+                    <input type="number" name="landArea" value={formData.landArea || ''} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none" placeholder="0" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300">Área Construída (m²)</label>
+                    <input type="number" name="builtArea" value={formData.builtArea || ''} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none" placeholder="0" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Section: Tipo do Imóvel */}
             <div className="md:col-span-2 space-y-4 border-t border-gray-100 dark:border-[#2a3644] pt-8 bg-gray-50/30 dark:bg-gray-800/10 -mx-8 px-8 pb-6">
               <div className="flex flex-col gap-1">

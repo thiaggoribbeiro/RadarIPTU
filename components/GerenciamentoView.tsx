@@ -118,13 +118,13 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#111418] dark:text-white">Gerenciamento de Equipe</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#111418] dark:text-white">Gerenciamento de Equipe</h1>
           <p className="text-[#617289] dark:text-[#9ca3af] font-medium">Controle de acessos e permissões do sistema.</p>
         </div>
         <button
           onClick={() => isAdmin && setIsAddUserModalOpen(true)}
           disabled={!isAdmin || loading}
-          className={`flex items-center justify-center gap-2 rounded-xl h-11 px-6 font-bold shadow-lg transition-all ${isAdmin
+          className={`flex items-center justify-center gap-2 rounded-xl h-11 px-6 font-semibold shadow-lg transition-all ${isAdmin
             ? 'bg-primary hover:bg-[#a64614] text-white shadow-primary/30'
             : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
             }`}
@@ -139,7 +139,7 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
           <div className="flex items-start gap-3">
             <span className="material-symbols-outlined mt-0.5">warning</span>
             <div className="flex-1">
-              <p className="font-bold uppercase text-[10px] mb-1">Atenção - Erro de Sistema</p>
+              <p className="font-semibold uppercase text-[10px] mb-1">Atenção - Erro de Sistema</p>
               <p>{error}</p>
             </div>
             <button onClick={() => setError(null)} className="text-xs bg-red-100 px-3 py-1 rounded-lg hover:bg-red-200 transition-colors">Fechar</button>
@@ -158,10 +158,10 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
             <table className="w-full text-left">
               <thead className="bg-gray-50 dark:bg-[#22303e] border-b-2 border-primary">
                 <tr>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Usuário</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Nível de Acesso</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Status</th>
-                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase text-[#111418] dark:text-[#9ca3af]">Ações</th>
+                  <th className="px-6 py-4 text-[10px] font-semibold uppercase text-[#111418] dark:text-[#9ca3af]">Usuário</th>
+                  <th className="px-6 py-4 text-[10px] font-semibold uppercase text-[#111418] dark:text-[#9ca3af]">Nível de Acesso</th>
+                  <th className="px-6 py-4 text-[10px] font-semibold uppercase text-[#111418] dark:text-[#9ca3af]">Status</th>
+                  <th className="px-6 py-4 text-right text-[10px] font-semibold uppercase text-[#111418] dark:text-[#9ca3af]">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3644]">
@@ -171,13 +171,13 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
                       <div className="flex items-center gap-3">
                         <div className="size-10 rounded-full bg-cover bg-center border-2 border-white dark:border-[#1a2634] shadow-sm bg-gray-200" style={{ backgroundImage: `url('https://api.dicebear.com/7.x/initials/svg?seed=${user.fullName}')` }}></div>
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-[#111418] dark:text-white">{user.fullName}</span>
+                          <span className="text-sm font-semibold text-[#111418] dark:text-white">{user.fullName}</span>
                           <span className="text-[11px] font-medium text-[#617289] dark:text-[#9ca3af]">{user.email}</span>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase border ${user.role === 'Administrador' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase border ${user.role === 'Administrador' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                         user.role === 'Gestor' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                           'bg-gray-50 text-gray-700 border-gray-200'
                         }`}>
@@ -237,22 +237,22 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onAdd }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-[#1a2634] w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 dark:border-[#2a3644] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <header className="px-8 py-6 border-b border-gray-100 dark:border-[#2a3644] flex justify-between items-center">
-          <h2 className="text-lg font-bold uppercase tracking-tight">Novo Usuário</h2>
+          <h2 className="text-lg font-semibold uppercase tracking-tight">Novo Usuário</h2>
           <button onClick={onClose} className="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-[#2a3644]">
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </header>
         <form className="p-8 space-y-4" onSubmit={(e) => { e.preventDefault(); onAdd(formData); }}>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase text-[#617289]">Nome Completo</label>
+            <label className="text-[10px] font-semibold uppercase text-[#617289]">Nome Completo</label>
             <input required className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none focus:ring-2 focus:ring-primary" value={formData.fullName} onChange={e => setFormData({ ...formData, fullName: e.target.value })} />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase text-[#617289]">E-mail</label>
+            <label className="text-[10px] font-semibold uppercase text-[#617289]">E-mail</label>
             <input required type="email" className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none focus:ring-2 focus:ring-primary" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase text-[#617289]">Nível de Acesso</label>
+            <label className="text-[10px] font-semibold uppercase text-[#617289]">Nível de Acesso</label>
             <select className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value as UserRole })}>
               <option value="Usuário" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Usuário</option>
               <option value="Gestor" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Gestor</option>
@@ -260,7 +260,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onAdd }) => {
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase text-[#617289]">Senha Temporária</label>
+            <label className="text-[10px] font-semibold uppercase text-[#617289]">Senha Temporária</label>
             <input required type="password" placeholder="Defina a senha inicial" className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none focus:ring-2 focus:ring-primary" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
           </div>
           <p className="text-[10px] text-amber-600 font-semibold bg-amber-50 p-2 rounded-lg">

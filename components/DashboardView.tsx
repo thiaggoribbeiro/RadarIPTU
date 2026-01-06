@@ -122,7 +122,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
     const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
     return (
       <div className="space-y-1.5">
-        <div className="flex justify-between text-[11px] font-bold">
+        <div className="flex justify-between text-[11px] font-semibold">
           <span className="text-[#111418] dark:text-gray-300 uppercase truncate max-w-[140px]">{label}</span>
           <span className="text-primary">{formatCurrency(value)}</span>
         </div>
@@ -140,7 +140,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
         <div>
-          <h1 className="text-[#111418] dark:text-white text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-[#111418] dark:text-white text-3xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-[#617289] dark:text-[#9ca3af] mt-1 font-medium">Gestão inteligente e acompanhamento da carteira de IPTU.</p>
         </div>
 
@@ -161,7 +161,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
           </div>
           <button
             onClick={onAddProperty}
-            className="flex items-center gap-2 rounded-xl h-10 px-5 bg-primary hover:bg-[#a64614] transition-all text-white font-bold shadow-lg shadow-primary/30 active:scale-95"
+            className="flex items-center gap-2 rounded-xl h-10 px-5 bg-primary hover:bg-[#a64614] transition-all text-white font-semibold shadow-lg shadow-primary/30 active:scale-95"
           >
             <span className="material-symbols-outlined text-[20px] font-semibold">add</span>
             <span>Novo Imóvel</span>
@@ -177,10 +177,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             <div className="bg-primary/10 text-primary p-2 rounded-lg group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined font-semibold">home_work</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-bold uppercase tracking-widest">Total de Imóveis</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">Total de Imóveis</p>
           </div>
           <div>
-            <p className="text-[#111418] dark:text-white text-3xl font-bold tracking-tight">{stats.totalProperties}</p>
+            <p className="text-[#111418] dark:text-white text-3xl font-semibold tracking-tight">{stats.totalProperties}</p>
             <p className="text-[11px] font-semibold mt-1 text-[#617289] dark:text-[#9ca3af]">Carteira completa</p>
           </div>
         </div>
@@ -191,10 +191,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             <div className="bg-indigo-50 text-indigo-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined font-semibold">account_balance_wallet</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-bold uppercase tracking-widest">Valor Total de IPTU</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">Valor Total de IPTU</p>
           </div>
           <div>
-            <p className="text-[#111418] dark:text-white text-2xl font-bold tracking-tight">{formatCurrency(stats.totalIptuValue)}</p>
+            <p className="text-[#111418] dark:text-white text-2xl font-semibold tracking-tight">{formatCurrency(stats.totalIptuValue)}</p>
             <p className="text-[11px] font-semibold mt-1 text-indigo-600">Referência: {selectedYear}</p>
           </div>
         </div>
@@ -205,10 +205,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             <div className="bg-emerald-50 text-emerald-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined font-semibold">check_circle</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-bold uppercase tracking-widest">Valor Regularizado</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">Valor Regularizado</p>
           </div>
           <div>
-            <p className="text-emerald-600 text-2xl font-bold tracking-tight">{formatCurrency(stats.totalRegularized)}</p>
+            <p className="text-emerald-600 text-2xl font-semibold tracking-tight">{formatCurrency(stats.totalRegularized)}</p>
             <p className="text-[11px] font-semibold mt-1 text-emerald-600/80">Total liquidado ou em dia</p>
           </div>
         </div>
@@ -219,10 +219,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             <div className="bg-red-50 text-red-500 p-2 rounded-lg group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined font-semibold">pending_actions</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-bold uppercase tracking-widest">Valor em Aberto</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">Valor em Aberto</p>
           </div>
           <div>
-            <p className="text-red-600 text-2xl font-bold tracking-tight">{formatCurrency(stats.totalOpen)}</p>
+            <p className="text-red-600 text-2xl font-semibold tracking-tight">{formatCurrency(stats.totalOpen)}</p>
             <p className="text-[11px] font-semibold mt-1 text-red-500/80">Pendente de pagamento</p>
           </div>
         </div>
@@ -233,10 +233,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             <div className="bg-blue-50 text-blue-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined font-semibold">trending_up</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-bold uppercase tracking-widest">% Adimplência</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">% Adimplência</p>
           </div>
           <div>
-            <p className="text-blue-600 text-3xl font-bold tracking-tight">{stats.adimplenciaPercentage.toFixed(1)}%</p>
+            <p className="text-blue-600 text-3xl font-semibold tracking-tight">{stats.adimplenciaPercentage.toFixed(1)}%</p>
             <p className="text-[11px] font-semibold mt-1 text-blue-600/80">Saúde financeira da carteira</p>
           </div>
         </div>
@@ -247,10 +247,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             <div className="bg-orange-50 text-orange-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined font-semibold">warning</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-bold uppercase tracking-widest">Imóveis Irregulares</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">Imóveis Irregulares</p>
           </div>
           <div>
-            <p className="text-orange-600 text-3xl font-bold tracking-tight">{stats.irregularCount}</p>
+            <p className="text-orange-600 text-3xl font-semibold tracking-tight">{stats.irregularCount}</p>
             <p className="text-[11px] font-semibold mt-1 text-orange-600/80">Com pendências no ano</p>
           </div>
         </div>
@@ -263,7 +263,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             <div className="bg-primary/10 text-primary p-2 rounded-lg">
               <span className="material-symbols-outlined font-semibold">location_city</span>
             </div>
-            <h3 className="text-lg font-bold text-[#111418] dark:text-white uppercase tracking-tight">Ranking por Cidade</h3>
+            <h3 className="text-lg font-semibold text-[#111418] dark:text-white uppercase tracking-tight">Ranking por Cidade</h3>
           </div>
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {rankings.cities.length > 0 ? (

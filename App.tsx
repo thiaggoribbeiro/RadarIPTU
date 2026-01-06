@@ -29,6 +29,9 @@ const App: React.FC = () => {
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState<boolean>(false);
   const [isIptuConfigModalOpen, setIsIptuConfigModalOpen] = useState<boolean>(false);
   const [propertyForConfig, setPropertyForConfig] = useState<Property | null>(null);
+  const [iptuConfigInitialSection, setIptuConfigInitialSection] = useState<'units' | 'tenants' | undefined>(undefined);
+  const [iptuConfigInitialYear, setIptuConfigInitialYear] = useState<number | undefined>(undefined);
+  const [iptuConfigInitialSequential, setIptuConfigInitialSequential] = useState<string | undefined>(undefined);
   const [userEmail, setUserEmail] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
   const [userRole, setUserRole] = useState<UserRole>('Usuário');
@@ -192,8 +195,11 @@ const App: React.FC = () => {
                 if (!error) fetchProperties();
               }
             }}
-            onOpenIptuConfig={(p) => {
+            onOpenIptuConfig={(p, section, year, sequential) => {
               setPropertyForConfig(p);
+              setIptuConfigInitialSection(section);
+              setIptuConfigInitialYear(year);
+              setIptuConfigInitialSequential(sequential);
               setIsIptuConfigModalOpen(true);
             }}
             userRole={userRole}
@@ -227,8 +233,11 @@ const App: React.FC = () => {
               if (!error) fetchProperties();
             }
           }}
-          onOpenIptuConfig={(p) => {
+          onOpenIptuConfig={(p, section, year, sequential) => {
             setPropertyForConfig(p);
+            setIptuConfigInitialSection(section);
+            setIptuConfigInitialYear(year);
+            setIptuConfigInitialSequential(sequential);
             setIsIptuConfigModalOpen(true);
           }}
         />
@@ -335,9 +344,15 @@ const App: React.FC = () => {
       {isIptuConfigModalOpen && propertyForConfig && (
         <IptuConfigModal
           property={propertyForConfig}
+          initialSection={iptuConfigInitialSection}
+          initialYear={iptuConfigInitialYear}
+          initialSequential={iptuConfigInitialSequential}
           onClose={() => {
             setIsIptuConfigModalOpen(false);
             setPropertyForConfig(null);
+            setIptuConfigInitialSection(undefined);
+            setIptuConfigInitialYear(undefined);
+            setIptuConfigInitialSequential(undefined);
           }}
           onSubmit={async (propertyId, units, tenants, baseYear) => {
             setLoading(true);

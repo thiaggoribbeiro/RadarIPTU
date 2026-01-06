@@ -8,7 +8,7 @@ interface PropertyListViewProps {
   onAddProperty: () => void;
   onEditProperty: (property: Property) => void;
   onDeleteProperty: (id: string) => void;
-  onOpenIptuConfig: (property: Property) => void;
+  onOpenIptuConfig: (property: Property, section?: 'units' | 'tenants', year?: number, sequential?: string) => void;
   properties: Property[];
   userRole: UserRole;
 }
@@ -46,12 +46,12 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#111418] dark:text-white">Imóveis</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#111418] dark:text-white">Imóveis</h1>
           <p className="text-[#617289] dark:text-[#9ca3af] font-medium">Gestão detalhada do Imposto Predial e Territorial Urbano.</p>
         </div>
         <button
           onClick={onAddProperty}
-          className="flex items-center justify-center gap-2 rounded-xl h-11 px-6 bg-primary hover:bg-[#a64614] transition-colors text-white font-bold shadow-lg shadow-primary/30"
+          className="flex items-center justify-center gap-2 rounded-xl h-11 px-6 bg-primary hover:bg-[#a64614] transition-colors text-white font-semibold shadow-lg shadow-primary/30"
         >
           <span className="material-symbols-outlined font-semibold">add</span>
           <span>Adicionar Imóvel</span>
@@ -108,7 +108,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all ${filterType === type
+                className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${filterType === type
                   ? 'bg-primary text-white shadow-sm'
                   : 'text-[#617289] dark:text-[#9ca3af] hover:text-[#111418] dark:hover:text-white'
                   }`}
@@ -154,12 +154,12 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                   <img src={property.imageUrl} alt={property.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                   <div className="absolute top-4 right-4 animate-in fade-in zoom-in duration-500">
                     <div className="flex flex-col items-end gap-1">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-500 text-white' :
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-500 text-white' :
                         currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' : 'bg-primary text-white'
                         }`}>{currentYearStatus}</span>
 
                       {hasPreviousDebts && (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm bg-red-600 text-white flex items-center gap-1">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm bg-red-600 text-white flex items-center gap-1">
                           <span className="material-symbols-outlined text-[14px]">warning</span>
                           DÉBITOS ANTERIORES
                         </span>
@@ -190,7 +190,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                   </div>
                 </div>
                 <div className="p-5 flex-1" onClick={() => onSelectProperty(property.id)}>
-                  <h3 className="text-lg font-bold text-[#111418] dark:text-white group-hover:text-secondary transition-colors">{property.name}</h3>
+                  <h3 className="text-lg font-semibold text-[#111418] dark:text-white group-hover:text-secondary transition-colors">{property.name}</h3>
                   <p className="text-[13px] font-medium text-[#617289] dark:text-[#9ca3af] mt-1 line-clamp-1" title={property.address}>
                     {property.address}
                   </p>
@@ -201,15 +201,15 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                   <div className="mt-6 pt-4 border-t border-gray-100 dark:border-[#2a3644] flex justify-between items-center">
                     <div className="flex items-center">
                       <button
-                        onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property); }}
-                        className="h-9 px-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md text-[10px] font-black uppercase tracking-tight"
+                        onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'units'); }}
+                        className="h-9 px-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md text-[10px] font-bold uppercase tracking-tight"
                         title="Configurar Sequenciais e Locatários"
                       >
                         <span className="material-symbols-outlined text-[18px]">receipt_long</span>
                         INSERIR IPTU
                       </button>
                     </div>
-                    <button className="text-primary font-bold text-sm flex items-center gap-1 hover:text-secondary">
+                    <button className="text-primary font-semibold text-sm flex items-center gap-1 hover:text-secondary">
                       DETALHES <span className="material-symbols-outlined text-[18px]">chevron_right</span>
                     </button>
                   </div>
@@ -240,24 +240,24 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                     <tr key={property.id} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors cursor-pointer" onClick={() => onSelectProperty(property.id)}>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-[#111418] dark:text-white">{property.name}</span>
+                          <span className="text-sm font-semibold text-[#111418] dark:text-white">{property.name}</span>
                           <span className="text-[12px] text-[#617289] dark:text-[#9ca3af] mt-0.5 line-clamp-1">{property.address}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${property.possession === 'Grupo' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${property.possession === 'Grupo' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
                           {property.possession}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
-                          <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-bold uppercase ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
+                          <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
                             currentYearStatus === IptuStatus.OPEN ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                             }`}>
                             {currentYearStatus}
                           </span>
                           {hasPreviousDebts && (
-                            <span className="w-fit px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-100 text-red-700 flex items-center gap-1">
+                            <span className="w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-red-100 text-red-700 flex items-center gap-1">
                               <span className="material-symbols-outlined text-[12px]">warning</span>
                               DÉBITOS
                             </span>

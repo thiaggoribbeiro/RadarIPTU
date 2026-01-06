@@ -27,7 +27,13 @@ export interface IptuRecord {
 export type PropertyType = 'Loja' | 'Galpão' | 'Terreno' | 'Sala' | 'Apartamento' | 'Casa' | 'Industrial' | 'Comercial' | 'Residencial' | 'Prédio Comercial' | 'Sala Comercial';
 
 export interface PropertyUnit {
+  registrationNumber?: string;
   sequential: string;
+  address?: string;
+  ownerName?: string;
+  registryOwner?: string;
+  landArea?: number;
+  builtArea?: number;
   singleValue: number;
   installmentValue: number;
   installmentsCount: number;
@@ -41,7 +47,9 @@ export interface Tenant {
   name: string;
   year: number;
   occupiedArea: number;
+  selectedSequential?: string;
   isSingleTenant?: boolean;
+  manualPercentage?: number;
 }
 
 export interface Property {
