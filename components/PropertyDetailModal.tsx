@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Property, IptuRecord, UserRole, IptuStatus } from '../types';
 import AddIptuModal from './AddIptuModal';
 import IptuDetailModal from './IptuDetailModal';
+import { getPropertyStatus } from '../utils/iptu';
 
 interface PropertyDetailModalProps {
   property: Property;
@@ -33,6 +34,8 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
 
   const [selectedYear, setSelectedYear] = useState<number>(availableYears[0]);
 
+  const currentYearStatus = useMemo(() => getPropertyStatus(property, selectedYear), [property, selectedYear]);
+
   const handleEditIptu = (iptu: IptuRecord) => {
     setIptuToEdit(iptu);
     setSelectedIptuDetails(null);
@@ -53,7 +56,12 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               <span className="material-symbols-outlined text-xl">apartment</span>
             </div>
             <div>
-              <h2 className="text-xl font-black text-[#111418] dark:text-white uppercase tracking-tight">{property.name}</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-black text-[#111418] dark:text-white uppercase tracking-tight">{property.name}</h2>
+                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-500 text-white' :
+                  currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' : 'bg-primary text-white'
+                  }`}>{currentYearStatus}</span>
+              </div>
               <p className="text-[10px] font-bold text-primary/80 uppercase tracking-widest">Inscrição: #{property.registrationNumber}</p>
             </div>
           </div>

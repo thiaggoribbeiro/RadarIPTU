@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Property, IptuStatus, UserRole } from '../types';
-import { getDynamicStatus } from '../utils/iptu';
+import { getDynamicStatus, getPropertyStatus } from '../utils/iptu';
 
 interface PropertyListViewProps {
   onSelectProperty: (id: string) => void;
@@ -144,10 +144,8 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
           {filteredProperties.map(property => {
-            const currentYear = new Date().getFullYear();
-            const currentIptu = property.iptuHistory.find(h => h.year === currentYear);
-            const currentYearStatus = currentIptu ? getDynamicStatus(currentIptu) : IptuStatus.PENDING;
-
+            const currentYear = 2026; // Fixado em 2026 conforme solicitado pelo usuário
+            const currentYearStatus = getPropertyStatus(property, currentYear);
             const hasPreviousDebts = property.iptuHistory.some(h => h.year < currentYear && getDynamicStatus(h) !== IptuStatus.PAID);
 
             return (
@@ -157,7 +155,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                   <div className="absolute top-4 right-4 animate-in fade-in zoom-in duration-500">
                     <div className="flex flex-col items-end gap-1">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-500 text-white' :
-                        currentYearStatus === IptuStatus.OVERDUE ? 'bg-red-500 text-white' : 'bg-primary text-white'
+                        currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' : 'bg-primary text-white'
                         }`}>{currentYearStatus}</span>
 
                       {hasPreviousDebts && (
@@ -234,9 +232,8 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
               </thead>
               <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3644]">
                 {filteredProperties.map(property => {
-                  const currentYear = new Date().getFullYear();
-                  const currentIptu = property.iptuHistory.find(h => h.year === currentYear);
-                  const currentYearStatus = currentIptu ? getDynamicStatus(currentIptu) : IptuStatus.PENDING;
+                  const currentYear = 2026;
+                  const currentYearStatus = getPropertyStatus(property, currentYear);
                   const hasPreviousDebts = property.iptuHistory.some(h => h.year < currentYear && getDynamicStatus(h) !== IptuStatus.PAID);
 
                   return (
@@ -255,7 +252,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-bold uppercase ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
-                            currentYearStatus === IptuStatus.OVERDUE ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                            currentYearStatus === IptuStatus.OPEN ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                             }`}>
                             {currentYearStatus}
                           </span>

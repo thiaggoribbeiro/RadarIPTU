@@ -13,14 +13,12 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
     const [units, setUnits] = useState<PropertyUnit[]>(property.units || []);
     const [tenants, setTenants] = useState<Tenant[]>(property.tenants || []);
 
-    const handleUnitChange = (index: number, field: keyof PropertyUnit, value: any) => {
-        const newUnits = [...units];
-        newUnits[index] = { ...newUnits[index], [field]: value } as PropertyUnit;
-        setUnits(newUnits);
+    const handleUnitChange = (unitToUpdate: PropertyUnit, field: keyof PropertyUnit, value: any) => {
+        setUnits(prev => prev.map(u => u === unitToUpdate ? { ...u, [field]: value } : u));
     };
 
     const addUnit = () => {
-        setUnits([{
+        const newUnit: PropertyUnit = {
             sequential: '',
             singleValue: 0,
             installmentValue: 0,
@@ -28,11 +26,12 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
             year: baseYear,
             chosenMethod: 'Cota Única',
             status: IptuStatus.OPEN
-        }, ...units]);
+        };
+        setUnits([newUnit, ...units]);
     };
 
-    const removeUnit = (index: number) => {
-        setUnits(units.filter((_, i) => i !== index));
+    const removeUnit = (unitToRemove: PropertyUnit) => {
+        setUnits(units.filter(u => u !== unitToRemove));
     };
 
     const addTenant = () => {
@@ -49,8 +48,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
         setTenants(tenants.filter(t => t.id !== id));
     };
 
-    const handleTenantChange = (id: string, field: keyof Tenant, value: any) => {
-        setTenants(tenants.map(t => t.id === id ? { ...t, [field]: value } : t));
+    const handleTenantChange = (tenantToUpdate: Tenant, field: keyof Tenant, value: any) => {
+        setTenants(prev => prev.map(t => t.id === tenantToUpdate.id ? { ...t, [field]: value } : t));
     };
 
     const subtotals = useMemo(() => {
@@ -132,55 +131,63 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
                         </div>
 
                         <div className="space-y-4">
-                            {(units.length > 0 ? units.filter(u => u.year === baseYear) : [{ sequential: '', singleValue: 0, installmentValue: 0, installmentsCount: 1, year: baseYear, chosenMethod: 'Cota Única', status: IptuStatus.OPEN }]).map((unit, index) => (
-                                <div key={index} className="p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
-                                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
-                                        <div className="sm:col-span-8 flex flex-col gap-1.5">
-                                            <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Sequencial</label>
-                                            <input
-                                                required
-                                                value={unit.sequential}
-                                                onChange={(e) => handleUnitChange(index, 'sequential', e.target.value)}
-                                                className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-mono"
-                                            />
+                            {(() => {
+                                const yearUnits = units.filter(u => u.year === baseYear);
+                                if (yearUnits.length === 0) {
+                                    return (
+                                        <div className="p-8 text-center bg-gray-50/50 dark:bg-gray-800/20 rounded-2xl border-2 border-dashed border-gray-100 dark:border-gray-700">
+                                            <p className="text-xs text-[#617289] font-bold uppercase italic">Nenhum sequencial configurado para {baseYear}</p>
                                         </div>
-                                        <div className="sm:col-span-4 flex justify-end">
-                                            {units.length > 1 && (
-                                                <button type="button" onClick={() => removeUnit(index)} className="size-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 border border-red-100">
+                                    );
+                                }
+                                return yearUnits.map((unit, index) => (
+                                    <div key={`${unit.sequential}-${index}`} className="p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+                                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
+                                            <div className="sm:col-span-8 flex flex-col gap-1.5">
+                                                <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Sequencial</label>
+                                                <input
+                                                    required
+                                                    value={unit.sequential}
+                                                    onChange={(e) => handleUnitChange(unit, 'sequential', e.target.value)}
+                                                    className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-mono"
+                                                />
+                                            </div>
+                                            <div className="sm:col-span-4 flex justify-end">
+                                                <button type="button" onClick={() => removeUnit(unit)} className="size-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 border border-red-100">
                                                     <span className="material-symbols-outlined">delete</span>
                                                 </button>
-                                            )}
-                                        </div>
-                                        <div className="sm:col-span-4 flex flex-col gap-1.5">
-                                            <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase underline decoration-emerald-500">Valor Cota Única</label>
-                                            <input type="number" step="0.01" value={unit.singleValue} onChange={(e) => handleUnitChange(index, 'singleValue', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-bold text-emerald-600" />
-                                        </div>
-                                        <div className="sm:col-span-3 flex flex-col gap-1.5">
-                                            <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase underline decoration-orange-500">Valor Parcelado</label>
-                                            <input type="number" step="0.01" value={unit.installmentValue} onChange={(e) => handleUnitChange(index, 'installmentValue', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-bold text-orange-600" />
-                                        </div>
-                                        <div className="sm:col-span-2 flex flex-col gap-1.5">
-                                            <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase leading-none">Parcelas</label>
-                                            <input type="number" min="1" max="12" value={unit.installmentsCount} onChange={(e) => handleUnitChange(index, 'installmentsCount', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-bold text-[#111418] dark:text-white" />
-                                        </div>
-                                        <div className="sm:col-span-3 flex flex-col gap-1.5">
-                                            <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Forma</label>
-                                            <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(index, 'chosenMethod', e.target.value)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-bold">
-                                                <option value="Cota Única">Cota Única</option>
-                                                <option value="Parcelado">Parcelado</option>
-                                            </select>
-                                        </div>
-                                        <div className="sm:col-span-3 flex flex-col gap-1.5">
-                                            <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Status</label>
-                                            <select value={unit.status} onChange={(e) => handleUnitChange(index, 'status', e.target.value)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-bold">
-                                                {Object.values(IptuStatus).map(status => (
-                                                    <option key={status} value={status}>{status}</option>
-                                                ))}
-                                            </select>
+                                            </div>
+                                            <div className="sm:col-span-4 flex flex-col gap-1.5">
+                                                <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase underline decoration-emerald-500">Valor Cota Única</label>
+                                                <input type="number" step="0.01" value={unit.singleValue} onChange={(e) => handleUnitChange(unit, 'singleValue', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-bold text-emerald-600" />
+                                            </div>
+                                            <div className="sm:col-span-3 flex flex-col gap-1.5">
+                                                <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase underline decoration-orange-500">Valor Parcelado</label>
+                                                <input type="number" step="0.01" value={unit.installmentValue} onChange={(e) => handleUnitChange(unit, 'installmentValue', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-bold text-orange-600" />
+                                            </div>
+                                            <div className="sm:col-span-2 flex flex-col gap-1.5">
+                                                <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase leading-none">Parcelas</label>
+                                                <input type="number" min="1" max="12" value={unit.installmentsCount} onChange={(e) => handleUnitChange(unit, 'installmentsCount', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-bold text-[#111418] dark:text-white" />
+                                            </div>
+                                            <div className="sm:col-span-3 flex flex-col gap-1.5">
+                                                <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Forma</label>
+                                                <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(unit, 'chosenMethod', e.target.value as PaymentMethod)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-bold">
+                                                    <option value="Cota Única">Cota Única</option>
+                                                    <option value="Parcelado">Parcelado</option>
+                                                </select>
+                                            </div>
+                                            <div className="sm:col-span-3 flex flex-col gap-1.5">
+                                                <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase">Status</label>
+                                                <select value={unit.status} onChange={(e) => handleUnitChange(unit, 'status', e.target.value as IptuStatus)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-bold">
+                                                    {Object.values(IptuStatus).map(status => (
+                                                        <option key={status} value={status}>{status}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ));
+                            })()}
                         </div>
                     </section>
 
@@ -199,11 +206,11 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, onClose, on
                                 <div key={tenant.id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end p-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-700">
                                     <div className="sm:col-span-7 flex flex-col gap-1.5">
                                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Empresa</label>
-                                        <input value={tenant.name} onChange={(e) => handleTenantChange(tenant.id, 'name', e.target.value)} className="h-10 px-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-bold" />
+                                        <input value={tenant.name} onChange={(e) => handleTenantChange(tenant, 'name', e.target.value)} className="h-10 px-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-bold" />
                                     </div>
                                     <div className="sm:col-span-3 flex flex-col gap-1.5">
                                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Área Ocupada (m²)</label>
-                                        <input type="number" step="0.01" disabled={tenant.isSingleTenant} value={tenant.occupiedArea} onChange={(e) => handleTenantChange(tenant.id, 'occupiedArea', Number(e.target.value))} className="h-10 px-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-bold disabled:opacity-50" />
+                                        <input type="number" step="0.01" disabled={tenant.isSingleTenant} value={tenant.occupiedArea} onChange={(e) => handleTenantChange(tenant, 'occupiedArea', Number(e.target.value))} className="h-10 px-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-bold disabled:opacity-50" />
                                     </div>
                                     <div className="sm:col-span-2 flex flex-col gap-1.5">
                                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Único Locatário</label>
