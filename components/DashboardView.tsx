@@ -11,6 +11,8 @@ interface DashboardViewProps {
 const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddProperty, properties }) => {
   const currentSystemYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<number>(currentSystemYear);
+  const [selectedCityForComparison, setSelectedCityForComparison] = useState<string>('Todas');
+
 
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -115,6 +117,66 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
     };
   }, [properties, selectedYear]);
 
+  const comparisonData = useMemo(() => {
+    const prevYear = selectedYear - 1;
+    const filteredProperties = selectedCityForComparison === 'Todas'
+      ? properties
+      : properties.filter(p => p.city === selectedCityForComparison);
+
+    const getTotals = (year: number) => {
+      let single = 0;
+      let installment = 0;
+      filteredProperties.forEach(p => {
+        p.units.forEach(u => {
+          if (u.year === year) {
+            if (u.chosenMethod === 'Cota Única') single += u.singleValue || 0;
+            if (u.chosenMethod === 'Parcelado') installment += u.installmentValue || 0;
+          }
+        });
+      });
+      return { single, installment, total: single + installment };
+    };
+
+    const currentTotals = getTotals(selectedYear);
+    const prevTotals = getTotals(prevYear);
+
+    const calcDiff = (curr: number, prev: number) => ({
+      abs: curr - prev,
+      perc: prev > 0 ? ((curr - prev) / prev) * 100 : 0
+    });
+
+    return {
+      current: currentTotals,
+      previous: prevTotals,
+      diff: {
+        single: calcDiff(currentTotals.single, prevTotals.single),
+        installment: calcDiff(currentTotals.installment, prevTotals.installment),
+        total: calcDiff(currentTotals.total, prevTotals.total)
+      }
+    };
+  }, [properties, selectedYear, selectedCityForComparison]);
+
+  const highestIptu = useMemo(() => {
+    let highestSingle = { propertyName: '-', value: 0 };
+    let highestParcelado = { propertyName: '-', value: 0 };
+
+    properties.forEach(p => {
+      p.units.forEach(u => {
+        if (u.year === selectedYear) {
+          if (u.chosenMethod === 'Cota Única' && u.singleValue > highestSingle.value) {
+            highestSingle = { propertyName: p.name, value: u.singleValue };
+          }
+          if (u.chosenMethod === 'Parcelado' && u.installmentValue > highestParcelado.value) {
+            highestParcelado = { propertyName: p.name, value: u.installmentValue };
+          }
+        }
+      });
+    });
+
+    return { single: highestSingle, parcelado: highestParcelado };
+  }, [properties, selectedYear]);
+
+
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
@@ -169,89 +231,195 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
         {/* ... (cards) */}
         {/* Card 1: Total Imóveis */}
-        <div className="group flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-primary hover:shadow-md transition-all">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 text-primary p-2 rounded-lg group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-semibold">home_work</span>
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-primary hover:shadow-md transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-primary/10 text-primary p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined font-semibold text-[20px]">home_work</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">Total de Imóveis</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Total de Imóveis</p>
           </div>
           <div>
-            <p className="text-[#111418] dark:text-white text-3xl font-semibold tracking-tight">{stats.totalProperties}</p>
-            <p className="text-[11px] font-semibold mt-1 text-[#617289] dark:text-[#9ca3af]">Carteira completa</p>
+            <p className="text-[#111418] dark:text-white text-2xl font-bold tracking-tight">{stats.totalProperties}</p>
+            <p className="text-[10px] font-semibold mt-0.5 text-[#617289] dark:text-[#9ca3af]">Carteira completa</p>
           </div>
         </div>
 
         {/* Card 2: Valor Total de IPTU */}
-        <div className="group flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-indigo-500 hover:shadow-md transition-all">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-50 text-indigo-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-semibold">account_balance_wallet</span>
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-indigo-500 hover:shadow-md transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-indigo-50 text-indigo-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined font-semibold text-[20px]">account_balance_wallet</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">Valor Total de IPTU</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Valor Total de IPTU</p>
           </div>
           <div>
-            <p className="text-[#111418] dark:text-white text-2xl font-semibold tracking-tight">{formatCurrency(stats.totalIptuValue)}</p>
-            <p className="text-[11px] font-semibold mt-1 text-indigo-600">Referência: {selectedYear}</p>
+            <p className="text-[#111418] dark:text-white text-xl font-bold tracking-tight">{formatCurrency(stats.totalIptuValue)}</p>
+            <p className="text-[10px] font-semibold mt-0.5 text-indigo-600">Referência: {selectedYear}</p>
           </div>
         </div>
 
         {/* Card 3: Valor Regularizado */}
-        <div className="group flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-emerald-500 hover:shadow-md transition-all">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-50 text-emerald-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-semibold">check_circle</span>
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-emerald-500 hover:shadow-md transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-emerald-50 text-emerald-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined font-semibold text-[20px]">check_circle</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">Valor Regularizado</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Valor Regularizado</p>
           </div>
           <div>
-            <p className="text-emerald-600 text-2xl font-semibold tracking-tight">{formatCurrency(stats.totalRegularized)}</p>
-            <p className="text-[11px] font-semibold mt-1 text-emerald-600/80">Total liquidado ou em dia</p>
+            <p className="text-emerald-600 text-xl font-bold tracking-tight">{formatCurrency(stats.totalRegularized)}</p>
+            <p className="text-[10px] font-semibold mt-0.5 text-emerald-600/80">Total liquidado ou em dia</p>
           </div>
         </div>
 
         {/* Card 4: Valor em Aberto */}
-        <div className="group flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-red-500 hover:shadow-md transition-all">
-          <div className="flex items-center gap-3">
-            <div className="bg-red-50 text-red-500 p-2 rounded-lg group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-semibold">pending_actions</span>
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-red-500 hover:shadow-md transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-red-50 text-red-500 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined font-semibold text-[20px]">pending_actions</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">Valor em Aberto</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Valor em Aberto</p>
           </div>
           <div>
-            <p className="text-red-600 text-2xl font-semibold tracking-tight">{formatCurrency(stats.totalOpen)}</p>
-            <p className="text-[11px] font-semibold mt-1 text-red-500/80">Pendente de pagamento</p>
+            <p className="text-red-600 text-xl font-bold tracking-tight">{formatCurrency(stats.totalOpen)}</p>
+            <p className="text-[10px] font-semibold mt-0.5 text-red-500/80">Pendente de pagamento</p>
           </div>
         </div>
 
         {/* Card 5: % de Adimplência da Carteira */}
-        <div className="group flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-blue-500 hover:shadow-md transition-all">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-50 text-blue-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-semibold">trending_up</span>
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-blue-500 hover:shadow-md transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined font-semibold text-[20px]">trending_up</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">% Adimplência</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">% Adimplência</p>
           </div>
           <div>
-            <p className="text-blue-600 text-3xl font-semibold tracking-tight">{stats.adimplenciaPercentage.toFixed(1)}%</p>
-            <p className="text-[11px] font-semibold mt-1 text-blue-600/80">Saúde financeira da carteira</p>
+            <p className="text-blue-600 text-2xl font-bold tracking-tight">{stats.adimplenciaPercentage.toFixed(1)}%</p>
+            <p className="text-[10px] font-semibold mt-0.5 text-blue-600/80">Saúde financeira</p>
           </div>
         </div>
 
         {/* Card 6: Qtd. de Imóveis Irregulares */}
-        <div className="group flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-orange-500 hover:shadow-md transition-all">
-          <div className="flex items-center gap-3">
-            <div className="bg-orange-50 text-orange-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-semibold">warning</span>
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-orange-500 hover:shadow-md transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-orange-50 text-orange-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined font-semibold text-[20px]">warning</span>
             </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[10px] font-semibold uppercase tracking-widest">Imóveis Irregulares</p>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Imóveis Irregulares</p>
           </div>
           <div>
-            <p className="text-orange-600 text-3xl font-semibold tracking-tight">{stats.irregularCount}</p>
-            <p className="text-[11px] font-semibold mt-1 text-orange-600/80">Com pendências no ano</p>
+            <p className="text-orange-600 text-2xl font-bold tracking-tight">{stats.irregularCount}</p>
+            <p className="text-[10px] font-semibold mt-0.5 text-orange-600/80">Com pendências</p>
+          </div>
+        </div>
+
+        {/* Card 7: IPTU mais alto Cota Única */}
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-amber-500 hover:shadow-md transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-amber-50 text-amber-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined font-semibold text-[20px]">star</span>
+            </div>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Maior Cota Única</p>
+          </div>
+          <div>
+            <p className="text-amber-600 text-sm font-bold tracking-tight truncate mb-0.5" title={highestIptu.single.propertyName}>
+              {highestIptu.single.propertyName}
+            </p>
+            <p className="text-[#111418] dark:text-white text-base font-bold">{formatCurrency(highestIptu.single.value)}</p>
+          </div>
+        </div>
+
+        {/* Card 8: IPTU mais alto Parcelado */}
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-cyan-500 hover:shadow-md transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-cyan-50 text-cyan-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined font-semibold text-[20px]">star_half</span>
+            </div>
+            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Maior Parcelado</p>
+          </div>
+          <div>
+            <p className="text-cyan-600 text-sm font-bold tracking-tight truncate mb-0.5" title={highestIptu.parcelado.propertyName}>
+              {highestIptu.parcelado.propertyName}
+            </p>
+            <p className="text-[#111418] dark:text-white text-base font-bold">{formatCurrency(highestIptu.parcelado.value)}</p>
+          </div>
+        </div>
+      </div>
+
+
+      {/* Comparativo Anual */}
+      <div className="bg-white dark:bg-[#1a2634] p-8 rounded-2xl border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#e5e7eb] dark:border-[#2a3644] pb-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/10 text-primary p-2 rounded-lg">
+              <span className="material-symbols-outlined font-semibold">analytics</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-[#111418] dark:text-white uppercase tracking-tight">Comparativo Anual ({selectedYear - 1} vs {selectedYear})</h3>
+              <p className="text-xs text-[#617289] dark:text-[#9ca3af] font-medium">Análise de variação de valores entre os anos.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1 w-full md:w-64">
+            <label className="text-[10px] font-semibold text-[#617289] uppercase ml-1">Filtro por Cidade</label>
+            <select
+              value={selectedCityForComparison}
+              onChange={(e) => setSelectedCityForComparison(e.target.value)}
+              className="h-10 px-3 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+            >
+              <option value="Todas">Todas as Cidades</option>
+              {rankings.cities.map(c => (
+                <option key={c.label} value={c.label}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Total */}
+          <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700/50">
+            <p className="text-[10px] font-bold text-[#617289] uppercase tracking-widest mb-3">Variação Total</p>
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between items-baseline">
+                <span className="text-2xl font-bold text-[#111418] dark:text-white">{formatCurrency(comparisonData.current.total)}</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${comparisonData.diff.total.perc >= 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {comparisonData.diff.total.perc >= 0 ? '+' : ''}{comparisonData.diff.total.perc.toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-[11px] font-medium text-[#617289]">vs {formatCurrency(comparisonData.previous.total)} no ano anterior</p>
+            </div>
+          </div>
+
+          {/* Cota Única */}
+          <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700/50">
+            <p className="text-[10px] font-bold text-[#617289] uppercase tracking-widest mb-3">Cota Única</p>
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between items-baseline">
+                <span className="text-2xl font-bold text-[#111418] dark:text-white">{formatCurrency(comparisonData.current.single)}</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${comparisonData.diff.single.perc >= 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {comparisonData.diff.single.perc >= 0 ? '+' : ''}{comparisonData.diff.single.perc.toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-[11px] font-medium text-[#617289]">vs {formatCurrency(comparisonData.previous.single)} anterior</p>
+            </div>
+          </div>
+
+          {/* Parcelado */}
+          <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700/50">
+            <p className="text-[10px] font-bold text-[#617289] uppercase tracking-widest mb-3">Parcelado</p>
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between items-baseline">
+                <span className="text-2xl font-bold text-[#111418] dark:text-white">{formatCurrency(comparisonData.current.installment)}</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${comparisonData.diff.installment.perc >= 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {comparisonData.diff.installment.perc >= 0 ? '+' : ''}{comparisonData.diff.installment.perc.toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-[11px] font-medium text-[#617289]">vs {formatCurrency(comparisonData.previous.installment)} anterior</p>
+            </div>
           </div>
         </div>
       </div>

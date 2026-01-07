@@ -109,7 +109,14 @@ const App: React.FC = () => {
         setUserName(name);
         setUserRole(finalRole as UserRole);
 
-        if (session.user.user_metadata?.must_change_password) {
+        // Check if user must change password from the public 'users' table
+        const { data: userData } = await supabase
+          .from('users')
+          .select('must_change_password')
+          .eq('id', session.user.id)
+          .single();
+
+        if (session.user.user_metadata?.must_change_password || userData?.must_change_password) {
           setIsChangePasswordModalOpen(true);
         }
 
@@ -134,6 +141,18 @@ const App: React.FC = () => {
     }
 
     if (mustChange) setIsChangePasswordModalOpen(true);
+    else {
+      // Direct check for forced change even on fresh login (for existing users)
+      const { data: userData } = await supabase
+        .from('users')
+        .select('must_change_password')
+        .eq('email', email)
+        .single();
+
+      if (userData?.must_change_password) {
+        setIsChangePasswordModalOpen(true);
+      }
+    }
     setCurrentView('dashboard');
     fetchProperties(demo);
   };

@@ -18,7 +18,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCity, setFilterCity] = useState<string>('all');
   const [filterUF, setFilterUF] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const uniqueCities = React.useMemo(() => {
     const cities = properties.map(p => p.city).filter(Boolean) as string[];
@@ -142,7 +142,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
       </div>
 
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
           {filteredProperties.map(property => {
             const currentYear = 2026; // Fixado em 2026 conforme solicitado pelo usuário
             const currentYearStatus = getPropertyStatus(property, currentYear);
@@ -150,67 +150,67 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
 
             return (
               <div key={property.id} className="bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer group flex flex-col">
-                <div className="relative h-48" onClick={() => onSelectProperty(property.id)}>
+                <div className="relative h-36" onClick={() => onSelectProperty(property.id)}>
                   <img src={property.imageUrl} alt={property.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute top-4 right-4 animate-in fade-in zoom-in duration-500">
+                  <div className="absolute top-3 right-3 animate-in fade-in zoom-in duration-500">
                     <div className="flex flex-col items-end gap-1">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-500 text-white' :
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-sm ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-500 text-white' :
                         currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' : 'bg-primary text-white'
                         }`}>{currentYearStatus}</span>
 
                       {hasPreviousDebts && (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm bg-red-600 text-white flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">warning</span>
-                          DÉBITOS ANTERIORES
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-sm bg-red-600 text-white flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[12px]">warning</span>
+                          DÉBITOS
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+                  <div className="absolute bottom-3 right-3 flex flex-col gap-1.5">
                     {canDelete && (
-                      <div className="flex gap-2 self-end">
+                      <div className="flex gap-1.5 self-end">
                         <button
                           onClick={(e) => { e.stopPropagation(); onEditProperty(property); }}
-                          className="size-8 flex items-center justify-center rounded-lg bg-white/90 text-[#111418] hover:bg-white transition-all shadow-lg backdrop-blur-sm"
+                          className="size-7 flex items-center justify-center rounded-lg bg-white/90 text-[#111418] hover:bg-white transition-all shadow-md backdrop-blur-sm"
                         >
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); onDeleteProperty(property.id); }}
-                          className="size-8 flex items-center justify-center rounded-lg bg-red-500/80 text-white hover:bg-red-600 transition-all shadow-lg backdrop-blur-sm"
+                          className="size-7 flex items-center justify-center rounded-lg bg-red-500/80 text-white hover:bg-red-600 transition-all shadow-md backdrop-blur-sm"
                         >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
                         </button>
                       </div>
                     )}
                   </div>
-                  <div className="absolute bottom-4 left-4">
-                    <span className="px-2.5 py-1 rounded-md bg-black/50 text-white text-[10px] font-semibold backdrop-blur-sm">{property.type}</span>
+                  <div className="absolute bottom-3 left-3">
+                    <span className="px-2 py-0.5 rounded bg-black/50 text-white text-[9px] font-bold backdrop-blur-sm">{property.type}</span>
                   </div>
                 </div>
-                <div className="p-5 flex-1" onClick={() => onSelectProperty(property.id)}>
-                  <h3 className="text-lg font-semibold text-[#111418] dark:text-white group-hover:text-secondary transition-colors">{property.name}</h3>
-                  <p className="text-[13px] font-medium text-[#617289] dark:text-[#9ca3af] mt-1 line-clamp-1" title={property.address}>
+                <div className="p-4 flex-1" onClick={() => onSelectProperty(property.id)}>
+                  <h3 className="text-sm font-bold text-[#111418] dark:text-white group-hover:text-secondary transition-colors line-clamp-1">{property.name}</h3>
+                  <p className="text-[11px] font-medium text-[#617289] dark:text-[#9ca3af] mt-0.5 line-clamp-1" title={property.address}>
                     {property.address}
                   </p>
-                  <p className="text-[12px] font-medium text-[#94a3b8] dark:text-[#64748b] mt-0.5 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">location_on</span>
+                  <p className="text-[10px] font-medium text-[#94a3b8] dark:text-[#64748b] mt-0.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">location_on</span>
                     {property.neighborhood}, {property.city}
                   </p>
-                  <div className="mt-6 pt-4 border-t border-gray-100 dark:border-[#2a3644] flex justify-between items-center">
+                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#2a3644] flex justify-between items-center">
                     <div className="flex items-center">
                       <button
                         onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'units'); }}
-                        className="h-9 px-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md text-[10px] font-bold uppercase tracking-tight"
+                        className="h-8 px-3 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md text-[9px] font-bold uppercase tracking-tight"
                         title="Configurar Sequenciais e Locatários"
                       >
                         <span className="material-symbols-outlined text-[18px]">receipt_long</span>
                         INSERIR IPTU
                       </button>
                     </div>
-                    <button className="text-primary font-semibold text-sm flex items-center gap-1 hover:text-secondary">
-                      DETALHES <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                    <button className="text-primary font-bold text-[10px] flex items-center gap-0.5 hover:text-secondary uppercase tracking-tight">
+                      DETALHES <span className="material-symbols-outlined text-[14px]">chevron_right</span>
                     </button>
                   </div>
                 </div>
@@ -242,6 +242,10 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold text-[#111418] dark:text-white">{property.name}</span>
                           <span className="text-[12px] text-[#617289] dark:text-[#9ca3af] mt-0.5 line-clamp-1">{property.address}</span>
+                          <span className="text-[11px] text-[#94a3b8] dark:text-[#64748b] mt-0.5 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">location_on</span>
+                            {property.city} - {property.state}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4">

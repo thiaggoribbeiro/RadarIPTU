@@ -34,6 +34,15 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ onClose }) =>
 
       if (updateError) throw updateError;
 
+      // Sync with the public 'users' table
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('users')
+          .update({ must_change_password: false })
+          .eq('id', user.id);
+      }
+
       onClose();
     } catch (err: any) {
       setError(err.message || 'Erro ao atualizar senha.');
