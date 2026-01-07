@@ -18,7 +18,7 @@ const pgEscape = (str) => {
     return str.replace(/'/g, "''");
 };
 
-let sql = "INSERT INTO public.properties (id, name, address, neighborhood, city, state, zip_code, owner_name, registry_owner, registration_number, sequential, is_complex, units, tenants, iptu_history, base_year, last_updated, image_url) VALUES \n";
+let sql = "INSERT INTO public.properties (id, name, address, neighborhood, city, state, zip_code, owner_name, registry_owner, registration_number, sequential, is_complex, units, tenants, iptu_history, base_year, last_updated, image_url, type) VALUES \n";
 
 const values = [];
 
@@ -42,6 +42,7 @@ for (let i = 1; i < lines.length; i++) {
     });
 
     const id = crypto.randomUUID();
+    const type = 'Loja';
     let rawAddress = `${row['Logradouro_sep'] || ''}, ${row['Numero'] || ''} ${row['Complemento'] || ''}`.trim();
     // Address cleanup
     let cleanAddress = rawAddress
@@ -136,7 +137,8 @@ for (let i = 1; i < lines.length; i++) {
         '${JSON.stringify(iptu_history)}',
         2025,
         '${new Date().toLocaleDateString('pt-BR')}',
-        '/assets/default-property.png'
+        '/assets/default-property.png',
+        '${type}'
     )`;
     values.push(rowValues);
 }
