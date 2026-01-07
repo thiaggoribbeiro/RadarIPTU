@@ -8,7 +8,7 @@ interface PropertyListViewProps {
   onAddProperty: () => void;
   onEditProperty: (property: Property) => void;
   onDeleteProperty: (id: string) => void;
-  onOpenIptuConfig: (property: Property, section?: 'units' | 'tenants', year?: number, sequential?: string) => void;
+  onOpenIptuConfig: (property: Property, section?: 'units' | 'tenants' | 'newCharge', year?: number, sequential?: string) => void;
   properties: Property[];
   userRole: UserRole;
 }
@@ -249,12 +249,12 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                   <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#2a3644] flex justify-between items-center">
                     <div className="flex items-center">
                       <button
-                        onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'units'); }}
+                        onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'newCharge'); }}
                         className="h-8 px-3 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md text-[9px] font-bold uppercase tracking-tight"
                         title="Configurar Sequenciais e Locatários"
                       >
                         <span className="material-symbols-outlined text-[18px]">receipt_long</span>
-                        INSERIR IPTU
+                        NOVO IPTU
                       </button>
                     </div>
                     <button className="text-primary font-bold text-[10px] flex items-center gap-0.5 hover:text-secondary uppercase tracking-tight">
@@ -319,11 +319,11 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-3">
                           <button
-                            onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property); }}
+                            onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'newCharge'); }}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100"
                           >
                             <span className="material-symbols-outlined text-[16px]">receipt_long</span>
-                            INSERIR IPTU
+                            NOVO IPTU
                           </button>
                           {canDelete && (
                             <div className="flex gap-1 border-l border-gray-100 dark:border-gray-700 pl-3 ml-1">

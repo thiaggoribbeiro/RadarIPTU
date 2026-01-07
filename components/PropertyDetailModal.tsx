@@ -10,7 +10,7 @@ interface PropertyDetailModalProps {
   onClose: () => void;
   onAddIptu: (propertyId: string, newIptu: IptuRecord) => void;
   onDeleteIptu: (propertyId: string, iptuId: string) => void;
-  onOpenIptuConfig: (property: Property, section?: 'units' | 'tenants', year?: number, sequential?: string) => void;
+  onOpenIptuConfig: (property: Property, section?: 'units' | 'tenants' | 'newCharge', year?: number, sequential?: string) => void;
 }
 
 const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
@@ -129,7 +129,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       <span className="material-symbols-outlined text-[14px] text-[#617289] dark:text-[#9ca3af]">{item.icon}</span>
                       <span className="text-[8px] font-bold uppercase tracking-wider">{item.label}</span>
                     </div>
-                    <span className={`text-xs font-semibold ${item.highlight || 'text-[#111418] dark:text-white'} truncate`}>{item.value}</span>
+                    <span className={`text-xs font-semibold text-[#111418] dark:text-white truncate`}>{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -275,13 +275,22 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-3 uppercase tracking-tight">
                 <span className="material-symbols-outlined text-primary text-xl font-bold">history</span> Histórico {selectedYear}
               </h3>
-              <button
-                onClick={() => onOpenIptuConfig(property, 'units', selectedYear)}
-                className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
-              >
-                <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                Inserir Sequencial
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onOpenIptuConfig(property, 'newCharge', selectedYear)}
+                  className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[18px]">history_edu</span>
+                  Novo IPTU
+                </button>
+                <button
+                  onClick={() => onOpenIptuConfig(property, 'units', selectedYear)}
+                  className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                  Inserir Sequencial
+                </button>
+              </div>
             </div>
 
             <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">

@@ -4,7 +4,7 @@ import { Property, PropertyUnit, Tenant, PaymentMethod, IptuStatus } from '../ty
 
 interface IptuConfigModalProps {
     property: Property;
-    initialSection?: 'units' | 'tenants';
+    initialSection?: 'units' | 'tenants' | 'newCharge';
     initialYear?: number;
     initialSequential?: string;
     onClose: () => void;
@@ -22,6 +22,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
     const [isManualApportionment, setIsManualApportionment] = useState<boolean>(
         tenants.some(t => t.year === baseYear && t.manualPercentage !== undefined)
     );
+    const [isNewChargeModalOpen, setIsNewChargeModalOpen] = useState(initialSection === 'newCharge');
+    const [newChargeYear, setNewChargeYear] = useState<number>(new Date().getFullYear());
 
     const handleUnitChange = (unitToUpdate: (PropertyUnit & { tempId?: string }), field: keyof PropertyUnit, value: any) => {
         setUnits(prev => prev.map(u => u.tempId === unitToUpdate.tempId ? { ...u, [field]: value } : u));
@@ -79,6 +81,48 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
         }
 
         setTenants(prev => prev.map(t => t.id === tenantToUpdate.id ? { ...t, [field]: updatedValue, ...additionalUpdates } : t));
+    };
+
+    const startNewCharge = (year: number) => {
+        const uniqueSequentialsMap = new Map<string, PropertyUnit>();
+        // Pegar a versão mais recente de cada sequencial
+        const sortedUnits = [...units].sort((a, b) => b.year - a.year);
+
+        sortedUnits.forEach(u => {
+            if (!uniqueSequentialsMap.has(u.sequential)) {
+                uniqueSequentialsMap.set(u.sequential, u);
+            }
+        });
+
+        const newUnits: (PropertyUnit & { tempId?: string })[] = [];
+        uniqueSequentialsMap.forEach((u, seq) => {
+            const exists = units.some(unit => unit.sequential === seq && unit.year === year);
+            if (!exists) {
+                newUnits.push({
+                    tempId: crypto.randomUUID(),
+                    sequential: u.sequential,
+                    registrationNumber: u.registrationNumber,
+                    address: u.address,
+                    ownerName: u.ownerName,
+                    registryOwner: u.registryOwner,
+                    landArea: u.landArea,
+                    builtArea: u.builtArea,
+                    singleValue: 0,
+                    installmentValue: 0,
+                    installmentsCount: u.installmentsCount || 10,
+                    year: year,
+                    chosenMethod: 'Cota Única',
+                    status: IptuStatus.OPEN
+                });
+            }
+        });
+
+        if (newUnits.length > 0) {
+            setUnits([...newUnits, ...units]);
+        }
+
+        setBaseYear(year);
+        setIsNewChargeModalOpen(false);
     };
 
     const subtotals = useMemo(() => {
@@ -140,8 +184,10 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                             <span className="material-symbols-outlined">settings_suggest</span>
                         </div>
                         <div>
-                            <h2 className="text-xl font-semibold text-[#111418] dark:text-white uppercase tracking-tight">Configuração de IPTU</h2>
-                            <p className="text-xs text-[#617289] dark:text-[#9ca3af] font-medium">{property.name} - Gestão de Sequenciais e Locatários</p>
+                            <h2 className="text-xl font-semibold text-[#111418] dark:text-white uppercase tracking-tight">
+                                {initialSection === 'units' ? 'Cadastro de Sequencial' : 'Configuração de IPTU'}
+                            </h2>
+                            <p className="text-xs text-[#617289] dark:text-[#9ca3af] font-medium">{property.name} - {initialSection === 'units' ? 'Registro de Unidades' : 'Gestão de Sequenciais e Locatários'}</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="size-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-[#2a3644]">
@@ -150,8 +196,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                 </header>
 
                 <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
-                    {/* Seção de Ano: Visível se "units" ou se não houver seção específica */}
-                    {(!initialSection || initialSection === 'units') && (
+                    {/* Seção de Ano: Visível se não houver seção específica (Novo IPTU ou Locatários) */}
+                    {(!initialSection || initialSection === 'newCharge' || initialSection === 'tenants') && (
                         <div className="flex flex-col gap-1.5 p-4 bg-primary/5 rounded-xl border border-primary/20">
                             <label className="text-xs font-bold text-primary uppercase tracking-wider">Ano de Referência das Configurações</label>
                             <input
@@ -165,15 +211,17 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                     )}
 
                     {/* Seção de Sequenciais */}
-                    {(!initialSection || initialSection === 'units') && (
+                    {(!initialSection || initialSection === 'units' || initialSection === 'newCharge') && (
                         <section className="space-y-6">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[18px]">app_registration</span> Sequenciais ({baseYear})
+                                    <span className="material-symbols-outlined text-[18px]">app_registration</span> Sequenciais {initialSection !== 'units' ? `(${baseYear})` : ''}
                                 </h3>
-                                <button type="button" onClick={addUnit} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold shadow-md">
-                                    <span className="material-symbols-outlined text-[18px]">add</span> ADICIONAR SEQUENCIAL
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button type="button" onClick={addUnit} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold shadow-md hover:bg-[#a64614] transition-colors">
+                                        <span className="material-symbols-outlined text-[18px]">add</span> NOVO SEQUENCIAL
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="space-y-4">
@@ -265,33 +313,39 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                         <span className="material-symbols-outlined">delete</span>
                                                     </button>
                                                 </div>
-                                                <div className="sm:col-span-4 flex flex-col gap-1.5">
-                                                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-emerald-500">Valor Cota Única</label>
-                                                    <input type="number" step="0.01" value={unit.singleValue} onChange={(e) => handleUnitChange(unit, 'singleValue', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold text-emerald-600" />
-                                                </div>
-                                                <div className="sm:col-span-3 flex flex-col gap-1.5">
-                                                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-orange-500">Valor Parcelado</label>
-                                                    <input type="number" step="0.01" value={unit.installmentValue} onChange={(e) => handleUnitChange(unit, 'installmentValue', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold text-orange-600" />
-                                                </div>
-                                                <div className="sm:col-span-2 flex flex-col gap-1.5">
-                                                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase leading-none">Parcelas</label>
-                                                    <input type="number" min="1" max="12" value={unit.installmentsCount} onChange={(e) => handleUnitChange(unit, 'installmentsCount', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold text-[#111418] dark:text-white" />
-                                                </div>
-                                                <div className="sm:col-span-3 flex flex-col gap-1.5">
-                                                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Forma</label>
-                                                    <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(unit, 'chosenMethod', e.target.value as PaymentMethod)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-semibold">
-                                                        <option value="Cota Única">Cota Única</option>
-                                                        <option value="Parcelado">Parcelado</option>
-                                                    </select>
-                                                </div>
-                                                <div className="sm:col-span-3 flex flex-col gap-1.5">
-                                                    <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Status</label>
-                                                    <select value={unit.status} onChange={(e) => handleUnitChange(unit, 'status', e.target.value as IptuStatus)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-semibold">
-                                                        {Object.values(IptuStatus).map(status => (
-                                                            <option key={status} value={status}>{status}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
+
+                                                {/* Campos Financeiros: Ocultos se for apenas cadastro de sequencial */}
+                                                {initialSection !== 'units' && (
+                                                    <>
+                                                        <div className="sm:col-span-4 flex flex-col gap-1.5">
+                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-emerald-500">Valor Cota Única</label>
+                                                            <input type="number" step="0.01" value={unit.singleValue} onChange={(e) => handleUnitChange(unit, 'singleValue', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold text-emerald-600" />
+                                                        </div>
+                                                        <div className="sm:col-span-3 flex flex-col gap-1.5">
+                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-orange-500">Valor Parcelado</label>
+                                                            <input type="number" step="0.01" value={unit.installmentValue} onChange={(e) => handleUnitChange(unit, 'installmentValue', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold text-orange-600" />
+                                                        </div>
+                                                        <div className="sm:col-span-2 flex flex-col gap-1.5">
+                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase leading-none">Parcelas</label>
+                                                            <input type="number" min="1" max="12" value={unit.installmentsCount} onChange={(e) => handleUnitChange(unit, 'installmentsCount', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold text-[#111418] dark:text-white" />
+                                                        </div>
+                                                        <div className="sm:col-span-3 flex flex-col gap-1.5">
+                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Forma</label>
+                                                            <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(unit, 'chosenMethod', e.target.value as PaymentMethod)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-semibold">
+                                                                <option value="Cota Única">Cota Única</option>
+                                                                <option value="Parcelado">Parcelado</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="sm:col-span-3 flex flex-col gap-1.5">
+                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Status</label>
+                                                            <select value={unit.status} onChange={(e) => handleUnitChange(unit, 'status', e.target.value as IptuStatus)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-semibold">
+                                                                {Object.values(IptuStatus).map(status => (
+                                                                    <option key={status} value={status}>{status}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     ));
@@ -301,7 +355,7 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                     )}
 
                     {/* Seção de Locatários */}
-                    {(!initialSection || initialSection === 'tenants') && (
+                    {(!initialSection || initialSection === 'tenants' || initialSection === 'newCharge') && (
                         <section className="space-y-6 pt-8 border-t border-gray-100 dark:border-[#2a3644]">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
@@ -418,7 +472,50 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                     </div>
                 </form>
             </div>
-        </div>
+
+            {/* Modal de Nova Cobrança */}
+            {
+                isNewChargeModalOpen && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-[#1a2634] w-full max-w-sm rounded-2xl shadow-2xl p-6 border border-gray-100 dark:border-[#2a3644]">
+                            <h3 className="text-lg font-bold text-[#111418] dark:text-white uppercase tracking-tight mb-4 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-emerald-600">history_edu</span> Nova Cobrança
+                            </h3>
+                            <p className="text-sm text-[#617289] dark:text-[#9ca3af] mb-6">
+                                Ao iniciar uma nova cobrança, todos os sequenciais existentes serão carregados para o novo ano selecionado com valores zerados.
+                            </p>
+                            <div className="space-y-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Selecione o Ano</label>
+                                    <input
+                                        type="number"
+                                        value={newChargeYear}
+                                        onChange={(e) => setNewChargeYear(parseInt(e.target.value))}
+                                        className="h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#22303e] text-sm font-bold focus:ring-2 focus:ring-primary outline-none"
+                                    />
+                                </div>
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsNewChargeModalOpen(false)}
+                                        className="flex-1 h-11 rounded-xl text-xs font-bold uppercase tracking-tight text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => startNewCharge(newChargeYear)}
+                                        className="flex-1 h-11 rounded-xl bg-emerald-600 text-white text-xs font-bold uppercase tracking-tight hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all"
+                                    >
+                                        Iniciar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

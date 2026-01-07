@@ -32,7 +32,7 @@ const App: React.FC = () => {
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState<boolean>(false);
   const [isIptuConfigModalOpen, setIsIptuConfigModalOpen] = useState<boolean>(false);
   const [propertyForConfig, setPropertyForConfig] = useState<Property | null>(null);
-  const [iptuConfigInitialSection, setIptuConfigInitialSection] = useState<'units' | 'tenants' | undefined>(undefined);
+  const [iptuConfigInitialSection, setIptuConfigInitialSection] = useState<'units' | 'tenants' | 'newCharge' | undefined>(undefined);
   const [iptuConfigInitialYear, setIptuConfigInitialYear] = useState<number | undefined>(undefined);
   const [iptuConfigInitialSequential, setIptuConfigInitialSequential] = useState<string | undefined>(undefined);
   const [userEmail, setUserEmail] = useState<string>('');
