@@ -20,20 +20,68 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
   const [filterUF, setFilterUF] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const uniqueCities = React.useMemo(() => {
-    const cities = properties.map(p => p.city).filter(Boolean) as string[];
+  const availableCities = React.useMemo(() => {
+    const filtered = filterUF === 'all'
+      ? properties
+      : properties.filter(p => p.state === filterUF);
+    const cities = filtered.map(p => p.city).filter(Boolean) as string[];
     return Array.from(new Set(cities)).sort();
-  }, [properties]);
+  }, [properties, filterUF]);
 
-  const uniqueUFs = React.useMemo(() => {
-    const states = properties.map(p => p.state).filter(Boolean) as string[];
+  const availableUFs = React.useMemo(() => {
+    const filtered = filterCity === 'all'
+      ? properties
+      : properties.filter(p => p.city === filterCity);
+    const states = filtered.map(p => p.state).filter(Boolean) as string[];
     return Array.from(new Set(states)).sort();
-  }, [properties]);
+  }, [properties, filterCity]);
+
+  const handleCityChange = (city: string) => {
+    setFilterCity(city);
+    if (city !== 'all') {
+      const ufsForCity = properties
+        .filter(p => p.city === city)
+        .map(p => p.state);
+      if (filterUF !== 'all' && !ufsForCity.includes(filterUF)) {
+        setFilterUF('all');
+      }
+    }
+  };
+
+  const handleUFChange = (uf: string) => {
+    setFilterUF(uf);
+    if (uf !== 'all') {
+      const citiesInUF = properties
+        .filter(p => p.state === uf)
+        .map(p => p.city);
+      if (filterCity !== 'all' && !citiesInUF.includes(filterCity)) {
+        setFilterCity('all');
+      }
+    }
+  };
 
   const filteredProperties = properties.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.address.toLowerCase().includes(search.toLowerCase()) ||
-      p.registrationNumber.includes(search);
+    const searchTerm = search.toLowerCase();
+
+    // Base fields
+    const matchesBasic = p.name.toLowerCase().includes(searchTerm) ||
+      p.address.toLowerCase().includes(searchTerm) ||
+      p.registrationNumber.toLowerCase().includes(searchTerm) ||
+      p.sequential.toLowerCase().includes(searchTerm) ||
+      p.ownerName.toLowerCase().includes(searchTerm) ||
+      p.registryOwner.toLowerCase().includes(searchTerm);
+
+    // Tenant search
+    const matchesTenants = p.tenants?.some(t => t.name.toLowerCase().includes(searchTerm));
+
+    // Complex units search (if applicable)
+    const matchesUnits = p.isComplex && p.units?.some(u =>
+      u.registrationNumber?.toLowerCase().includes(searchTerm) ||
+      u.sequential.toLowerCase().includes(searchTerm) ||
+      u.ownerName?.toLowerCase().includes(searchTerm)
+    );
+
+    const matchesSearch = matchesBasic || matchesTenants || matchesUnits;
     const matchesType = filterType === 'all' || p.type.toLowerCase() === filterType.toLowerCase();
     const matchesCity = filterCity === 'all' || p.city === filterCity;
     const matchesUF = filterUF === 'all' || p.state === filterUF;
@@ -63,7 +111,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[20px]">search</span>
           <input
             type="text"
-            placeholder="Buscar por nome, endereço, inscrição..."
+            placeholder="Buscar por nome, endereço, inscrição, sequencial, locatário ou proprietário..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full h-11 pl-10 pr-4 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white"
@@ -75,11 +123,11 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">location_city</span>
             <select
               value={filterCity}
-              onChange={(e) => setFilterCity(e.target.value)}
+              onChange={(e) => handleCityChange(e.target.value)}
               className="w-full h-11 pl-9 pr-10 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-medium"
             >
-              <option value="all">Cidades</option>
-              {uniqueCities.map(city => (
+              <option value="all">Todos (Cidades)</option>
+              {availableCities.map(city => (
                 <option key={city} value={city}>{city}</option>
               ))}
             </select>
@@ -90,11 +138,11 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">map</span>
             <select
               value={filterUF}
-              onChange={(e) => setFilterUF(e.target.value)}
+              onChange={(e) => handleUFChange(e.target.value)}
               className="size-full h-11 pl-9 pr-10 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-medium"
             >
-              <option value="all">UF</option>
-              {uniqueUFs.map(uf => (
+              <option value="all">Todos (UF)</option>
+              {availableUFs.map(uf => (
                 <option key={uf} value={uf}>{uf}</option>
               ))}
             </select>
