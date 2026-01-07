@@ -91,4 +91,14 @@ export interface AppUser {
   mustChangePassword?: boolean;
 }
 
-export type ViewType = 'dashboard' | 'properties' | 'financial' | 'reports' | 'login';
+export interface AuditLog {
+  id: string;
+  created_at: string;
+  user_id?: string;
+  user_email: string;
+  user_name: string;
+  action: string;
+  details: string;
+}
+
+export type ViewType = 'dashboard' | 'properties' | 'financial' | 'reports' | 'login' | 'team' | 'audit';

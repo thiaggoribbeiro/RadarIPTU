@@ -12,7 +12,10 @@ import ReportsView from './components/ReportsView';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import Navbar from './components/Navbar';
 import IptuConfigModal from './components/IptuConfigModal';
+import GerenciamentoView from './components/GerenciamentoView';
+import AuditLogsView from './components/AuditLogsView';
 import { supabase } from './lib/supabase';
+import { logAction } from './lib/auditLogger';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
@@ -155,6 +158,7 @@ const App: React.FC = () => {
     }
     setCurrentView('dashboard');
     fetchProperties(demo);
+    logAction('Login', demo ? 'Entrou em modo demonstração' : 'Acesso realizado com sucesso');
   };
 
   const toggleDarkMode = () => {
@@ -209,9 +213,13 @@ const App: React.FC = () => {
               setIsAddPropertyModalOpen(true);
             }}
             onDeleteProperty={async (id) => {
+              const p = properties.find(prop => prop.id === id);
               if (confirm('Excluir imóvel?')) {
                 const { error } = await supabase.from('properties').delete().eq('id', id);
-                if (!error) fetchProperties();
+                if (!error) {
+                  fetchProperties();
+                  logAction('Exclusão de Imóvel', `Nome: ${p?.name || 'ID: ' + id}`);
+                }
               }
             }}
             onOpenIptuConfig={(p, section, year, sequential) => {
@@ -225,6 +233,8 @@ const App: React.FC = () => {
           />
         )}
         {currentView === 'reports' && <ReportsView properties={properties} />}
+        {currentView === 'team' && <GerenciamentoView userRole={userRole} />}
+        {currentView === 'audit' && <AuditLogsView userRole={userRole} />}
       </main>
 
       {selectedPropertyId && properties.find(p => p.id === selectedPropertyId) && (
@@ -241,15 +251,22 @@ const App: React.FC = () => {
               else newHistory = [data, ...newHistory].sort((a, b) => b.year - a.year);
 
               const { error } = await supabase.from('properties').update({ iptu_history: newHistory, last_updated: new Date().toLocaleDateString('pt-BR') }).eq('id', pid);
-              if (!error) fetchProperties();
+              if (!error) {
+                fetchProperties();
+                logAction('Lançamento de IPTU', `Imóvel: ${target.name}, Ano: ${data.year}, Valor: R$ ${data.value.toLocaleString('pt-BR')}`);
+              }
             }
           }}
           onDeleteIptu={async (pid, iptuId) => {
             const target = properties.find(p => p.id === pid);
+            const iptu = target?.iptuHistory.find(h => h.id === iptuId);
             if (target && confirm(`Excluir este lançamento de IPTU?`)) {
               const newHistory = target.iptuHistory.filter(h => h.id !== iptuId);
               const { error } = await supabase.from('properties').update({ iptu_history: newHistory }).eq('id', pid);
-              if (!error) fetchProperties();
+              if (!error) {
+                fetchProperties();
+                logAction('Exclusão de IPTU', `Imóvel: ${target.name}, Ano: ${iptu?.year}`);
+              }
             }
           }}
           onOpenIptuConfig={(p, section, year, sequential) => {
@@ -317,6 +334,7 @@ const App: React.FC = () => {
                 }).eq('id', p.id);
 
                 if (updateError) throw updateError;
+                logAction('Atualização de Imóvel', `Nome: ${p.name}, Endereço: ${p.address}`);
               } else {
                 // Modo Inserção
                 const { error: insertError } = await supabase.from('properties').insert([{
@@ -346,6 +364,7 @@ const App: React.FC = () => {
                 }]);
 
                 if (insertError) throw insertError;
+                logAction('Novo Imóvel', `Nome: ${p.name}, Endereço: ${p.address}`);
               }
 
               fetchProperties();
@@ -391,6 +410,7 @@ const App: React.FC = () => {
               fetchProperties();
               setIsIptuConfigModalOpen(false);
               setPropertyForConfig(null);
+              logAction('Configuração de IPTU', `Imóvel: ${propertyForConfig?.name}, Ano Base: ${baseYear}`);
             } catch (err: any) {
               console.error('Erro ao configurar IPTU:', err.message);
               alert('Erro ao configurar IPTU: ' + err.message);

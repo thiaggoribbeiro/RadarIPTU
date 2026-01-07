@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppUser, UserRole } from '../types';
 import { supabase } from '../lib/supabase';
+import { logAction } from '../lib/auditLogger';
 
 interface GerenciamentoViewProps {
   userRole: UserRole;
@@ -102,6 +103,7 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
         }
 
         alert("Usuário criado com sucesso!");
+        logAction('Criação de Usuário', `Nome: ${newUser.fullName}, E-mail: ${newUser.email}, Role: ${newUser.role}`);
         fetchUsers();
         setIsAddUserModalOpen(false);
       }

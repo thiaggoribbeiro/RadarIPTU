@@ -126,6 +126,23 @@ const Navbar: React.FC<NavbarProps> = ({
                                         >
                                             <span className="material-symbols-outlined text-primary">person</span> Ver perfil
                                         </button>
+
+                                        {userRole === 'Administrador' && (
+                                            <>
+                                                <button
+                                                    onClick={() => { setCurrentView('team'); setIsProfileMenuOpen(false); }}
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-[#111418] dark:text-white hover:bg-primary/10 rounded-lg transition-colors text-left"
+                                                >
+                                                    <span className="material-symbols-outlined text-primary">group</span> Equipe
+                                                </button>
+                                                <button
+                                                    onClick={() => { setCurrentView('audit'); setIsProfileMenuOpen(false); }}
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-[#111418] dark:text-white hover:bg-primary/10 rounded-lg transition-colors text-left"
+                                                >
+                                                    <span className="material-symbols-outlined text-primary">history</span> Acompanhamento
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                     <div className="p-2 border-t border-[#e5e7eb] dark:border-[#2a3644]">
                                         <button

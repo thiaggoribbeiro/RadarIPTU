@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { logAction } from '../lib/auditLogger';
 
 interface ChangePasswordModalProps {
   onClose: () => void;
@@ -43,6 +44,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ onClose }) =>
           .eq('id', user.id);
       }
 
+      logAction('Troca de Senha', 'Sua senha pessoal foi atualizada.');
       onClose();
     } catch (err: any) {
       setError(err.message || 'Erro ao atualizar senha.');
