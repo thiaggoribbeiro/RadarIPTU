@@ -51,7 +51,7 @@ const App: React.FC = () => {
       const { data, error } = await supabase
         .from('properties')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('address', { ascending: true });
 
       if (error) throw error;
 

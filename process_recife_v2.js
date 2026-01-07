@@ -42,7 +42,17 @@ for (let i = 1; i < lines.length; i++) {
     });
 
     const id = crypto.randomUUID();
-    const address = `${row['Logradouro_sep'] || ''}, ${row['Numero'] || ''} ${row['Complemento'] || ''}`.trim();
+    let rawAddress = `${row['Logradouro_sep'] || ''}, ${row['Numero'] || ''} ${row['Complemento'] || ''}`.trim();
+    // Address cleanup
+    let cleanAddress = rawAddress
+        .replace(/^[, ]+/, '')
+        .replace(/^AV /g, 'Avenida ')
+        .replace(/AV\./g, 'Avenida')
+        .replace(/Av\./g, 'Avenida')
+        .replace(/EST/g, 'Estrada')
+        .replace(/Est/g, 'Estrada');
+
+    const address = cleanAddress;
     const name = row['Logradouro_sep'] || 'Imóvel Recife';
     const neighborhood = row['Bairro'] || '';
     const city = 'Recife';
