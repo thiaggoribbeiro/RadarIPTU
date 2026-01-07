@@ -77,7 +77,7 @@ const App: React.FC = () => {
           appraisalValue: item.appraisal_value || 0,
           baseYear: item.base_year || new Date().getFullYear(),
           lastUpdated: item.last_updated || new Date().toLocaleDateString('pt-BR'),
-          imageUrl: item.image_url || `https://picsum.photos/seed/${item.id}/400/400`,
+          imageUrl: item.image_url || '/assets/default-property.png',
           tenants: item.tenants || [],
           iptuHistory: item.iptu_history || []
         }));
