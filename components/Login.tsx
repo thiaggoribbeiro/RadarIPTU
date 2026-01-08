@@ -5,7 +5,7 @@ import logo from '../assets/logo.png';
 import packageJson from '../package.json';
 
 interface LoginProps {
-  onLoginSuccess: (name: string, email: string, isDemo?: boolean, mustChange?: boolean) => void;
+  onLoginSuccess: (name: string, email: string, role?: string, isDemo?: boolean, mustChange?: boolean) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
@@ -37,8 +37,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
         if (data.user) {
           const userName = data.user.user_metadata?.full_name || 'Usuário';
+          const userRole = data.user.user_metadata?.role;
           const mustChange = data.user.user_metadata?.must_change_password || false;
-          onLoginSuccess(userName, data.user.email || '', false, mustChange);
+          onLoginSuccess(userName, data.user.email || '', userRole, false, mustChange);
         }
       } else {
         if (name.length < 3) throw new Error("Insira seu nome completo.");
@@ -59,7 +60,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
         if (data.user) {
           if (data.session) {
-            onLoginSuccess(name, email);
+            onLoginSuccess(name, email, 'Usuário');
           } else {
             setError("CONTA CRIADA COM SUCESSO! Verifique seu e-mail para ativar.");
             setIsLoading(false);

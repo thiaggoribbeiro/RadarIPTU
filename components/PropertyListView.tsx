@@ -18,6 +18,8 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCity, setFilterCity] = useState<string>('all');
   const [filterUF, setFilterUF] = useState<string>('all');
+  const [filterOwner, setFilterOwner] = useState<string>('all');
+  const [filterTenant, setFilterTenant] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const availableCities = React.useMemo(() => {
@@ -35,6 +37,21 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
     const states = filtered.map(p => p.state).filter(Boolean) as string[];
     return Array.from(new Set(states)).sort();
   }, [properties, filterCity]);
+
+  const availableOwners = React.useMemo(() => {
+    const owners = properties.map(p => p.ownerName?.trim()).filter(Boolean) as string[];
+    return Array.from(new Set(owners)).sort();
+  }, [properties]);
+
+  const availableTenants = React.useMemo(() => {
+    const tenantsSet = new Set<string>();
+    properties.forEach(p => {
+      p.tenants?.forEach(t => {
+        if (t.name) tenantsSet.add(t.name.trim());
+      });
+    });
+    return Array.from(tenantsSet).sort();
+  }, [properties]);
 
   const handleCityChange = (city: string) => {
     setFilterCity(city);
@@ -85,10 +102,14 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
     const matchesType = filterType === 'all' || p.type.toLowerCase() === filterType.toLowerCase();
     const matchesCity = filterCity === 'all' || p.city === filterCity;
     const matchesUF = filterUF === 'all' || p.state === filterUF;
-    return matchesSearch && matchesType && matchesCity && matchesUF;
+    const matchesOwner = filterOwner === 'all' || p.ownerName?.trim() === filterOwner;
+    const matchesTenant = filterTenant === 'all' || p.tenants?.some(t => t.name?.trim() === filterTenant);
+
+    return matchesSearch && matchesType && matchesCity && matchesUF && matchesOwner && matchesTenant;
   });
 
-  const canDelete = userRole === 'Gestor' || userRole === 'Administrador';
+  const canEdit = true; // Todo usuário autenticado pode editar
+  const canDelete = true; // Botão de excluir agora visível para todos os cargos (regra de acesso tratada no clique)
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -106,85 +127,117 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
         </button>
       </div>
 
-      <div className="bg-white dark:bg-[#1a2634] p-4 rounded-xl shadow-sm border border-[#e5e7eb] dark:border-[#2a3644] flex flex-col xl:flex-row gap-4">
-        <div className="flex-1 relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[20px]">search</span>
-          <input
-            type="text"
-            placeholder="Buscar por nome, endereço, inscrição, sequencial, locatário ou proprietário..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[140px]">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">location_city</span>
-            <select
-              value={filterCity}
-              onChange={(e) => handleCityChange(e.target.value)}
-              className="w-full h-11 pl-9 pr-10 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-medium"
-            >
-              <option value="all">Todos (Cidades)</option>
-              {availableCities.map(city => (
-                <option key={city} value={city}>{city}</option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
+      <div className="bg-white dark:bg-[#1a2634] p-5 rounded-2xl shadow-sm border border-[#e5e7eb] dark:border-[#2a3644] flex flex-col gap-5">
+        <div className="flex flex-col xl:flex-row gap-4">
+          <div className="flex-1 relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[20px]">search</span>
+            <input
+              type="text"
+              placeholder="Busca rápida: nome, inscrição, sequencial, endereço..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-11 pl-10 pr-4 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-gray-50/50 dark:bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white transition-all"
+            />
           </div>
 
-          <div className="relative min-w-[100px]">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">map</span>
-            <select
-              value={filterUF}
-              onChange={(e) => handleUFChange(e.target.value)}
-              className="size-full h-11 pl-9 pr-10 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-medium"
-            >
-              <option value="all">Todos (UF)</option>
-              {availableUFs.map(uf => (
-                <option key={uf} value={uf}>{uf}</option>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex gap-1.5 items-center bg-gray-50 dark:bg-[#22303e] p-1 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644]">
+              {['all', 'Loja', 'Galpão', 'Sala', 'Apartamento'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setFilterType(type)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${filterType === type
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-[#617289] dark:text-[#9ca3af] hover:text-[#111418] dark:hover:text-white'
+                    }`}
+                >
+                  {type === 'all' ? 'TODOS' : type.toUpperCase()}
+                </button>
               ))}
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
-          </div>
-        </div>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex gap-1.5 items-center bg-gray-50 dark:bg-[#22303e] p-1 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644]">
-            {['all', 'Loja', 'Galpão', 'Sala', 'Apartamento'].map((type) => (
+            <div className="flex gap-1 bg-gray-50 dark:bg-[#22303e] p-1 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644]">
               <button
-                key={type}
-                onClick={() => setFilterType(type)}
-                className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${filterType === type
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${viewMode === 'grid'
                   ? 'bg-primary text-white shadow-sm'
                   : 'text-[#617289] dark:text-[#9ca3af] hover:text-[#111418] dark:hover:text-white'
                   }`}
               >
-                {type === 'all' ? 'TODOS' : type.toUpperCase()}
+                <span className="material-symbols-outlined text-[18px] font-bold">grid_view</span>
               </button>
-            ))}
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${viewMode === 'list'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-[#617289] dark:text-[#9ca3af] hover:text-[#111418] dark:hover:text-white'
+                  }`}
+              >
+                <span className="material-symbols-outlined text-[18px] font-bold">format_list_bulleted</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-[#e5e7eb] dark:border-[#2a3644]">
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">location_city</span>
+            <select
+              value={filterCity}
+              onChange={(e) => handleCityChange(e.target.value)}
+              className="w-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-bold"
+            >
+              <option value="all">CIDADE: TODAS</option>
+              {availableCities.map(city => (
+                <option key={city} value={city}>{city.toUpperCase()}</option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
           </div>
 
-          <div className="flex gap-1 bg-gray-50 dark:bg-[#22303e] p-1 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644]">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-md transition-all flex items-center justify-center ${viewMode === 'grid'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-[#617289] dark:text-[#9ca3af] hover:text-[#111418] dark:hover:text-white'
-                }`}
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">map</span>
+            <select
+              value={filterUF}
+              onChange={(e) => handleUFChange(e.target.value)}
+              className="size-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-bold"
             >
-              <span className="material-symbols-outlined text-[20px] font-semibold">grid_view</span>
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-md transition-all flex items-center justify-center ${viewMode === 'list'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-[#617289] dark:text-[#9ca3af] hover:text-[#111418] dark:hover:text-white'
-                }`}
+              <option value="all">UF: TODOS</option>
+              {availableUFs.map(uf => (
+                <option key={uf} value={uf}>{uf.toUpperCase()}</option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
+          </div>
+
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">person</span>
+            <select
+              value={filterOwner}
+              onChange={(e) => setFilterOwner(e.target.value)}
+              className="size-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-bold"
             >
-              <span className="material-symbols-outlined text-[20px] font-semibold">format_list_bulleted</span>
-            </button>
+              <option value="all">PROPRIETÁRIO: TODOS</option>
+              {availableOwners.map(owner => (
+                <option key={owner} value={owner}>{owner.toUpperCase()}</option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
+          </div>
+
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">group</span>
+            <select
+              value={filterTenant}
+              onChange={(e) => setFilterTenant(e.target.value)}
+              className="size-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-bold"
+            >
+              <option value="all">LOCATÁRIO: TODOS</option>
+              {availableTenants.map(tenant => (
+                <option key={tenant} value={tenant}>{tenant.toUpperCase()}</option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
           </div>
         </div>
       </div>
@@ -216,22 +269,24 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                   </div>
 
                   <div className="absolute bottom-3 right-3 flex flex-col gap-1.5">
-                    {canDelete && (
-                      <div className="flex gap-1.5 self-end">
+                    <div className="flex gap-1.5 self-end">
+                      {canEdit && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onEditProperty(property); }}
                           className="size-7 flex items-center justify-center rounded-lg bg-white/90 text-[#111418] hover:bg-white transition-all shadow-md backdrop-blur-sm"
                         >
                           <span className="material-symbols-outlined text-[16px]">edit</span>
                         </button>
+                      )}
+                      {canDelete && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onDeleteProperty(property.id); }}
                           className="size-7 flex items-center justify-center rounded-lg bg-red-500/80 text-white hover:bg-red-600 transition-all shadow-md backdrop-blur-sm"
                         >
                           <span className="material-symbols-outlined text-[16px]">delete</span>
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                   <div className="absolute bottom-3 left-3">
                     <span className="px-2 py-0.5 rounded bg-black/50 text-white text-[9px] font-bold backdrop-blur-sm">{property.type}</span>
@@ -325,20 +380,24 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                             <span className="material-symbols-outlined text-[16px]">receipt_long</span>
                             NOVO IPTU
                           </button>
-                          {canDelete && (
+                          {(canEdit || canDelete) && (
                             <div className="flex gap-1 border-l border-gray-100 dark:border-gray-700 pl-3 ml-1">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onEditProperty(property); }}
-                                className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                              >
-                                <span className="material-symbols-outlined text-[20px]">edit</span>
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onDeleteProperty(property.id); }}
-                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
-                              >
-                                <span className="material-symbols-outlined text-[20px]">delete</span>
-                              </button>
+                              {canEdit && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onEditProperty(property); }}
+                                  className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[20px]">edit</span>
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onDeleteProperty(property.id); }}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[20px]">delete</span>
+                                </button>
+                              )}
                             </div>
                           )}
                           <span className="material-symbols-outlined text-primary font-semibold">chevron_right</span>

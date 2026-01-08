@@ -86,6 +86,11 @@
     .dark input::placeholder {
       color: #9ca3af !important;
     }
+
+    /* Global fix for duplicated select arrows due to tailwind forms plugin */
+    select.appearance-none {
+      background-image: none !important;
+    }
   </style>
   <script type="importmap">
 {

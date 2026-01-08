@@ -14,6 +14,7 @@ import Navbar from './components/Navbar';
 import IptuConfigModal from './components/IptuConfigModal';
 import GerenciamentoView from './components/GerenciamentoView';
 import AuditLogsView from './components/AuditLogsView';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { logAction } from './lib/auditLogger';
 
@@ -35,6 +36,13 @@ const App: React.FC = () => {
   const [iptuConfigInitialSection, setIptuConfigInitialSection] = useState<'units' | 'tenants' | 'newCharge' | undefined>(undefined);
   const [iptuConfigInitialYear, setIptuConfigInitialYear] = useState<number | undefined>(undefined);
   const [iptuConfigInitialSequential, setIptuConfigInitialSequential] = useState<string | undefined>(undefined);
+  const [showRestrictedAccess, setShowRestrictedAccess] = useState<boolean>(false);
+  const [propertyIdToDelete, setPropertyIdToDelete] = useState<string | null>(null);
+  const [availableManagers, setAvailableManagers] = useState<{ name: string, email: string }[]>([]);
+  const [overrideEmail, setOverrideEmail] = useState<string>('');
+  const [overridePassword, setOverridePassword] = useState<string>('');
+  const [overrideError, setOverrideError] = useState<string | null>(null);
+  const [isVerifyingOverride, setIsVerifyingOverride] = useState<boolean>(false);
   const [userEmail, setUserEmail] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
   const [userRole, setUserRole] = useState<UserRole>('Usuário');
@@ -96,6 +104,23 @@ const App: React.FC = () => {
     }
   };
 
+  const fetchManagers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('full_name, email')
+        .eq('role', 'Gestor')
+        .eq('status', 'Ativo')
+        .order('full_name');
+
+      if (data) {
+        setAvailableManagers(data.map(m => ({ name: m.full_name, email: m.email })));
+      }
+    } catch (err) {
+      console.error('Erro ao buscar gestores:', err);
+    }
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -124,6 +149,7 @@ const App: React.FC = () => {
         }
 
         fetchProperties();
+        fetchManagers();
       } else {
         setLoading(false);
       }
@@ -131,7 +157,7 @@ const App: React.FC = () => {
     checkSession();
   }, []);
 
-  const handleLoginSuccess = async (name: string, email: string, demo: boolean = false, mustChange: boolean = false) => {
+  const handleLoginSuccess = async (name: string, email: string, role?: string, demo: boolean = false, mustChange: boolean = false) => {
     setIsLoggedIn(true);
     setIsDemoMode(demo);
     setUserName(name);
@@ -139,6 +165,8 @@ const App: React.FC = () => {
 
     if (email.toLowerCase() === 'thiago.ribeiro@avesta.com.br' || demo) {
       setUserRole('Administrador');
+    } else if (role) {
+      setUserRole(role as UserRole);
     } else {
       setUserRole('Usuário');
     }
@@ -158,7 +186,8 @@ const App: React.FC = () => {
     }
     setCurrentView('dashboard');
     fetchProperties(demo);
-    logAction('Login', demo ? 'Entrou em modo demonstração' : 'Acesso realizado com sucesso');
+    fetchManagers();
+    logAction('Login', demo ? 'Entrou em modo demonstração' : `Acesso realizado com sucesso - Cargo: ${role || 'Usuário'}`);
   };
 
   const toggleDarkMode = () => {
@@ -171,6 +200,83 @@ const App: React.FC = () => {
     setIsLoggedIn(false);
     setIsDemoMode(false);
     setIsProfileMenuOpen(false);
+  };
+
+  const handleDeleteProperty = async (id: string) => {
+    setPropertyIdToDelete(id);
+    if (userRole === 'Usuário') {
+      setShowRestrictedAccess(true);
+      setOverrideError(null);
+      setOverrideEmail('');
+      setOverridePassword('');
+      return;
+    }
+
+    const p = properties.find(prop => prop.id === id);
+    if (confirm('Excluir imóvel?')) {
+      const { error } = await supabase.from('properties').delete().eq('id', id);
+      if (!error) {
+        fetchProperties();
+        logAction('Exclusão de Imóvel', `Nome: ${p?.name || 'ID: ' + id}`);
+        setSelectedPropertyId(null);
+        setPropertyIdToDelete(null);
+      }
+    }
+  };
+
+  const handleManagerOverride = async () => {
+    if (!overrideEmail || !overridePassword) {
+      setOverrideError('Preencha os campos de e-mail e senha.');
+      return;
+    }
+
+    setIsVerifyingOverride(true);
+    setOverrideError(null);
+
+    try {
+      // Create an independent client for verification to not affect the current session
+      const tempSupabase = createClient(
+        (import.meta as any).env?.VITE_SUPABASE_URL || 'https://aqwuxqfsxnzfyhvjvugu.supabase.co',
+        (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxd3V4cWZzeG56Znlodmp2dWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyMTA5MTgsImV4cCI6MjA4MTc4NjkxOH0.YyR9T2DS5vgbIVid1mb7dAqXgh_a8TRnJPqGrfzlOb0'
+      );
+
+      const { data, error } = await tempSupabase.auth.signInWithPassword({
+        email: overrideEmail,
+        password: overridePassword,
+      });
+
+      if (error) {
+        setOverrideError('E-mail ou senha inválidos.');
+        return;
+      }
+
+      const role = data.user?.user_metadata?.role;
+      if (role !== 'Gestor' && role !== 'Administrador') {
+        setOverrideError('Este usuário não possui cargo de Gestor ou Administrador.');
+        return;
+      }
+
+      // If authorized, proceed with deletion using the main client
+      if (propertyIdToDelete) {
+        const p = properties.find(prop => prop.id === propertyIdToDelete);
+        const { error: deleteError } = await supabase.from('properties').delete().eq('id', propertyIdToDelete);
+
+        if (!deleteError) {
+          fetchProperties();
+          logAction('Exclusão de Imóvel (Override)', `Nome: ${p?.name || 'ID: ' + propertyIdToDelete} | Autorizado por: ${overrideEmail}`);
+          setSelectedPropertyId(null);
+          setPropertyIdToDelete(null);
+          setShowRestrictedAccess(false);
+          alert('Imóvel excluído com sucesso!');
+        } else {
+          setOverrideError('Erro ao excluir o imóvel.');
+        }
+      }
+    } catch (err) {
+      setOverrideError('Erro inesperado durante a verificação.');
+    } finally {
+      setIsVerifyingOverride(false);
+    }
   };
 
   if (!isLoggedIn) {
@@ -212,16 +318,7 @@ const App: React.FC = () => {
               setPropertyToEdit(p);
               setIsAddPropertyModalOpen(true);
             }}
-            onDeleteProperty={async (id) => {
-              const p = properties.find(prop => prop.id === id);
-              if (confirm('Excluir imóvel?')) {
-                const { error } = await supabase.from('properties').delete().eq('id', id);
-                if (!error) {
-                  fetchProperties();
-                  logAction('Exclusão de Imóvel', `Nome: ${p?.name || 'ID: ' + id}`);
-                }
-              }
-            }}
+            onDeleteProperty={handleDeleteProperty}
             onOpenIptuConfig={(p, section, year, sequential) => {
               setPropertyForConfig(p);
               setIptuConfigInitialSection(section);
@@ -242,6 +339,12 @@ const App: React.FC = () => {
           property={properties.find(p => p.id === selectedPropertyId)!}
           userRole={userRole}
           onClose={() => setSelectedPropertyId(null)}
+          onEditProperty={(p) => {
+            setPropertyToEdit(p);
+            setIsAddPropertyModalOpen(true);
+            setSelectedPropertyId(null);
+          }}
+          onDeleteProperty={handleDeleteProperty}
           onAddIptu={async (pid, data) => {
             const target = properties.find(p => p.id === pid);
             if (target) {
@@ -421,6 +524,80 @@ const App: React.FC = () => {
         />
       )}
       {isChangePasswordModalOpen && <ChangePasswordModal onClose={() => setIsChangePasswordModalOpen(false)} />}
+
+      {showRestrictedAccess && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-[#1a2634] w-full max-w-md rounded-3xl p-8 shadow-2xl border border-gray-200 dark:border-[#2a3644] text-center animate-in zoom-in-95 duration-300">
+            <div className="size-16 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 flex items-center justify-center mx-auto mb-4">
+              <span className="material-symbols-outlined text-3xl">lock</span>
+            </div>
+            <h3 className="text-xl font-bold text-[#111418] dark:text-white mb-2 tracking-tight">Acesso Restrito</h3>
+            <p className="text-sm text-[#617289] dark:text-[#9ca3af] mb-8 leading-relaxed">
+              Você não tem permissão para excluir este imóvel. Será necessário a aprovação de um <strong>gestor</strong> para completar a ação.
+            </p>
+
+            <div className="space-y-4 mb-8 text-left">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] ml-1">Selecione o Gestor</label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px] pointer-events-none">person</span>
+                  <select
+                    value={overrideEmail}
+                    onChange={(e) => setOverrideEmail(e.target.value)}
+                    className="w-full h-12 pl-10 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-gray-50 dark:bg-[#22303e] text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled className="dark:bg-[#1a2634]">Selecione um nome...</option>
+                    {availableManagers.map(manager => (
+                      <option key={manager.email} value={manager.email} className="dark:bg-[#1a2634]">
+                        {manager.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px] pointer-events-none select-none">
+                    expand_more
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] ml-1">Senha do Gestor</label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">key</span>
+                  <input
+                    type="password"
+                    placeholder="Digite sua senha"
+                    value={overridePassword}
+                    onChange={(e) => setOverridePassword(e.target.value)}
+                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-gray-50 dark:bg-transparent text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white transition-all"
+                  />
+                </div>
+              </div>
+
+              {overrideError && (
+                <p className="text-xs font-bold text-red-500 bg-red-50 dark:bg-red-500/10 py-2 rounded-lg text-center px-2">{overrideError}</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRestrictedAccess(false)}
+                className="flex-1 h-12 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleManagerOverride}
+                disabled={isVerifyingOverride}
+                className="flex-1 h-12 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-primary/30 hover:bg-[#a64614] transition-all disabled:opacity-50 flex items-center justify-center"
+              >
+                {isVerifyingOverride ? (
+                  <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
