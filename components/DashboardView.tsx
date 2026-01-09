@@ -92,6 +92,64 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
     });
   }, [properties, selectedYear]);
 
+  // Dados para gráfico de rosca: Método de Pagamento (Cota Única vs Parcelado)
+  const paymentMethodData = useMemo(() => {
+    let cotaUnicaCount = 0;
+    let parceladoCount = 0;
+
+    properties.forEach(p => {
+      p.units.forEach(u => {
+        if (u.year === selectedYear) {
+          if (u.chosenMethod === 'Cota Única') cotaUnicaCount++;
+          else if (u.chosenMethod === 'Parcelado') parceladoCount++;
+        }
+      });
+    });
+
+    const total = cotaUnicaCount + parceladoCount;
+    return {
+      cotaUnica: { count: cotaUnicaCount, percentage: total > 0 ? (cotaUnicaCount / total) * 100 : 0 },
+      parcelado: { count: parceladoCount, percentage: total > 0 ? (parceladoCount / total) * 100 : 0 },
+      total
+    };
+  }, [properties, selectedYear]);
+
+  // Dados para gráfico de rosca: Status de Pagamento
+  const statusData = useMemo(() => {
+    let paid = 0;
+    let inProgress = 0;
+    let pending = 0;
+    let open = 0;
+
+    properties.forEach(p => {
+      p.units.forEach(u => {
+        if (u.year === selectedYear) {
+          switch (u.status) {
+            case IptuStatus.PAID: paid++; break;
+            case IptuStatus.IN_PROGRESS: inProgress++; break;
+            case IptuStatus.PENDING: pending++; break;
+            case IptuStatus.OPEN: open++; break;
+          }
+        }
+      });
+    });
+
+    const total = paid + inProgress + pending + open;
+    return {
+      paid: { count: paid, percentage: total > 0 ? (paid / total) * 100 : 0 },
+      inProgress: { count: inProgress, percentage: total > 0 ? (inProgress / total) * 100 : 0 },
+      pending: { count: pending, percentage: total > 0 ? (pending / total) * 100 : 0 },
+      open: { count: open, percentage: total > 0 ? (open / total) * 100 : 0 },
+      total
+    };
+  }, [properties, selectedYear]);
+
+  // Função para normalizar nome de cidade (primeira letra maiúscula, restante minúscula)
+  const normalizeCity = (city: string) => {
+    if (!city) return '';
+    return city.trim().toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
+  };
+
   const rankings = useMemo(() => {
     const cityMap: Record<string, number> = {};
     const stateMap: Record<string, number> = {};
@@ -103,8 +161,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
       }, 0);
 
       if (totalValue > 0) {
-        if (p.city) cityMap[p.city] = (cityMap[p.city] || 0) + totalValue;
-        if (p.state) stateMap[p.state] = (stateMap[p.state] || 0) + totalValue;
+        if (p.city) {
+          const normalizedCity = normalizeCity(p.city);
+          cityMap[normalizedCity] = (cityMap[normalizedCity] || 0) + totalValue;
+        }
+        if (p.state) stateMap[p.state.toUpperCase()] = (stateMap[p.state.toUpperCase()] || 0) + totalValue;
       }
     });
 
@@ -431,7 +492,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             <div className="bg-primary/10 text-primary p-2 rounded-lg">
               <span className="material-symbols-outlined font-semibold">location_city</span>
             </div>
-            <h3 className="text-lg font-semibold text-[#111418] dark:text-white uppercase tracking-tight">Ranking por Cidade</h3>
+            <h3 className="text-lg font-semibold text-[#111418] dark:text-white uppercase tracking-tight">Soma de IPTUs por Cidade</h3>
           </div>
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {rankings.cities.length > 0 ? (
@@ -450,7 +511,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             <div className="bg-primary/10 text-primary p-2 rounded-lg">
               <span className="material-symbols-outlined font-semibold">map</span>
             </div>
-            <h3 className="text-lg font-bold text-[#111418] dark:text-white uppercase tracking-tight">Ranking por Estado (UF)</h3>
+            <h3 className="text-lg font-bold text-[#111418] dark:text-white uppercase tracking-tight">Soma de IPTUs por Estado</h3>
           </div>
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {rankings.states.length > 0 ? (
@@ -460,6 +521,121 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             ) : (
               <p className="text-xs text-[#617289] italic text-center py-10">Buscando dados geográficos...</p>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Gráficos de Rosca */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Gráfico: Método de Pagamento */}
+        <div className="bg-white dark:bg-[#1a2634] p-6 rounded-2xl border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm">
+          <div className="flex items-center gap-3 border-b border-[#e5e7eb] dark:border-[#2a3644] pb-4 mb-6">
+            <div className="bg-primary/10 text-primary p-2 rounded-lg">
+              <span className="material-symbols-outlined font-semibold">pie_chart</span>
+            </div>
+            <h3 className="text-lg font-semibold text-[#111418] dark:text-white uppercase tracking-tight">Método de Pagamento</h3>
+          </div>
+
+          <div className="flex items-center justify-center gap-8">
+            {/* Gráfico de Rosca */}
+            <div className="relative">
+              <div
+                className="w-40 h-40 rounded-full"
+                style={{
+                  background: paymentMethodData.total > 0
+                    ? `conic-gradient(
+                        #10b981 0deg ${paymentMethodData.cotaUnica.percentage * 3.6}deg,
+                        #6366f1 ${paymentMethodData.cotaUnica.percentage * 3.6}deg 360deg
+                      )`
+                    : '#e5e7eb'
+                }}
+              />
+              <div className="absolute inset-4 bg-white dark:bg-[#1a2634] rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-[#111418] dark:text-white">{paymentMethodData.total}</span>
+              </div>
+            </div>
+
+            {/* Legenda */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-emerald-500"></div>
+                <div>
+                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Cota Única</p>
+                  <p className="text-xs text-[#617289]">{paymentMethodData.cotaUnica.count} ({paymentMethodData.cotaUnica.percentage.toFixed(1)}%)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-indigo-500"></div>
+                <div>
+                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Parcelado</p>
+                  <p className="text-xs text-[#617289]">{paymentMethodData.parcelado.count} ({paymentMethodData.parcelado.percentage.toFixed(1)}%)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Gráfico: Status de Pagamento */}
+        <div className="bg-white dark:bg-[#1a2634] p-6 rounded-2xl border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm">
+          <div className="flex items-center gap-3 border-b border-[#e5e7eb] dark:border-[#2a3644] pb-4 mb-6">
+            <div className="bg-primary/10 text-primary p-2 rounded-lg">
+              <span className="material-symbols-outlined font-semibold">donut_large</span>
+            </div>
+            <h3 className="text-lg font-semibold text-[#111418] dark:text-white uppercase tracking-tight">Status de Pagamento</h3>
+          </div>
+
+          <div className="flex items-center justify-center gap-8">
+            {/* Gráfico de Rosca */}
+            <div className="relative">
+              <div
+                className="w-40 h-40 rounded-full"
+                style={{
+                  background: statusData.total > 0
+                    ? `conic-gradient(
+                        #10b981 0deg ${statusData.paid.percentage * 3.6}deg,
+                        #3b82f6 ${statusData.paid.percentage * 3.6}deg ${(statusData.paid.percentage + statusData.inProgress.percentage) * 3.6}deg,
+                        #f59e0b ${(statusData.paid.percentage + statusData.inProgress.percentage) * 3.6}deg ${(statusData.paid.percentage + statusData.inProgress.percentage + statusData.pending.percentage) * 3.6}deg,
+                        #ef4444 ${(statusData.paid.percentage + statusData.inProgress.percentage + statusData.pending.percentage) * 3.6}deg 360deg
+                      )`
+                    : '#e5e7eb'
+                }}
+              />
+              <div className="absolute inset-4 bg-white dark:bg-[#1a2634] rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-[#111418] dark:text-white">{statusData.total}</span>
+              </div>
+            </div>
+
+            {/* Legenda */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-emerald-500"></div>
+                <div>
+                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Pago</p>
+                  <p className="text-xs text-[#617289]">{statusData.paid.count} ({statusData.paid.percentage.toFixed(1)}%)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+                <div>
+                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Em andamento</p>
+                  <p className="text-xs text-[#617289]">{statusData.inProgress.count} ({statusData.inProgress.percentage.toFixed(1)}%)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-amber-500"></div>
+                <div>
+                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Pendente</p>
+                  <p className="text-xs text-[#617289]">{statusData.pending.count} ({statusData.pending.percentage.toFixed(1)}%)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-red-500"></div>
+                <div>
+                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Em aberto</p>
+                  <p className="text-xs text-[#617289]">{statusData.open.count} ({statusData.open.percentage.toFixed(1)}%)</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
