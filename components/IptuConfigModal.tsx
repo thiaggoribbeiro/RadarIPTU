@@ -260,7 +260,7 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                             placeholder="Opcional"
                                                         />
                                                     </div>
-                                                    <div className="flex flex-col gap-1.5">
+                                                    <div className="flex flex-col gap-1.5 sm:col-span-12">
                                                         <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Endereço do Sequencial</label>
                                                         <input
                                                             value={unit.address || ''}
@@ -270,25 +270,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                         />
                                                     </div>
 
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Proprietário Atual</label>
-                                                        <input
-                                                            value={unit.ownerName || ''}
-                                                            onChange={(e) => handleUnitChange(unit, 'ownerName', e.target.value)}
-                                                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm"
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Proprietário Cadastro Imob.</label>
-                                                        <input
-                                                            value={unit.registryOwner || ''}
-                                                            onChange={(e) => handleUnitChange(unit, 'registryOwner', e.target.value)}
-                                                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm"
-                                                        />
-                                                    </div>
-
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Área Total (m²)</label>
+                                                    <div className="flex flex-col gap-1.5 sm:col-span-6">
+                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-emerald-500">Área Total (m²)</label>
                                                         <input
                                                             type="number"
                                                             step="0.01"
@@ -297,8 +280,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                             className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold"
                                                         />
                                                     </div>
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Área Construída (m²)</label>
+                                                    <div className="flex flex-col gap-1.5 sm:col-span-6">
+                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-blue-500">Área Construída (m²)</label>
                                                         <input
                                                             type="number"
                                                             step="0.01"
