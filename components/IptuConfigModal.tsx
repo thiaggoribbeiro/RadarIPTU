@@ -314,8 +314,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                     </button>
                                                 </div>
 
-                                                {/* Campos Financeiros: Ocultos se for apenas cadastro de sequencial */}
-                                                {initialSection !== 'units' && (
+                                                {/* Campos Financeiros: Visíveis se não for apenas cadastro ou se estiver editando um sequencial específico */}
+                                                {(initialSection !== 'units' || initialSequential) && (
                                                     <>
                                                         <div className="sm:col-span-4 flex flex-col gap-1.5">
                                                             <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-emerald-500">Valor Cota Única</label>
@@ -383,16 +383,18 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                             <div className="grid grid-cols-1 gap-4">
                                 {tenants.filter(t => t.year === baseYear).map((tenant) => (
                                     <div key={tenant.id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end p-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-700">
-                                        <div className="sm:col-span-5 flex flex-col gap-1.5">
+                                        <div className={`${isManualApportionment ? 'sm:col-span-7' : 'sm:col-span-5'} flex flex-col gap-1.5`}>
                                             <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Empresa</label>
                                             <input value={tenant.name} onChange={(e) => handleTenantChange(tenant, 'name', e.target.value)} className="h-10 px-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold" />
                                         </div>
-                                        <div className="sm:col-span-2 flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Área (m²)</label>
-                                            <div className={`h-10 flex items-center px-4 rounded-lg text-sm font-bold transition-colors ${isManualApportionment ? 'bg-gray-200/50 text-gray-400' : 'bg-gray-100 dark:bg-gray-800 text-primary'}`}>
-                                                {tenant.occupiedArea.toLocaleString('pt-BR')} m²
+                                        {!isManualApportionment && (
+                                            <div className="sm:col-span-2 flex flex-col gap-1.5">
+                                                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Área (m²)</label>
+                                                <div className="h-10 flex items-center px-4 rounded-lg text-sm font-bold transition-colors bg-gray-100 dark:bg-gray-800 text-primary">
+                                                    {tenant.occupiedArea.toLocaleString('pt-BR')} m²
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                         <div className="sm:col-span-2 flex flex-col gap-1.5">
                                             <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Único Locatário</label>
                                             <div className="h-10 flex items-center">
