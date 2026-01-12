@@ -46,6 +46,7 @@ const App: React.FC = () => {
   const [userEmail, setUserEmail] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
   const [userRole, setUserRole] = useState<UserRole>('Usuário');
+  const [isAdminOverride, setIsAdminOverride] = useState<boolean>(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -106,11 +107,12 @@ const App: React.FC = () => {
 
   const fetchManagers = async () => {
     try {
+      // Busca apenas gestores para a lista de nomes (usando ilike para ignorar capitalização)
       const { data, error } = await supabase
         .from('users')
         .select('full_name, email')
-        .eq('role', 'Gestor')
-        .eq('status', 'Ativo')
+        .ilike('role', 'Gestor')
+        .neq('status', 'Inativo')
         .order('full_name');
 
       if (data) {
@@ -203,30 +205,18 @@ const App: React.FC = () => {
   };
 
   const handleDeleteProperty = async (id: string) => {
+    // Agora todos os perfis (Usuário, Gestor, Administrador) precisam de confirmação via modal
     setPropertyIdToDelete(id);
-    if (userRole === 'Usuário') {
-      setShowRestrictedAccess(true);
-      setOverrideError(null);
-      setOverrideEmail('');
-      setOverridePassword('');
-      return;
-    }
-
-    const p = properties.find(prop => prop.id === id);
-    if (confirm('Excluir imóvel?')) {
-      const { error } = await supabase.from('properties').delete().eq('id', id);
-      if (!error) {
-        fetchProperties();
-        logAction('Exclusão de Imóvel', `Nome: ${p?.name || 'ID: ' + id}`);
-        setSelectedPropertyId(null);
-        setPropertyIdToDelete(null);
-      }
-    }
+    setShowRestrictedAccess(true);
+    setOverrideError(null);
+    setOverrideEmail('');
+    setOverridePassword('');
+    setIsAdminOverride(false);
   };
 
   const handleManagerOverride = async () => {
     if (!overrideEmail || !overridePassword) {
-      setOverrideError('Preencha os campos de e-mail e senha.');
+      setOverrideError('Selecione um gestor e digite a senha.');
       return;
     }
 
@@ -234,7 +224,7 @@ const App: React.FC = () => {
     setOverrideError(null);
 
     try {
-      // Create an independent client for verification to not affect the current session
+      // Create an independent client for verification
       const tempSupabase = createClient(
         (import.meta as any).env?.VITE_SUPABASE_URL || 'https://aqwuxqfsxnzfyhvjvugu.supabase.co',
         (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxd3V4cWZzeG56Znlodmp2dWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyMTA5MTgsImV4cCI6MjA4MTc4NjkxOH0.YyR9T2DS5vgbIVid1mb7dAqXgh_a8TRnJPqGrfzlOb0'
@@ -246,34 +236,43 @@ const App: React.FC = () => {
       });
 
       if (error) {
-        setOverrideError('E-mail ou senha inválidos.');
+        setOverrideError('Senha incorreta para o gestor selecionado.');
         return;
       }
 
-      const role = data.user?.user_metadata?.role;
-      if (role !== 'Gestor' && role !== 'Administrador') {
+      const email = data.user?.email?.toLowerCase();
+      const roleFromMetadata = data.user?.user_metadata?.role?.toLowerCase();
+      const isAdminEmail = email === 'thiago.ribeiro@avesta.com.br';
+      const role = isAdminEmail ? 'administrador' : roleFromMetadata;
+
+      const managerName = data.user?.user_metadata?.full_name || overrideEmail;
+
+      if (role !== 'gestor' && role !== 'administrador') {
         setOverrideError('Este usuário não possui cargo de Gestor ou Administrador.');
         return;
       }
 
-      // If authorized, proceed with deletion using the main client
+      // If authorized, proceed with deletion
       if (propertyIdToDelete) {
         const p = properties.find(prop => prop.id === propertyIdToDelete);
         const { error: deleteError } = await supabase.from('properties').delete().eq('id', propertyIdToDelete);
 
         if (!deleteError) {
           fetchProperties();
-          logAction('Exclusão de Imóvel (Override)', `Nome: ${p?.name || 'ID: ' + propertyIdToDelete} | Autorizado por: ${overrideEmail}`);
+          logAction('Exclusão de Imóvel (Override)', `Imóvel: ${p?.name || propertyIdToDelete} | Autorizado por: ${managerName}`);
           setSelectedPropertyId(null);
           setPropertyIdToDelete(null);
           setShowRestrictedAccess(false);
+          setOverrideEmail('');
+          setOverridePassword('');
+          setIsAdminOverride(false);
           alert('Imóvel excluído com sucesso!');
         } else {
-          setOverrideError('Erro ao excluir o imóvel.');
+          setOverrideError('Erro ao excluir o imóvel no banco de dados.');
         }
       }
     } catch (err) {
-      setOverrideError('Erro inesperado durante a verificação.');
+      setOverrideError('Erro durante a verificação de segurança.');
     } finally {
       setIsVerifyingOverride(false);
     }
@@ -531,36 +530,66 @@ const App: React.FC = () => {
             <div className="size-16 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 flex items-center justify-center mx-auto mb-4">
               <span className="material-symbols-outlined text-3xl">lock</span>
             </div>
-            <h3 className="text-xl font-bold text-[#111418] dark:text-white mb-2 tracking-tight">Acesso Restrito</h3>
+            <h3 className="text-xl font-bold text-[#111418] dark:text-white mb-2 tracking-tight">Confirmar Exclusão</h3>
             <p className="text-sm text-[#617289] dark:text-[#9ca3af] mb-8 leading-relaxed">
-              Você não tem permissão para excluir este imóvel. Será necessário a aprovação de um <strong>gestor</strong> para completar a ação.
+              Esta ação é permanente. Para excluir este imóvel, selecione um <strong>gestor</strong> responsável ou autorize como <strong>administrador</strong>.
             </p>
 
             <div className="space-y-4 mb-8 text-left">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] ml-1">Selecione o Gestor</label>
+                <label className="text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] ml-1">Autorizador</label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px] pointer-events-none">person</span>
-                  <select
-                    value={overrideEmail}
-                    onChange={(e) => setOverrideEmail(e.target.value)}
-                    className="w-full h-12 pl-10 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-gray-50 dark:bg-[#22303e] text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="" disabled className="dark:bg-[#1a2634]">Selecione um nome...</option>
-                    {availableManagers.map(manager => (
-                      <option key={manager.email} value={manager.email} className="dark:bg-[#1a2634]">
-                        {manager.name}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px] pointer-events-none select-none">
-                    expand_more
-                  </span>
+                  {!isAdminOverride ? (
+                    <select
+                      value={overrideEmail}
+                      onChange={(e) => {
+                        if (e.target.value === '__ADMIN__') {
+                          setIsAdminOverride(true);
+                          setOverrideEmail('');
+                        } else {
+                          setOverrideEmail(e.target.value);
+                        }
+                      }}
+                      className="w-full h-12 pl-10 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-gray-50 dark:bg-[#22303e] text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="" disabled className="dark:bg-[#1a2634]">Selecione um gestor...</option>
+                      {availableManagers.map(manager => (
+                        <option key={manager.email} value={manager.email} className="dark:bg-[#1a2634]">
+                          {manager.name}
+                        </option>
+                      ))}
+                      <option value="__ADMIN__" className="dark:bg-[#1a2634] font-bold text-primary">--- Sou Administrador ---</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        autoFocus
+                        placeholder="E-mail do Administrador"
+                        value={overrideEmail}
+                        onChange={(e) => setOverrideEmail(e.target.value)}
+                        className="flex-1 h-12 pl-10 pr-4 rounded-xl border border-primary bg-primary/5 text-sm focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white transition-all"
+                      />
+                      <button
+                        onClick={() => { setIsAdminOverride(false); setOverrideEmail(''); }}
+                        className="px-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-primary transition-colors"
+                        title="Voltar para lista"
+                      >
+                        <span className="material-symbols-outlined">undo</span>
+                      </button>
+                    </div>
+                  )}
+                  {!isAdminOverride && (
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px] pointer-events-none select-none">
+                      expand_more
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] ml-1">Senha do Gestor</label>
+                <label className="text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] ml-1">Senha do Gestor/Adm</label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">key</span>
                   <input
