@@ -507,7 +507,7 @@ const App: React.FC = () => {
       )}
       {isIptuConfigModalOpen && propertyForConfig && (
         <IptuConfigModal
-          property={propertyForConfig}
+          property={properties.find(p => p.id === propertyForConfig.id) || propertyForConfig}
           initialSection={iptuConfigInitialSection}
           initialYear={iptuConfigInitialYear}
           initialSequential={iptuConfigInitialSequential}

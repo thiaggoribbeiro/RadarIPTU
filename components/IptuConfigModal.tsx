@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Property, PropertyUnit, Tenant, PaymentMethod, IptuStatus } from '../types';
 
 interface IptuConfigModalProps {
@@ -24,6 +24,12 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
     );
     const [isNewChargeModalOpen, setIsNewChargeModalOpen] = useState(initialSection === 'newCharge');
     const [newChargeYear, setNewChargeYear] = useState<number>(new Date().getFullYear());
+
+    // Sincronizar units e tenants quando a prop property mudar (ex: após salvar no banco)
+    useEffect(() => {
+        setUnits((property.units || []).map(u => ({ ...u, tempId: crypto.randomUUID() })));
+        setTenants(property.tenants || []);
+    }, [property.units, property.tenants]);
 
     const handleUnitChange = (unitToUpdate: (PropertyUnit & { tempId?: string }), field: keyof PropertyUnit, value: any) => {
         setUnits(prev => prev.map(u => u.tempId === unitToUpdate.tempId ? { ...u, [field]: value } : u));
@@ -245,8 +251,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                     return yearUnits.map((unit) => (
                                         <div key={unit.tempId} className="p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
                                             <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
-                                                <div className="sm:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                    <div className="flex flex-col gap-1.5">
+                                                <div className="sm:col-span-8 grid grid-cols-12 gap-4">
+                                                    <div className="col-span-4 flex flex-col gap-1.5">
                                                         <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Sequencial</label>
                                                         <input
                                                             required
@@ -255,7 +261,7 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                             className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-mono"
                                                         />
                                                     </div>
-                                                    <div className="flex flex-col gap-1.5">
+                                                    <div className="col-span-8 flex flex-col gap-1.5">
                                                         <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Inscrição</label>
                                                         <input
                                                             value={unit.registrationNumber || ''}
@@ -282,27 +288,6 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                             placeholder="Ex: Sala 101, Bloco A"
                                                             className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm"
                                                             title="Endereço do Sequencial"
-                                                        />
-                                                    </div>
-
-                                                    <div className="flex flex-col gap-1.5 sm:col-span-6">
-                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-emerald-500">Área Total (m²)</label>
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            value={unit.landArea || 0}
-                                                            onChange={(e) => handleUnitChange(unit, 'landArea', Number(e.target.value))}
-                                                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold"
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-col gap-1.5 sm:col-span-6">
-                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-blue-500">Área Construída (m²)</label>
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            value={unit.builtArea || 0}
-                                                            onChange={(e) => handleUnitChange(unit, 'builtArea', Number(e.target.value))}
-                                                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold"
                                                         />
                                                     </div>
                                                 </div>

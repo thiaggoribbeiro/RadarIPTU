@@ -422,13 +422,13 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${property.possession === 'Grupo' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase whitespace-nowrap ${property.possession === 'Grupo' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
                           {property.possession}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
-                          <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
+                          <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase whitespace-nowrap ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
                             currentYearStatus === IptuStatus.OPEN ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                             }`}>
                             {currentYearStatus}
@@ -445,7 +445,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                         <div className="flex items-center justify-end gap-3">
                           <button
                             onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'newCharge'); }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 whitespace-nowrap"
                           >
                             <span className="material-symbols-outlined text-[16px]">receipt_long</span>
                             NOVO IPTU
