@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import logo from '../assets/logo-report.png';
 import { Property, IptuStatus } from '../types';
 
 interface ReportsViewProps {
@@ -304,13 +305,21 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         autoTable(doc, {
           head: [tableColumn],
           body: tableRows,
-          startY: 20,
+          startY: 35,
           styles: { fontSize: 8, cellPadding: 2 },
           headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
           alternateRowStyles: { fillColor: [245, 245, 245] },
         });
 
-        doc.text(title, 14, 15);
+        // Adiciona o título
+        doc.setFontSize(16);
+        doc.setTextColor(196, 84, 27);
+        doc.text(title, 14, 22);
+
+        // Adiciona a Logo no canto superior direito
+        // jsPDF landscape width é ~297mm
+        doc.addImage(logo, 'PNG', 240, 10, 40, 15);
+
         doc.save(filename);
       } else {
         const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -417,67 +426,71 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             </header>
 
             <div className="p-8 space-y-8 flex-1">
-              {selectedReport.id === 'proj_anual' && (
-                <section className="bg-primary/5 p-6 rounded-2xl border border-primary/10 space-y-6">
-                  <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">filter_alt</span> Configuração do Relatório
-                  </h3>
+              <section className="bg-primary/5 p-6 rounded-2xl border border-primary/10 space-y-6">
+                <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">filter_alt</span> Configuração da Exportação
+                </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cidade</label>
-                      <select
-                        value={filterCity}
-                        onChange={(e) => setFilterCity(e.target.value)}
-                        title="Selecionar Cidade"
-                        className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
-                      >
-                        {availableCities.map(city => (
-                          <option key={city} value={city}>{city}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano Base</label>
-                      <input
-                        type="number"
-                        value={baseYear}
-                        onChange={(e) => setBaseYear(Number(e.target.value))}
-                        title="Ano Base para Comparação"
-                        placeholder="Ex: 2025"
-                        className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano Projeção</label>
-                      <input
-                        type="number"
-                        value={compareYear}
-                        onChange={(e) => setCompareYear(Number(e.target.value))}
-                        title="Ano Projetado para Comparação"
-                        placeholder="Ex: 2026"
-                        className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Formato</label>
-                      <div className="flex bg-white dark:bg-[#1a2634] rounded-xl border border-gray-200 p-1">
-                        <button
-                          onClick={() => setExportFormat('XLSX')}
-                          className={`flex-1 h-8 rounded-lg text-[10px] font-black transition-all ${exportFormat === 'XLSX' ? 'bg-primary text-white' : 'text-gray-400'}`}
-                        >XLSX</button>
-                        <button
-                          onClick={() => setExportFormat('PDF')}
-                          className={`flex-1 h-8 rounded-lg text-[10px] font-black transition-all ${exportFormat === 'PDF' ? 'bg-primary text-white' : 'text-gray-400'}`}
-                        >PDF</button>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {selectedReport.id === 'proj_anual' ? (
+                    <>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cidade</label>
+                        <select
+                          value={filterCity}
+                          onChange={(e) => setFilterCity(e.target.value)}
+                          title="Selecionar Cidade"
+                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                        >
+                          {availableCities.map(city => (
+                            <option key={city} value={city}>{city}</option>
+                          ))}
+                        </select>
                       </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano Base</label>
+                        <input
+                          type="number"
+                          value={baseYear}
+                          onChange={(e) => setBaseYear(Number(e.target.value))}
+                          title="Ano Base para Comparação"
+                          placeholder="Ex: 2025"
+                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano Projeção</label>
+                        <input
+                          type="number"
+                          value={compareYear}
+                          onChange={(e) => setCompareYear(Number(e.target.value))}
+                          title="Ano Projetado para Comparação"
+                          placeholder="Ex: 2026"
+                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="hidden lg:block lg:col-span-3"></div>
+                  )}
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Formato de Saída</label>
+                    <div className="flex bg-white dark:bg-[#1a2634] rounded-xl border border-gray-200 p-1">
+                      <button
+                        onClick={() => setExportFormat('XLSX')}
+                        className={`flex-1 h-8 rounded-lg text-[10px] font-black transition-all ${exportFormat === 'XLSX' ? 'bg-primary text-white' : 'text-gray-400'}`}
+                      >XLSX</button>
+                      <button
+                        onClick={() => setExportFormat('PDF')}
+                        className={`flex-1 h-8 rounded-lg text-[10px] font-black transition-all ${exportFormat === 'PDF' ? 'bg-primary text-white' : 'text-gray-400'}`}
+                      >PDF</button>
                     </div>
                   </div>
-                </section>
-              )}
+                </div>
+              </section>
 
               <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
