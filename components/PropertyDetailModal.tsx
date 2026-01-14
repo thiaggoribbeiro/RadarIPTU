@@ -185,6 +185,118 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
             </div>
           </section>
 
+          {/* Seção 2: Rateio */}
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                <span className="material-symbols-outlined text-primary text-xl font-bold">group</span> {(() => {
+                  const hasSingle = property.tenants.some(t => t.year === selectedYear && t.isSingleTenant);
+                  return hasSingle ? 'Único Responsável' : 'Rateio por Locatário';
+                })()}
+              </h3>
+              <div className="flex items-center gap-3">
+                <div className="relative flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gray-100/80 dark:bg-[#1e2a3b] border border-transparent hover:border-primary/40 transition-all group overflow-hidden cursor-pointer shadow-sm">
+                  <div className="flex items-center gap-1.5 pointer-events-none">
+                    <span className="text-[9px] font-bold text-primary uppercase tracking-widest select-none">Ano:</span>
+                    <span className="text-sm font-bold text-[#111418] dark:text-white select-none">{selectedYear}</span>
+                    <span className="material-symbols-outlined text-[16px] text-primary transition-transform group-hover:translate-y-0.5">expand_more</span>
+                  </div>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full appearance-none z-10"
+                  >
+                    {availableYears.map(y => <option key={y} value={y} className="dark:bg-[#1a2634]">{y}</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={() => onOpenIptuConfig(property, 'tenants', selectedYear)}
+                  className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-[10px] font-bold transition-all shadow-sm uppercase active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[18px]">edit</span>
+                  Editar Rateio
+                </button>
+                <button
+                  onClick={() => onOpenIptuConfig(property, 'tenants', selectedYear)}
+                  className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[18px]">person_add</span>
+                  Inserir Locatário
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
+                  {(() => {
+                    const yearTenants = property.tenants.filter(t => t.year === selectedYear);
+                    const isManualMode = yearTenants.some(t => t.manualPercentage !== undefined);
+                    return (
+                      <tr>
+                        <th className="px-6 py-4 text-[9px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Locatário / Empresa</th>
+                        {!isManualMode && <th className="px-6 py-4 text-[9px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Área Ocupada</th>}
+                        <th className="px-6 py-4 text-[9px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Percentual</th>
+                        <th className="px-6 py-4 text-[9px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-right">
+                          {property.tenants.some(t => t.year === selectedYear && t.isSingleTenant) ? 'Valor' : 'Valor Rateio'}
+                        </th>
+                      </tr>
+                    );
+                  })()}
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50 text-sm">
+                  {(() => {
+                    const yearUnits = property.units.filter(u => u.year === selectedYear);
+                    const yearTenants = property.tenants.filter(t => t.year === selectedYear);
+                    const isManualMode = yearTenants.some(t => t.manualPercentage !== undefined);
+
+                    // O valor total a ratear é baseado na forma de pagamento escolhida para cada sequencial
+                    const totalIptu = yearUnits.reduce((acc, u) => acc + (u.chosenMethod === 'Parcelado' ? (u.installmentValue || 0) : (u.singleValue || 0)), 0);
+                    const totalArea = yearTenants.reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
+
+                    if (yearTenants.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={isManualMode ? 3 : 4} className="px-6 py-12 text-center text-[#617289] dark:text-[#9ca3af] font-semibold italic opacity-60">Nenhum locatário cadastrado para {selectedYear}.</td>
+                        </tr>
+                      );
+                    }
+
+                    return yearTenants.map((tenant) => {
+                      const isSingle = tenant.isSingleTenant;
+                      let percentage: number;
+                      let apportionment: number;
+
+                      if (isSingle) {
+                        percentage = 100;
+                        apportionment = totalIptu;
+                      } else if (isManualMode && tenant.manualPercentage !== undefined) {
+                        percentage = tenant.manualPercentage;
+                        apportionment = (tenant.manualPercentage / 100) * totalIptu;
+                      } else {
+                        percentage = totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0;
+                        apportionment = totalArea > 0 ? (tenant.occupiedArea / totalArea) * totalIptu : 0;
+                      }
+
+                      return (
+                        <tr key={tenant.id} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors group">
+                          <td className="px-6 py-4 font-bold text-[#111418] dark:text-white uppercase group-hover:text-primary transition-colors">{tenant.name}</td>
+                          {!isManualMode && <td className="px-6 py-4 font-semibold text-[#617289] dark:text-[#9ca3af]">{tenant.occupiedArea.toLocaleString('pt-BR')} m²</td>}
+                          <td className="px-6 py-4">
+                            <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[9px] font-bold tracking-widest">{percentage.toFixed(1)}%</span>
+                          </td>
+                          <td className="px-6 py-4 font-bold text-emerald-600 text-right">
+                            {currencyFormatter.format(apportionment)}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
           {/* Seção 1: IPTU 2026 */}
           <section className="space-y-6">
             <div className="flex items-center justify-between">
@@ -301,118 +413,6 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     );
                   })()}
                 </tfoot>
-              </table>
-            </div>
-          </section>
-
-          {/* Seção 2: Rateio */}
-          <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-2 uppercase tracking-tight">
-                <span className="material-symbols-outlined text-primary text-xl font-bold">group</span> {(() => {
-                  const hasSingle = property.tenants.some(t => t.year === selectedYear && t.isSingleTenant);
-                  return hasSingle ? 'Único Responsável' : 'Rateio por Locatário';
-                })()}
-              </h3>
-              <div className="flex items-center gap-3">
-                <div className="relative flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gray-100/80 dark:bg-[#1e2a3b] border border-transparent hover:border-primary/40 transition-all group overflow-hidden cursor-pointer shadow-sm">
-                  <div className="flex items-center gap-1.5 pointer-events-none">
-                    <span className="text-[9px] font-bold text-primary uppercase tracking-widest select-none">Ano:</span>
-                    <span className="text-sm font-bold text-[#111418] dark:text-white select-none">{selectedYear}</span>
-                    <span className="material-symbols-outlined text-[16px] text-primary transition-transform group-hover:translate-y-0.5">expand_more</span>
-                  </div>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full appearance-none z-10"
-                  >
-                    {availableYears.map(y => <option key={y} value={y} className="dark:bg-[#1a2634]">{y}</option>)}
-                  </select>
-                </div>
-                <button
-                  onClick={() => onOpenIptuConfig(property, 'tenants', selectedYear)}
-                  className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-[10px] font-bold transition-all shadow-sm uppercase active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[18px]">edit</span>
-                  Editar Rateio
-                </button>
-                <button
-                  onClick={() => onOpenIptuConfig(property, 'tenants', selectedYear)}
-                  className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[18px]">person_add</span>
-                  Inserir Locatário
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
-                  {(() => {
-                    const yearTenants = property.tenants.filter(t => t.year === selectedYear);
-                    const isManualMode = yearTenants.some(t => t.manualPercentage !== undefined);
-                    return (
-                      <tr>
-                        <th className="px-6 py-4 text-[9px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Locatário / Empresa</th>
-                        {!isManualMode && <th className="px-6 py-4 text-[9px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Área Ocupada</th>}
-                        <th className="px-6 py-4 text-[9px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Percentual</th>
-                        <th className="px-6 py-4 text-[9px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-right">
-                          {property.tenants.some(t => t.year === selectedYear && t.isSingleTenant) ? 'Valor' : 'Valor Rateio'}
-                        </th>
-                      </tr>
-                    );
-                  })()}
-                </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50 text-sm">
-                  {(() => {
-                    const yearUnits = property.units.filter(u => u.year === selectedYear);
-                    const yearTenants = property.tenants.filter(t => t.year === selectedYear);
-                    const isManualMode = yearTenants.some(t => t.manualPercentage !== undefined);
-
-                    // O valor total a ratear é baseado na forma de pagamento escolhida para cada sequencial
-                    const totalIptu = yearUnits.reduce((acc, u) => acc + (u.chosenMethod === 'Parcelado' ? (u.installmentValue || 0) : (u.singleValue || 0)), 0);
-                    const totalArea = yearTenants.reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
-
-                    if (yearTenants.length === 0) {
-                      return (
-                        <tr>
-                          <td colSpan={isManualMode ? 3 : 4} className="px-6 py-12 text-center text-[#617289] dark:text-[#9ca3af] font-semibold italic opacity-60">Nenhum locatário cadastrado para {selectedYear}.</td>
-                        </tr>
-                      );
-                    }
-
-                    return yearTenants.map((tenant) => {
-                      const isSingle = tenant.isSingleTenant;
-                      let percentage: number;
-                      let apportionment: number;
-
-                      if (isSingle) {
-                        percentage = 100;
-                        apportionment = totalIptu;
-                      } else if (isManualMode && tenant.manualPercentage !== undefined) {
-                        percentage = tenant.manualPercentage;
-                        apportionment = (tenant.manualPercentage / 100) * totalIptu;
-                      } else {
-                        percentage = totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0;
-                        apportionment = totalArea > 0 ? (tenant.occupiedArea / totalArea) * totalIptu : 0;
-                      }
-
-                      return (
-                        <tr key={tenant.id} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors group">
-                          <td className="px-6 py-4 font-bold text-[#111418] dark:text-white uppercase group-hover:text-primary transition-colors">{tenant.name}</td>
-                          {!isManualMode && <td className="px-6 py-4 font-semibold text-[#617289] dark:text-[#9ca3af]">{tenant.occupiedArea.toLocaleString('pt-BR')} m²</td>}
-                          <td className="px-6 py-4">
-                            <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[9px] font-bold tracking-widest">{percentage.toFixed(1)}%</span>
-                          </td>
-                          <td className="px-6 py-4 font-bold text-emerald-600 text-right">
-                            {currencyFormatter.format(apportionment)}
-                          </td>
-                        </tr>
-                      );
-                    });
-                  })()}
-                </tbody>
               </table>
             </div>
           </section>
