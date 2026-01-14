@@ -177,10 +177,10 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               const uComp = unitsCompare.find(u => u.sequential === seq);
 
               const cotaUnicaBase = uBase?.singleValue || 0;
-              const parceladoBase = uBase ? (uBase.installmentValue * uBase.installmentsCount) : 0;
+              const parceladoBase = uBase?.installmentValue || 0;
 
               const cotaUnicaComp = uComp?.singleValue || 0;
-              const parceladoComp = uComp ? (uComp.installmentValue * uComp.installmentsCount) : 0;
+              const parceladoComp = uComp?.installmentValue || 0;
 
               const diferenca = cotaUnicaComp - cotaUnicaBase;
               const economia = parceladoComp - cotaUnicaComp;
@@ -204,6 +204,34 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               };
             });
           });
+
+          if (exportData.length > 0) {
+            const totals = exportData.reduce((acc, row) => {
+              acc.cotaBase += row[`Cota Única (${baseYear})`] || 0;
+              acc.parceladoBase += row[`Parcelado (${baseYear})`] || 0;
+              acc.cotaComp += row[`Cota Única (${compareYear})`] || 0;
+              acc.parceladoComp += row[`Parcelado (${compareYear})`] || 0;
+              acc.diferenca += row['Diferença Cota Única'] || 0;
+              acc.economia += row['Economia Projetada'] || 0;
+              return acc;
+            }, { cotaBase: 0, parceladoBase: 0, cotaComp: 0, parceladoComp: 0, diferenca: 0, economia: 0 });
+
+            const variacaoTotal = totals.cotaBase > 0 ? (totals.diferenca / totals.cotaBase) * 100 : 0;
+
+            exportData.push({
+              'Proprietário': 'TOTAIS',
+              'Inscrição': '-',
+              'Endereço': '-',
+              [`Cota Única (${baseYear})`]: totals.cotaBase,
+              [`Parcelado (${baseYear})`]: totals.parceladoBase,
+              [`Cota Única (${compareYear})`]: totals.cotaComp,
+              [`Parcelado (${compareYear})`]: totals.parceladoComp,
+              'Diferença Cota Única': totals.diferenca,
+              'Economia Projetada': totals.economia,
+              '% Variação': `${variacaoTotal.toFixed(2)}%`,
+              'Situação': '-'
+            });
+          }
           break;
         }
 
@@ -311,29 +339,38 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
           styles: { fontSize: 8, cellPadding: 2 },
           headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
           alternateRowStyles: { fillColor: [245, 245, 245] },
+          didDrawPage: (data) => {
+            // Desenha o Título (Title Case)
+            doc.setFontSize(18);
+            doc.setTextColor(196, 84, 27);
+            doc.text(titleText, 14, 22);
+
+            // Desenha a Cidade como subtítulo
+            doc.setFontSize(11);
+            doc.setTextColor(100, 110, 120);
+            doc.text(`Cidade: ${filterCity}`, 14, 30);
+
+            // Desenha a Logomarca no canto superior direito
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const logoWidth = 45;
+            const logoHeight = 15;
+            const xPos = pageWidth - logoWidth - 14; // Margem de 14mm
+
+            try {
+              doc.addImage(logo, 'PNG', xPos, 10, logoWidth, logoHeight);
+            } catch (e) {
+              console.error("Erro ao adicionar logo ao PDF:", e);
+            }
+          },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.row.index === tableRows.length - 1) {
+              if (data.row.cells[0].text[0] === 'TOTAIS') {
+                data.cell.styles.fontStyle = 'bold';
+                data.cell.styles.fillColor = [255, 240, 230]; // Destaque suave em tom de pêssego
+              }
+            }
+          }
         });
-
-        // Adiciona o título (Title Case)
-        doc.setFontSize(18);
-        doc.setTextColor(196, 84, 27);
-        doc.text(titleText, 14, 22);
-
-        // Adiciona a Cidade como subtítulo
-        doc.setFontSize(11);
-        doc.setTextColor(100, 110, 120);
-        doc.text(`Cidade: ${filterCity}`, 14, 30);
-
-        // Adiciona a Logo no canto superior direito
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const logoWidth = 45;
-        const logoHeight = 15;
-        const xPos = pageWidth - logoWidth - 14; // Margem de 14mm
-
-        try {
-          doc.addImage(logo, 'PNG', xPos, 10, logoWidth, logoHeight);
-        } catch (e) {
-          console.error("Erro ao adicionar logo ao PDF:", e);
-        }
 
         doc.save(filename);
       } else {

@@ -99,7 +99,9 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
     );
 
     const matchesSearch = matchesBasic || matchesTenants || matchesUnits;
-    const matchesType = filterType === 'all' || p.type.toLowerCase() === filterType.toLowerCase();
+    const matchesType = filterType === 'all' ||
+      (filterType === 'unico' && !p.isComplex) ||
+      (filterType === 'complexo' && p.isComplex);
     const matchesCity = filterCity === 'all' || p.city === filterCity;
     const matchesUF = filterUF === 'all' || p.state === filterUF;
     const matchesOwner = filterOwner === 'all' || p.ownerName?.trim() === filterOwner;
@@ -142,16 +144,20 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex gap-1.5 items-center bg-gray-50 dark:bg-[#22303e] p-1 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644]">
-              {['all', 'Loja', 'Galpão', 'Sala', 'Apartamento'].map((type) => (
+              {[
+                { id: 'all', label: 'TODOS' },
+                { id: 'unico', label: 'IMÓVEL ÚNICO' },
+                { id: 'complexo', label: 'COMPLEXO' }
+              ].map((type) => (
                 <button
-                  key={type}
-                  onClick={() => setFilterType(type)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${filterType === type
+                  key={type.id}
+                  onClick={() => setFilterType(type.id)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${filterType === type.id
                     ? 'bg-primary text-white shadow-md'
                     : 'text-[#617289] dark:text-[#9ca3af] hover:text-[#111418] dark:hover:text-white'
                     }`}
                 >
-                  {type === 'all' ? 'TODOS' : type.toUpperCase()}
+                  {type.label}
                 </button>
               ))}
             </div>
