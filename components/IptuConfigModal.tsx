@@ -60,7 +60,9 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
             year: baseYear,
             occupiedArea: 0,
             selectedSequential: '',
-            isSingleTenant: false
+            isSingleTenant: false,
+            contractStart: '',
+            contractEnd: ''
         }, ...tenants]);
     };
 
@@ -177,7 +179,7 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 font-sans">
-            <div className="bg-white dark:bg-[#1a2634] w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-gray-200 dark:border-[#2a3644] overflow-hidden">
+            <div className="bg-white dark:bg-[#1a2634] w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-gray-200 dark:border-[#2a3644] overflow-hidden">
                 <header className="flex items-center justify-between px-8 py-6 border-b border-gray-100 dark:border-[#2a3644]">
                     <div className="flex items-center gap-3">
                         <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
@@ -261,12 +263,23 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                         />
                                                     </div>
                                                     <div className="flex flex-col gap-1.5 sm:col-span-12">
-                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Endereço do Sequencial</label>
+                                                        <div className="flex items-center justify-between">
+                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Endereço do Sequencial</label>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUnitChange(unit, 'address', property.address)}
+                                                                className="text-[9px] font-bold text-primary hover:underline flex items-center gap-1"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[12px]">content_copy</span>
+                                                                USAR ENDEREÇO DO IMÓVEL
+                                                            </button>
+                                                        </div>
                                                         <input
                                                             value={unit.address || ''}
                                                             onChange={(e) => handleUnitChange(unit, 'address', e.target.value)}
                                                             placeholder="Ex: Sala 101, Bloco A"
                                                             className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm"
+                                                            title="Endereço do Sequencial"
                                                         />
                                                     </div>
 
@@ -366,38 +379,65 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                             <div className="grid grid-cols-1 gap-4">
                                 {tenants.filter(t => t.year === baseYear).map((tenant) => (
                                     <div key={tenant.id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end p-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-700">
-                                        <div className={`${isManualApportionment ? 'sm:col-span-7' : 'sm:col-span-5'} flex flex-col gap-1.5`}>
-                                            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Empresa</label>
-                                            <input value={tenant.name} onChange={(e) => handleTenantChange(tenant, 'name', e.target.value)} className="h-10 px-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold" />
-                                        </div>
-                                        {!isManualApportionment && (
-                                            <div className="sm:col-span-2 flex flex-col gap-1.5">
-                                                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Área (m²)</label>
-                                                <div className="h-10 flex items-center px-4 rounded-lg text-sm font-bold transition-colors bg-gray-100 dark:bg-gray-800 text-primary">
-                                                    {tenant.occupiedArea.toLocaleString('pt-BR')} m²
-                                                </div>
+                                        <div className="sm:col-span-11 grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                                            <div className={`${isManualApportionment ? 'sm:col-span-5' : 'sm:col-span-4'} flex flex-col gap-1.5`}>
+                                                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Empresa</label>
+                                                <input value={tenant.name} onChange={(e) => handleTenantChange(tenant, 'name', e.target.value)} className="h-10 px-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold" placeholder="Nome da empresa" title="Empresa" />
                                             </div>
-                                        )}
-                                        <div className="sm:col-span-2 flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Único Locatário</label>
-                                            <div className="h-10 flex items-center">
+
+                                            <div className="sm:col-span-2 flex flex-col gap-1.5">
+                                                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Início Contrato</label>
                                                 <input
-                                                    type="checkbox"
-                                                    checked={tenant.isSingleTenant || false}
-                                                    onChange={(e) => {
-                                                        // Se marcar um como único, desmarca os outros do mesmo ano
-                                                        const updatedTenants = tenants.map(t => {
-                                                            if (t.year === baseYear) {
-                                                                return { ...t, isSingleTenant: t.id === tenant.id ? e.target.checked : false };
-                                                            }
-                                                            return t;
-                                                        });
-                                                        setTenants(updatedTenants);
-                                                    }}
-                                                    className="size-5 rounded border-gray-300 text-primary focus:ring-primary"
+                                                    type="date"
+                                                    value={tenant.contractStart || ''}
+                                                    onChange={(e) => handleTenantChange(tenant, 'contractStart', e.target.value)}
+                                                    className="h-10 px-2 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-xs font-semibold"
+                                                    title="Início do Contrato"
                                                 />
                                             </div>
+
+                                            <div className="sm:col-span-2 flex flex-col gap-1.5">
+                                                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Fim Contrato</label>
+                                                <input
+                                                    type="date"
+                                                    value={tenant.contractEnd || ''}
+                                                    onChange={(e) => handleTenantChange(tenant, 'contractEnd', e.target.value)}
+                                                    className="h-10 px-2 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-xs font-semibold"
+                                                    title="Fim do Contrato"
+                                                />
+                                            </div>
+
+                                            {!isManualApportionment && (
+                                                <div className="sm:col-span-2 flex flex-col gap-1.5">
+                                                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Área (m²)</label>
+                                                    <div className="h-10 flex items-center px-4 rounded-lg text-sm font-bold transition-colors bg-gray-100 dark:bg-gray-800 text-primary">
+                                                        {tenant.occupiedArea.toLocaleString('pt-BR')} m²
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className={`${isManualApportionment ? 'sm:col-span-2' : 'sm:col-span-2'} flex flex-col gap-1.5`}>
+                                                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Único Locatário</label>
+                                                <div className="h-10 flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={tenant.isSingleTenant || false}
+                                                        onChange={(e) => {
+                                                            // Se marcar um como único, desmarca os outros do mesmo ano
+                                                            const updatedTenants = tenants.map(t => {
+                                                                if (t.year === baseYear) {
+                                                                    return { ...t, isSingleTenant: t.id === tenant.id ? e.target.checked : false };
+                                                                }
+                                                                return t;
+                                                            });
+                                                            setTenants(updatedTenants);
+                                                        }}
+                                                        className="size-5 rounded border-gray-300 text-primary focus:ring-primary"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
+
                                         <div className="sm:col-span-1 flex justify-end">
                                             <button type="button" onClick={() => removeTenant(tenant.id)} className="size-10 rounded-lg text-red-500 hover:bg-red-50">
                                                 <span className="material-symbols-outlined">delete</span>

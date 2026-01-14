@@ -301,6 +301,29 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                     <span className="material-symbols-outlined text-[12px]">location_on</span>
                     {property.neighborhood}, {property.city}
                   </p>
+                  <p className="text-[10px] font-bold text-primary mt-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">pincode</span>
+                    {(() => {
+                      const count = new Set(property.units.filter(u => u.year === currentYear).map(u => u.sequential)).size;
+                      return `${count} ${count === 1 ? 'Sequencial' : 'Sequenciais'}`;
+                    })()}
+                  </p>
+
+                  {/* Locatários no Card */}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {property.tenants.filter(t => t.year === currentYear).length > 0 ? (
+                      property.tenants.filter(t => t.year === currentYear).slice(0, 3).map((t, idx) => (
+                        <span key={idx} className="px-1.5 py-0.5 bg-gray-50 dark:bg-gray-800/50 text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold rounded border border-gray-100 dark:border-gray-700 truncate max-w-[100px]" title={t.name}>
+                          {t.name}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 italic">Disponível</span>
+                    )}
+                    {property.tenants.filter(t => t.year === currentYear).length > 3 && (
+                      <span className="text-[9px] font-bold text-primary">+{property.tenants.filter(t => t.year === currentYear).length - 3}</span>
+                    )}
+                  </div>
                   <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#2a3644] flex justify-between items-center">
                     <div className="flex items-center">
                       <button
@@ -345,9 +368,29 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold text-[#111418] dark:text-white">{property.name}</span>
                           <span className="text-[12px] text-[#617289] dark:text-[#9ca3af] mt-0.5 line-clamp-1">{property.address}</span>
-                          <span className="text-[11px] text-[#94a3b8] dark:text-[#64748b] mt-0.5 flex items-center gap-1">
+                          <span className="text-[11px] text-[#94a3b8] dark:text-[#64748b] mt-0.5 flex flex-wrap items-center gap-1">
                             <span className="material-symbols-outlined text-[13px]">location_on</span>
                             {property.city} - {property.state}
+                            <span className="mx-1 opacity-20">|</span>
+                            <span className="font-bold text-primary flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[13px]">pincode</span>
+                              {(() => {
+                                const count = new Set(property.units.filter(u => u.year === currentYear).map(u => u.sequential)).size;
+                                return `${count} ${count === 1 ? 'Seq.' : 'Seqs.'}`;
+                              })()}
+                            </span>
+                            <span className="mx-1 opacity-20">|</span>
+                            <div className="flex flex-wrap gap-1 items-center">
+                              {property.tenants.filter(t => t.year === currentYear).length > 0 ? (
+                                property.tenants.filter(t => t.year === currentYear).map((t, idx) => (
+                                  <span key={idx} className="px-1.5 py-0.5 bg-white dark:bg-gray-800 text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold rounded border border-gray-100 dark:border-gray-700">
+                                    {t.name}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 italic">Disponível</span>
+                              )}
+                            </div>
                           </span>
                         </div>
                       </td>
