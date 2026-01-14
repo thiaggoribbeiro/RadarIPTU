@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Property, IptuStatus } from '../types';
 
 interface ReportsViewProps {
@@ -120,14 +122,14 @@ const reportSpecs: ReportSpec[] = [
     metrics: ['Volume de Alterações Diárias']
   },
   {
-    id: 'responsavel',
-    category: 'Auditoria',
-    title: 'Relatório por Responsável',
-    description: 'Produtividade e ações por usuário do sistema.',
-    icon: 'person_search',
-    goal: 'Auditar performance e segurança por colaborador.',
-    columns: ['User ID', 'Last Access', 'Properties Managed', 'Updates Performed'],
-    metrics: ['Nível de Engajamento do Usuário']
+    id: 'proj_anual',
+    category: 'Gerencial',
+    title: 'Projeção Anual',
+    description: 'Relatório comparativo de IPTU com projeção de economia.',
+    icon: 'analytics',
+    goal: 'Analisar variações anuais e identificar economias via cota única.',
+    columns: ['Proprietário', 'Inscrição', 'Endereço', 'Cota Única (Base)', 'Parcelado (Base)', 'Cota Única (Projeção)', 'Parcelado (Projeção)', 'Diferença Cota Única', 'Economia Projetada', '% Variação', 'Situação'],
+    metrics: ['Variação Média da Carteira', 'Total de Economia Projetada']
   }
 ];
 
@@ -135,14 +137,73 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
   const [selectedReport, setSelectedReport] = useState<ReportSpec>(reportSpecs[0]);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Filtros
+  const [filterCity, setFilterCity] = useState<string>('TODAS');
+  const [baseYear, setBaseYear] = useState<number>(2025);
+  const [compareYear, setCompareYear] = useState<number>(2026);
+  const [exportFormat, setExportFormat] = useState<'XLSX' | 'PDF'>('XLSX');
+
+  const availableCities = useMemo(() => {
+    return ['TODAS', ...new Set(properties.map(p => p.city))].sort();
+  }, [properties]);
+
   const handleExport = () => {
     setIsExporting(true);
 
     try {
       let exportData: any[] = [];
-      const filename = `${selectedReport.title}.xlsx`;
+      const filename = `${selectedReport.title}.${exportFormat.toLowerCase()}`;
+      const title = selectedReport.title.toUpperCase();
 
       switch (selectedReport.id) {
+        case 'proj_anual': {
+          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+
+          exportData = filteredProps.flatMap(prop => {
+            const unitsBase = prop.units.filter(u => u.year === baseYear);
+            const unitsCompare = prop.units.filter(u => u.year === compareYear);
+
+            // Mapeia todos os sequenciais únicos dos dois anos
+            const allSequentials = new Set([
+              ...unitsBase.map(u => u.sequential),
+              ...unitsCompare.map(u => u.sequential)
+            ]);
+
+            return Array.from(allSequentials).map(seq => {
+              const uBase = unitsBase.find(u => u.sequential === seq);
+              const uComp = unitsCompare.find(u => u.sequential === seq);
+
+              const cotaUnicaBase = uBase?.singleValue || 0;
+              const parceladoBase = uBase ? (uBase.installmentValue * uBase.installmentsCount) : 0;
+
+              const cotaUnicaComp = uComp?.singleValue || 0;
+              const parceladoComp = uComp ? (uComp.installmentValue * uComp.installmentsCount) : 0;
+
+              const diferenca = cotaUnicaComp - cotaUnicaBase;
+              const economia = parceladoComp - cotaUnicaComp;
+              const variacao = cotaUnicaBase > 0 ? (diferenca / cotaUnicaBase) * 100 : 0;
+
+              const tenants = prop.tenants.filter(t => t.year === compareYear && (t.selectedSequential === seq || !t.selectedSequential));
+              const situacao = tenants.length > 0 ? tenants.map(t => t.name).join(', ') : 'DISPONÍVEL';
+
+              return {
+                'Proprietário': prop.ownerName || 'N/A',
+                'Inscrição': uComp?.registrationNumber || uBase?.registrationNumber || prop.registrationNumber,
+                'Endereço': `${prop.address}${seq !== prop.sequential ? ` - Seq: ${seq}` : ''}`,
+                [`Cota Única (${baseYear})`]: cotaUnicaBase,
+                [`Parcelado (${baseYear})`]: parceladoBase,
+                [`Cota Única (${compareYear})`]: cotaUnicaComp,
+                [`Parcelado (${compareYear})`]: parceladoComp,
+                'Diferença Cota Única': diferenca,
+                'Economia Projetada': economia,
+                '% Variação': `${variacao.toFixed(2)}%`,
+                'Situação': situacao
+              };
+            });
+          });
+          break;
+        }
+
         case 'fin_geral':
           exportData = properties.flatMap(prop =>
             prop.iptuHistory.map(iptu => ({
@@ -152,7 +213,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               'Ano': iptu.year,
               'Valor Total': iptu.value,
               'Valor Pago': iptu.status === IptuStatus.PAID ? iptu.value : 0,
-              'Saldo Devedor': (iptu.status === IptuStatus.PENDING || iptu.status === IptuStatus.OVERDUE) ? iptu.value : 0,
+              'Saldo Devedor': (iptu.status === IptuStatus.PENDING || iptu.status === IptuStatus.OPEN) ? iptu.value : 0,
               'Status': iptu.status
             }))
           );
@@ -161,7 +222,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         case 'aberto':
           exportData = properties.flatMap(prop =>
             prop.iptuHistory
-              .filter(iptu => iptu.status === IptuStatus.PENDING || iptu.status === IptuStatus.OVERDUE)
+              .filter(iptu => iptu.status === IptuStatus.PENDING || iptu.status === IptuStatus.OPEN)
               .map(iptu => ({
                 'Property': prop.name,
                 'Due Date': iptu.dueDate || 'Pendente',
@@ -229,33 +290,53 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         return;
       }
 
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório");
+      if (exportFormat === 'PDF') {
+        const doc = new jsPDF('landscape');
+        const tableColumn = Object.keys(exportData[0]);
+        const tableRows = exportData.map(obj => tableColumn.map(col => {
+          const val = obj[col];
+          if (typeof val === 'number') {
+            return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          }
+          return val;
+        }));
 
-      // Ajuste de largura automática das colunas
-      const maxLengths = Object.keys(exportData[0]).map(key => {
-        const headerLen = key.length;
-        const dataLen = exportData.reduce((max, row) => Math.max(max, String(row[key] || '').length), 0);
-        return { wch: Math.max(headerLen, dataLen) + 2 };
-      });
-      worksheet['!cols'] = maxLengths;
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 20,
+          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 245, 245] },
+        });
 
-      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-      const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        doc.text(title, 14, 15);
+        doc.save(filename);
+      } else {
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório");
 
-      const url = window.URL.createObjectURL(data);
-      const link = document.createElement('a');
-      link.href = url;
-      // Sanitiza o nome do arquivo para remover caracteres problemáticos
-      const safeFilename = filename.replace(/[^a-z0-9.]/gi, '_');
-      link.setAttribute('download', safeFilename);
-      document.body.appendChild(link);
-      link.click();
+        const maxLengths = Object.keys(exportData[0]).map(key => {
+          const headerLen = key.length;
+          const dataLen = exportData.reduce((max, row) => Math.max(max, String(row[key] || '').length), 0);
+          return { wch: Math.max(headerLen, dataLen) + 2 };
+        });
+        worksheet['!cols'] = maxLengths;
 
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blobData = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+        const url = window.URL.createObjectURL(blobData);
+        const link = document.createElement('a');
+        link.href = url;
+        const safeFilename = filename.replace(/[^a-z0-9.]/gi, '_');
+        link.setAttribute('download', safeFilename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }
 
       setTimeout(() => {
         setIsExporting(false);
@@ -286,7 +367,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
           ) : (
             <span className="material-symbols-outlined text-[20px]">download</span>
           )}
-          <span>{isExporting ? 'GERANDO...' : 'EXPORTAR RELATÓRIO (.XLSX)'}</span>
+          <span>{isExporting ? 'GERANDO...' : `EXPORTAR RELATÓRIO (.${exportFormat})`}</span>
         </button>
       </div>
 
@@ -336,6 +417,68 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             </header>
 
             <div className="p-8 space-y-8 flex-1">
+              {selectedReport.id === 'proj_anual' && (
+                <section className="bg-primary/5 p-6 rounded-2xl border border-primary/10 space-y-6">
+                  <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">filter_alt</span> Configuração do Relatório
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cidade</label>
+                      <select
+                        value={filterCity}
+                        onChange={(e) => setFilterCity(e.target.value)}
+                        title="Selecionar Cidade"
+                        className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                      >
+                        {availableCities.map(city => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano Base</label>
+                      <input
+                        type="number"
+                        value={baseYear}
+                        onChange={(e) => setBaseYear(Number(e.target.value))}
+                        title="Ano Base para Comparação"
+                        placeholder="Ex: 2025"
+                        className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano Projeção</label>
+                      <input
+                        type="number"
+                        value={compareYear}
+                        onChange={(e) => setCompareYear(Number(e.target.value))}
+                        title="Ano Projetado para Comparação"
+                        placeholder="Ex: 2026"
+                        className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Formato</label>
+                      <div className="flex bg-white dark:bg-[#1a2634] rounded-xl border border-gray-200 p-1">
+                        <button
+                          onClick={() => setExportFormat('XLSX')}
+                          className={`flex-1 h-8 rounded-lg text-[10px] font-black transition-all ${exportFormat === 'XLSX' ? 'bg-primary text-white' : 'text-gray-400'}`}
+                        >XLSX</button>
+                        <button
+                          onClick={() => setExportFormat('PDF')}
+                          className={`flex-1 h-8 rounded-lg text-[10px] font-black transition-all ${exportFormat === 'PDF' ? 'bg-primary text-white' : 'text-gray-400'}`}
+                        >PDF</button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
               <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
