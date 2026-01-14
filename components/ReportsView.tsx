@@ -307,16 +307,21 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         autoTable(doc, {
           head: [tableColumn],
           body: tableRows,
-          startY: 35,
+          startY: 40, // Aumentado para acomodar título e subtítulo
           styles: { fontSize: 8, cellPadding: 2 },
           headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
           alternateRowStyles: { fillColor: [245, 245, 245] },
         });
 
-        // Adiciona o título
-        doc.setFontSize(16);
+        // Adiciona o título (Title Case)
+        doc.setFontSize(18);
         doc.setTextColor(196, 84, 27);
-        doc.text(title, 14, 22);
+        doc.text(titleText, 14, 22);
+
+        // Adiciona a Cidade como subtítulo
+        doc.setFontSize(11);
+        doc.setTextColor(100, 110, 120);
+        doc.text(`Cidade: ${filterCity}`, 14, 30);
 
         // Adiciona a Logo no canto superior direito
         const pageWidth = doc.internal.pageSize.getWidth();
