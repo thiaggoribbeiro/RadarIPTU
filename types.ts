@@ -50,6 +50,8 @@ export interface Tenant {
   selectedSequential?: string;
   isSingleTenant?: boolean;
   manualPercentage?: number;
+  contractStart?: string;
+  contractEnd?: string;
 }
 
 export interface Property {

@@ -68,31 +68,55 @@ const App: React.FC = () => {
       if (error) throw error;
 
       if (data) {
-        const mappedData: Property[] = data.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          address: item.address,
-          neighborhood: item.neighborhood,
-          city: item.city,
-          state: item.state,
-          zipCode: item.zip_code || '',
-          ownerName: item.owner_name || '',
-          registryOwner: item.registry_owner || '',
-          possession: item.possession || 'Grupo',
-          registrationNumber: item.registration_number || '',
-          sequential: item.sequential || '',
-          isComplex: item.is_complex || false,
-          units: item.units || [],
-          landArea: item.land_area || 0,
-          builtArea: item.built_area || 0,
-          type: item.type || 'Apartamento',
-          appraisalValue: item.appraisal_value || 0,
-          baseYear: item.base_year || new Date().getFullYear(),
-          lastUpdated: item.last_updated || new Date().toLocaleDateString('pt-BR'),
-          imageUrl: item.image_url || '/assets/default-property.png',
-          tenants: item.tenants || [],
-          iptuHistory: item.iptu_history || []
-        }));
+        const mappedData: Property[] = data.map((item: any) => {
+          const rawUnits = item.units || [];
+          const rawTenants = item.tenants || [];
+
+          // Lógica de Sincronização: Se tem em 2025 mas não em 2026, replica zerado
+          const units2025 = rawUnits.filter((u: any) => u.year === 2025);
+          const units2026 = rawUnits.filter((u: any) => u.year === 2026);
+          const sequentials2026 = new Set(units2026.map((u: any) => u.sequential));
+
+          const missingUnits2026 = units2025
+            .filter((u: any) => !sequentials2026.has(u.sequential))
+            .map((u: any) => ({
+              ...u,
+              year: 2026,
+              singleValue: 0,
+              installmentValue: 0,
+              installmentsCount: 1, // Padrão
+              chosenMethod: 'Cota Única',
+              status: 'Pendente' // IptuStatus.PENDING
+            }));
+
+          const syncedUnits = [...rawUnits, ...missingUnits2026];
+
+          return {
+            id: item.id,
+            name: item.name,
+            address: item.address,
+            neighborhood: item.neighborhood,
+            city: item.city,
+            state: item.state,
+            zipCode: item.zip_code || '',
+            ownerName: item.owner_name || '',
+            registryOwner: item.registry_owner || '',
+            possession: item.possession || 'Grupo',
+            registrationNumber: item.registration_number || '',
+            sequential: item.sequential || '',
+            isComplex: item.is_complex || false,
+            units: syncedUnits,
+            landArea: item.land_area || 0,
+            builtArea: item.built_area || 0,
+            type: item.type || 'Apartamento',
+            appraisalValue: item.appraisal_value || 0,
+            baseYear: item.base_year || new Date().getFullYear(),
+            lastUpdated: item.last_updated || new Date().toLocaleDateString('pt-BR'),
+            imageUrl: item.image_url || '/assets/default-property.png',
+            tenants: rawTenants,
+            iptuHistory: item.iptu_history || []
+          };
+        });
         setProperties(mappedData);
         localStorage.setItem('radiptu_properties', JSON.stringify(mappedData));
       }
