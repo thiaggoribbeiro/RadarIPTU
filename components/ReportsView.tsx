@@ -154,7 +154,9 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
     try {
       let exportData: any[] = [];
       const filename = `${selectedReport.title}.${exportFormat.toLowerCase()}`;
-      const title = selectedReport.title.toUpperCase();
+      const titleText = selectedReport.id === 'proj_anual'
+        ? `${selectedReport.title} ${baseYear} x ${compareYear}`
+        : selectedReport.title;
 
       switch (selectedReport.id) {
         case 'proj_anual': {
@@ -317,8 +319,16 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         doc.text(title, 14, 22);
 
         // Adiciona a Logo no canto superior direito
-        // jsPDF landscape width é ~297mm
-        doc.addImage(logo, 'PNG', 240, 10, 40, 15);
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const logoWidth = 45;
+        const logoHeight = 15;
+        const xPos = pageWidth - logoWidth - 14; // Margem de 14mm
+
+        try {
+          doc.addImage(logo, 'PNG', xPos, 10, logoWidth, logoHeight);
+        } catch (e) {
+          console.error("Erro ao adicionar logo ao PDF:", e);
+        }
 
         doc.save(filename);
       } else {
