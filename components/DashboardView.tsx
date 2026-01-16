@@ -78,19 +78,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
     };
   }, [properties, selectedYear]);
 
-  const cotaUnicaList = useMemo(() => {
-    return properties.flatMap(p => {
-      const yearUnits = p.units.filter(u => u.year === selectedYear && u.chosenMethod === 'Cota Única');
-      return yearUnits.map(u => ({ ...u, propertyName: p.name, propertyId: p.id, value: u.singleValue }));
-    });
-  }, [properties, selectedYear]);
-
-  const parceladoList = useMemo(() => {
-    return properties.flatMap(p => {
-      const yearUnits = p.units.filter(u => u.year === selectedYear && u.chosenMethod === 'Parcelado');
-      return yearUnits.map(u => ({ ...u, propertyName: p.name, propertyId: p.id, value: u.installmentValue }));
-    });
-  }, [properties, selectedYear]);
 
   // Dados para gráfico de rosca: Método de Pagamento (Cota Única vs Parcelado)
   const paymentMethodData = useMemo(() => {
@@ -640,88 +627,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b-2 border-primary pb-2">
-            <span className="material-symbols-outlined text-primary font-semibold">done_all</span>
-            <h2 className="text-[#111418] dark:text-white text-lg font-bold uppercase tracking-tight">Cota Única - {selectedYear}</h2>
-          </div>
-          <div className="bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] rounded-xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 dark:bg-[#22303e] border-b border-[#e5e7eb] dark:border-[#2a3644]">
-                  <tr>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af]">Imóvel</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af]">Valor</th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af]">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3644]">
-                  {cotaUnicaList.length > 0 ? cotaUnicaList.map((unit, idx) => {
-                    return (
-                      <tr key={idx} className="hover:bg-primary/5 dark:hover:bg-primary/10 cursor-pointer transition-colors" onClick={() => onSelectProperty(unit.propertyId)}>
-                        <td className="px-4 py-3 text-sm font-semibold text-[#111418] dark:text-white truncate max-w-[150px]">{(unit as any).propertyName}</td>
-                        <td className="px-4 py-3 text-sm font-bold text-[#617289] dark:text-[#9ca3af]">{formatCurrency(unit.value)}</td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${unit.status === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
-                            {unit.status}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  }) : (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-10 text-center text-xs text-gray-500 italic">Sem registros de cota única para {selectedYear}.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b-2 border-primary pb-2">
-            <span className="material-symbols-outlined text-primary font-semibold">schedule</span>
-            <h2 className="text-[#111418] dark:text-white text-lg font-bold uppercase tracking-tight">Parcelados - {selectedYear}</h2>
-          </div>
-          <div className="bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] rounded-xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 dark:bg-[#22303e] border-b border-[#e5e7eb] dark:border-[#2a3644]">
-                  <tr>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af]">Imóvel</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af]">Parcelas</th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase text-[#617289] dark:text-[#9ca3af]">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3644]">
-                  {parceladoList.length > 0 ? parceladoList.map((unit, idx) => {
-                    const installmentValue = (unit.installmentValue || unit.value) / (unit.installmentsCount || 1);
-                    return (
-                      <tr key={idx} className="hover:bg-primary/5 dark:hover:bg-primary/10 cursor-pointer transition-colors" onClick={() => onSelectProperty(unit.propertyId)}>
-                        <td className="px-4 py-3 text-sm font-semibold text-[#111418] dark:text-white truncate max-w-[150px]">{(unit as any).propertyName}</td>
-                        <td className="px-4 py-3 text-sm font-bold text-[#617289] dark:text-[#9ca3af]">{unit.installmentsCount}x de {formatCurrency(installmentValue)}</td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${unit.status === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
-                            unit.status === IptuStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
-                            }`}>
-                            {unit.status}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  }) : (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-10 text-center text-xs text-gray-500 italic">Sem registros de parcelamento para {selectedYear}.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

@@ -132,6 +132,24 @@ const reportSpecs: ReportSpec[] = [
     goal: 'Analisar variações anuais e identificar economias via cota única.',
     columns: ['Proprietário', 'Inscrição', 'Endereço', 'Cota Única (Base)', 'Parcelado (Base)', 'Cota Única (Projeção)', 'Parcelado (Projeção)', 'Diferença Cota Única', 'Economia Projetada', '% Variação', 'Situação'],
     metrics: ['Variação Média da Carteira', 'Total de Economia Projetada']
+  },
+  {
+    id: 'iptu_cidade',
+    category: 'Financeiro',
+    title: 'Valor de IPTU por Cidade',
+    description: 'Soma total de IPTU por cidade em ordem decrescente.',
+    icon: 'location_city',
+    goal: 'Visualizar a concentração de valores por município.',
+    columns: ['Cidade', 'Quantidade de Imóveis', 'Valor Total'],
+  },
+  {
+    id: 'iptu_estado',
+    category: 'Financeiro',
+    title: 'Valor de IPTU por Estado',
+    description: 'Soma total de IPTU por estado em ordem decrescente.',
+    icon: 'map',
+    goal: 'Análise de distribuição regional de IPTU.',
+    columns: ['Estado', 'Quantidade de Imóveis', 'Valor Total'],
   }
 ];
 
@@ -361,6 +379,50 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             'Sum of Value': data.sum,
             'Percentage': `${((data.count / total) * 100).toFixed(1)}%`
           }));
+          break;
+        }
+
+        case 'iptu_cidade': {
+          const cityMap: Record<string, { count: number, total: number }> = {};
+          properties.forEach(p => {
+            const yearHistory = p.iptuHistory.find(h => h.year === filterYear);
+            if (yearHistory) {
+              const city = p.city || 'N/A';
+              if (!cityMap[city]) cityMap[city] = { count: 0, total: 0 };
+              cityMap[city].count++;
+              cityMap[city].total += yearHistory.value;
+            }
+          });
+
+          exportData = Object.entries(cityMap)
+            .map(([city, data]) => ({
+              'Cidade': city,
+              'Quantidade de Imóveis': data.count,
+              'Valor Total': data.total
+            }))
+            .sort((a, b) => b['Valor Total'] - a['Valor Total']);
+          break;
+        }
+
+        case 'iptu_estado': {
+          const stateMap: Record<string, { count: number, total: number }> = {};
+          properties.forEach(p => {
+            const yearHistory = p.iptuHistory.find(h => h.year === filterYear);
+            if (yearHistory) {
+              const state = p.state || 'N/A';
+              if (!stateMap[state]) stateMap[state] = { count: 0, total: 0 };
+              stateMap[state].count++;
+              stateMap[state].total += yearHistory.value;
+            }
+          });
+
+          exportData = Object.entries(stateMap)
+            .map(([state, data]) => ({
+              'Estado': state,
+              'Quantidade de Imóveis': data.count,
+              'Valor Total': data.total
+            }))
+            .sort((a, b) => b['Valor Total'] - a['Valor Total']);
           break;
         }
 
@@ -641,19 +703,21 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                     </>
                   ) : (
                     <>
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cidade</label>
-                        <select
-                          value={filterCity}
-                          onChange={(e) => setFilterCity(e.target.value)}
-                          title="Selecionar Cidade"
-                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
-                        >
-                          {availableCities.map(city => (
-                            <option key={city} value={city}>{city}</option>
-                          ))}
-                        </select>
-                      </div>
+                      {selectedReport.id !== 'iptu_cidade' && selectedReport.id !== 'iptu_estado' && (
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cidade</label>
+                          <select
+                            value={filterCity}
+                            onChange={(e) => setFilterCity(e.target.value)}
+                            title="Selecionar Cidade"
+                            className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                          >
+                            {availableCities.map(city => (
+                              <option key={city} value={city}>{city}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
 
                       <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano</label>
