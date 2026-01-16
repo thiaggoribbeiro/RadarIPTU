@@ -130,7 +130,7 @@ const reportSpecs: ReportSpec[] = [
     description: 'Relatório comparativo de IPTU com projeção de economia.',
     icon: 'analytics',
     goal: 'Analisar variações anuais e identificar economias via cota única.',
-    columns: ['Proprietário', 'Inscrição', 'Endereço', 'Cota Única (Base)', 'Parcelado (Base)', 'Cota Única (Projeção)', 'Parcelado (Projeção)', 'Diferença Cota Única', 'Economia Projetada', '% Variação', 'Situação'],
+    columns: ['Proprietário', 'Inscrição', 'Sequencial', 'Endereço', 'Cota Única (Base)', 'Parcelado (Base)', 'Cota Única (Projeção)', 'Parcelado (Projeção)', 'Diferença Cota Única', 'Economia Projetada', '% Variação', 'Situação'],
     metrics: ['Variação Média da Carteira', 'Total de Economia Projetada']
   },
   {
@@ -224,7 +224,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               ...unitsCompare.map(u => u.sequential)
             ]);
 
-            return Array.from(allSequentials).map(seq => {
+            // Para imóveis de complexos, agrupa todos os sequenciais em uma única string
+            const allSequentialsArray = Array.from(allSequentials);
+            const sequentialDisplay = allSequentialsArray.join(', ');
+
+            return allSequentialsArray.map(seq => {
               const uBase = unitsBase.find(u => u.sequential === seq);
               const uComp = unitsCompare.find(u => u.sequential === seq);
 
@@ -244,7 +248,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               return {
                 'Proprietário': prop.ownerName || 'N/A',
                 'Inscrição': uComp?.registrationNumber || uBase?.registrationNumber || prop.registrationNumber,
-                'Endereço': `${prop.address}${seq !== prop.sequential ? ` - Seq: ${seq}` : ''}`,
+                'Sequencial': prop.isComplex ? sequentialDisplay : seq,
+                'Endereço': prop.address,
                 [`Cota Única (${baseYear})`]: cotaUnicaBase,
                 [`Parcelado (${baseYear})`]: parceladoBase,
                 [`Cota Única (${compareYear})`]: cotaUnicaComp,
@@ -273,6 +278,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             exportData.push({
               'Proprietário': 'TOTAIS',
               'Inscrição': '-',
+              'Sequencial': '-',
               'Endereço': '-',
               [`Cota Única (${baseYear})`]: totals.cotaBase,
               [`Parcelado (${baseYear})`]: totals.parceladoBase,
