@@ -248,7 +248,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               return {
                 'Proprietário': prop.ownerName || 'N/A',
                 'Inscrição': uComp?.registrationNumber || uBase?.registrationNumber || prop.registrationNumber,
-                'Sequencial': prop.isComplex ? sequentialDisplay : seq,
+                'Sequencial': allSequentialsArray.length > 1 ? sequentialDisplay : seq,
                 'Endereço': prop.address,
                 [`Cota Única (${baseYear})`]: cotaUnicaBase,
                 [`Parcelado (${baseYear})`]: parceladoBase,
