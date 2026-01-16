@@ -138,14 +138,42 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
   const [selectedReport, setSelectedReport] = useState<ReportSpec>(reportSpecs[0]);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Colunas selecionadas para o relatório atual
+  const [selectedColumns, setSelectedColumns] = useState<string[]>(reportSpecs[0].columns);
+
+  // Sincroniza colunas selecionadas quando muda de relatório
+  React.useEffect(() => {
+    setSelectedColumns(selectedReport.columns);
+  }, [selectedReport]);
+
+  const toggleColumn = (column: string) => {
+    setSelectedColumns(prev => {
+      if (prev.includes(column)) {
+        if (prev.length === 1) return prev; // Evita desmarcar todas as colunas
+        return prev.filter(c => c !== column);
+      }
+      return [...prev, column];
+    });
+  };
+
   // Filtros
   const [filterCity, setFilterCity] = useState<string>('TODAS');
+  const [filterYear, setFilterYear] = useState<number>(2026); // Ano para filtros gerais
   const [baseYear, setBaseYear] = useState<number>(2025);
   const [compareYear, setCompareYear] = useState<number>(2026);
   const [exportFormat, setExportFormat] = useState<'XLSX' | 'PDF'>('XLSX');
 
   const availableCities = useMemo(() => {
     return ['TODAS', ...new Set(properties.map(p => p.city))].sort();
+  }, [properties]);
+
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set<number>();
+    properties.forEach(p => {
+      p.iptuHistory.forEach(h => yearsSet.add(h.year));
+      p.units.forEach(u => yearsSet.add(u.year));
+    });
+    return Array.from(yearsSet).sort((a, b) => b - a);
   }, [properties]);
 
   const handleExport = () => {
@@ -235,84 +263,126 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
           break;
         }
 
-        case 'fin_geral':
-          exportData = properties.flatMap(prop =>
-            prop.iptuHistory.map(iptu => ({
-              'ID Imóvel': prop.id.substring(0, 8),
-              'Nome': prop.name,
-              'Inscrição': prop.registrationNumber,
-              'Ano': iptu.year,
-              'Valor Total': iptu.value,
-              'Valor Pago': iptu.status === IptuStatus.PAID ? iptu.value : 0,
-              'Saldo Devedor': (iptu.status === IptuStatus.PENDING || iptu.status === IptuStatus.OPEN) ? iptu.value : 0,
-              'Status': iptu.status
-            }))
-          );
-          break;
-
-        case 'aberto':
-          exportData = properties.flatMap(prop =>
+        case 'fin_geral': {
+          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          exportData = filteredProps.flatMap(prop =>
             prop.iptuHistory
-              .filter(iptu => iptu.status === IptuStatus.PENDING || iptu.status === IptuStatus.OPEN)
+              .filter(iptu => iptu.year === filterYear)
               .map(iptu => ({
-                'Property': prop.name,
-                'Due Date': iptu.dueDate || 'Pendente',
-                'Pending Value': iptu.value,
-                'Owner': prop.ownerName
+                'ID Imóvel': prop.id.substring(0, 8),
+                'Nome': prop.name,
+                'Inscrição': prop.registrationNumber,
+                'Ano': iptu.year,
+                'Valor Total': iptu.value,
+                'Valor Pago': iptu.status === IptuStatus.PAID ? iptu.value : 0,
+                'Saldo Devedor': (iptu.status === IptuStatus.PENDING || iptu.status === IptuStatus.OPEN) ? iptu.value : 0,
+                'Status': iptu.status
               }))
           );
           break;
+        }
 
-        case 'pagos':
-          exportData = properties.flatMap(prop =>
+        case 'aberto': {
+          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          exportData = filteredProps.flatMap(prop =>
             prop.iptuHistory
-              .filter(iptu => iptu.status === IptuStatus.PAID)
+              .filter(iptu => iptu.year === filterYear && (iptu.status === IptuStatus.PENDING || iptu.status === IptuStatus.OPEN))
+              .map(iptu => {
+                const dueDate = iptu.dueDate ? new Date(iptu.dueDate) : null;
+                const today = new Date();
+                const diffDays = dueDate ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 3600 * 24)) : 0;
+
+                return {
+                  'Property': prop.name,
+                  'Due Date': iptu.dueDate || 'Pendente',
+                  'Pending Value': iptu.value,
+                  'Days Overdue': diffDays > 0 ? diffDays : 0,
+                  'Owner': prop.ownerName
+                };
+              })
+          );
+          break;
+        }
+
+        case 'pagos': {
+          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          exportData = filteredProps.flatMap(prop =>
+            prop.iptuHistory
+              .filter(iptu => iptu.year === filterYear && iptu.status === IptuStatus.PAID)
               .map(iptu => ({
                 'Property': prop.name,
                 'Date Paid': iptu.startDate || 'N/A',
                 'Value': iptu.value,
-                'Method': iptu.chosenMethod || 'N/A'
+                'Method': iptu.chosenMethod || 'N/A',
+                'Receipt Reference': iptu.receiptUrl ? 'Anexo' : 'N/A'
               }))
           );
           break;
+        }
 
-        case 'sit_imovel':
-          exportData = properties.map(p => ({
-            'Property Name': p.name,
-            'Type': p.type,
-            'City': p.city,
-            'Last Update': p.lastUpdated,
-            'Current Status': p.iptuHistory[0]?.status || 'N/A'
-          }));
+        case 'sit_imovel': {
+          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          exportData = filteredProps.map(p => {
+            const yearHistory = p.iptuHistory.find(h => h.year === filterYear);
+            return {
+              'Property Name': p.name,
+              'Type': p.type,
+              'City': p.city,
+              'Last Update': p.lastUpdated,
+              'Current Status': yearHistory?.status || 'N/A'
+            };
+          });
           break;
+        }
 
         case 'status_dist': {
-          const stats = properties.reduce((acc: any, prop) => {
-            const status = prop.iptuHistory[0]?.status || 'Pendente';
-            acc[status] = (acc[status] || 0) + 1;
+          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          const stats = filteredProps.reduce((acc: any, prop) => {
+            const yearHistory = prop.iptuHistory.find(h => h.year === filterYear);
+            const status = yearHistory?.status || 'Pendente';
+            const value = yearHistory?.value || 0;
+
+            if (!acc[status]) acc[status] = { count: 0, sum: 0 };
+            acc[status].count += 1;
+            acc[status].sum += value;
             return acc;
           }, {});
-          const total = properties.length;
-          exportData = Object.entries(stats).map(([status, count]) => ({
+
+          const total = filteredProps.length;
+          exportData = Object.entries(stats).map(([status, data]: [string, any]) => ({
             'Status': status,
-            'Quantidade': count,
-            'Percentual': `${((Number(count) / total) * 100).toFixed(1)}%`
+            'Count of Properties': data.count,
+            'Sum of Value': data.sum,
+            'Percentage': `${((data.count / total) * 100).toFixed(1)}%`
           }));
           break;
         }
 
-        default:
+        default: {
           // Export geral para qualquer outro tipo não mapeado especificamente
-          exportData = properties.map(p => ({
-            'Nome': p.name,
-            'Inscrição': p.registrationNumber,
-            'Bairro': p.neighborhood,
-            'Cidade': p.city,
-            'Proprietário': p.ownerName,
-            'Tipo': p.type,
-            'Valor Avaliação': p.appraisalValue,
-            'Status Atual': p.iptuHistory[0]?.status || 'N/A'
-          }));
+          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          exportData = filteredProps.map(p => {
+            const yearHistory = p.iptuHistory.find(h => h.year === filterYear);
+
+            // Tenta mapear o máximo de colunas comuns
+            return {
+              'Property': p.name,
+              'Nome': p.name,
+              'Inscrição': p.registrationNumber,
+              'Bairro': p.neighborhood,
+              'Cidade': p.city,
+              'City': p.city,
+              'Proprietário': p.ownerName,
+              'Owner': p.ownerName,
+              'Tipo': p.type,
+              'Type': p.type,
+              'Valor Avaliação': p.appraisalValue,
+              'Status Atual': yearHistory?.status || 'N/A',
+              'Current Status': yearHistory?.status || 'N/A',
+              'Last Update': p.lastUpdated
+            };
+          });
+        }
       }
 
       if (exportData.length === 0) {
@@ -321,10 +391,33 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         return;
       }
 
+      // Filtrar colunas baseado na seleção do usuário
+      const filteredExportData = exportData.map(row => {
+        const filteredRow: any = {};
+
+        // Mapear colunas selecionadas para as chaves reais do objeto de dados
+        // Isso resolve o problema de labels dinâmicos como (Base) vs (2025)
+        selectedColumns.forEach(colLabel => {
+          let key = colLabel;
+
+          if (selectedReport.id === 'proj_anual') {
+            if (colLabel === 'Cota Única (Base)') key = `Cota Única (${baseYear})`;
+            if (colLabel === 'Parcelado (Base)') key = `Parcelado (${baseYear})`;
+            if (colLabel === 'Cota Única (Projeção)') key = `Cota Única (${compareYear})`;
+            if (colLabel === 'Parcelado (Projeção)') key = `Parcelado (${compareYear})`;
+          }
+
+          if (row[key] !== undefined) {
+            filteredRow[key] = row[key];
+          }
+        });
+        return filteredRow;
+      });
+
       if (exportFormat === 'PDF') {
         const doc = new jsPDF('landscape');
-        const tableColumn = Object.keys(exportData[0]);
-        const tableRows = exportData.map(obj => tableColumn.map(col => {
+        const tableColumn = Object.keys(filteredExportData[0]);
+        const tableRows = filteredExportData.map(obj => tableColumn.map(col => {
           const val = obj[col];
           if (typeof val === 'number') {
             return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -374,13 +467,13 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
 
         doc.save(filename);
       } else {
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const worksheet = XLSX.utils.json_to_sheet(filteredExportData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório");
 
-        const maxLengths = Object.keys(exportData[0]).map(key => {
+        const maxLengths = Object.keys(filteredExportData[0]).map(key => {
           const headerLen = key.length;
-          const dataLen = exportData.reduce((max, row) => Math.max(max, String(row[key] || '').length), 0);
+          const dataLen = filteredExportData.reduce((max, row) => Math.max(max, String(row[key] || '').length), 0);
           return { wch: Math.max(headerLen, dataLen) + 2 };
         });
         worksheet['!cols'] = maxLengths;
@@ -525,7 +618,37 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                       </div>
                     </>
                   ) : (
-                    <div className="hidden lg:block lg:col-span-3"></div>
+                    <>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cidade</label>
+                        <select
+                          value={filterCity}
+                          onChange={(e) => setFilterCity(e.target.value)}
+                          title="Selecionar Cidade"
+                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                        >
+                          {availableCities.map(city => (
+                            <option key={city} value={city}>{city}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano</label>
+                        <select
+                          value={filterYear}
+                          onChange={(e) => setFilterYear(Number(e.target.value))}
+                          title="Selecionar Ano"
+                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                        >
+                          {availableYears.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="hidden lg:block"></div>
+                    </>
                   )}
 
                   <div className="flex flex-col gap-2">
@@ -571,14 +694,27 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
 
               <section className="space-y-4">
                 <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]">view_column</span> Estrutura de Colunas (.xlsx)
+                  <span className="material-symbols-outlined text-[18px]">view_column</span> Estrutura de Colunas
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {selectedReport.columns.map((col, i) => (
-                    <span key={i} className="px-3 py-1.5 bg-gray-100 dark:bg-[#22303e] text-[#617289] dark:text-[#9ca3af] rounded-lg text-xs font-bold uppercase border border-gray-200 dark:border-gray-800">
-                      {col}
-                    </span>
-                  ))}
+                  {selectedReport.columns.map((col, i) => {
+                    const isSelected = selectedColumns.includes(col);
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => toggleColumn(col)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase border transition-all flex items-center gap-1.5 ${isSelected
+                          ? "bg-primary/10 text-primary border-primary shadow-sm"
+                          : "bg-gray-50 dark:bg-[#111c2a] text-[#9ca3af] border-gray-200 dark:border-gray-800 opacity-60 hover:opacity-100"
+                          }`}
+                      >
+                        <span className="material-symbols-outlined text-[16px]">
+                          {isSelected ? 'check_box' : 'check_box_outline_blank'}
+                        </span>
+                        {col}
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
 

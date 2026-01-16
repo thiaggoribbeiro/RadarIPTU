@@ -20,7 +20,10 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
   const [filterUF, setFilterUF] = useState<string>('all');
   const [filterOwner, setFilterOwner] = useState<string>('all');
   const [filterTenant, setFilterTenant] = useState<string>('all');
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const currentYear = 2026; // Fixado em 2026 conforme solicitado pelo usuário
 
   const availableCities = React.useMemo(() => {
     const filtered = filterUF === 'all'
@@ -107,7 +110,11 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
     const matchesOwner = filterOwner === 'all' || p.ownerName?.trim() === filterOwner;
     const matchesTenant = filterTenant === 'all' || p.tenants?.some(t => t.name?.trim() === filterTenant);
 
-    return matchesSearch && matchesType && matchesCity && matchesUF && matchesOwner && matchesTenant;
+    // Filtro por status de pagamento
+    const propertyStatus = getPropertyStatus(p, currentYear);
+    const matchesPaymentStatus = filterPaymentStatus === 'all' || propertyStatus === filterPaymentStatus;
+
+    return matchesSearch && matchesType && matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPaymentStatus;
   });
 
   const canEdit = true; // Todo usuário autenticado pode editar
@@ -185,7 +192,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-[#e5e7eb] dark:border-[#2a3644]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-[#e5e7eb] dark:border-[#2a3644]">
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">location_city</span>
             <select
@@ -245,13 +252,28 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             </select>
             <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
           </div>
+
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">payments</span>
+            <select
+              value={filterPaymentStatus}
+              onChange={(e) => setFilterPaymentStatus(e.target.value)}
+              className="size-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-bold"
+            >
+              <option value="all">STATUS: TODOS</option>
+              <option value={IptuStatus.PAID}>PAGO</option>
+              <option value={IptuStatus.IN_PROGRESS}>EM ANDAMENTO</option>
+              <option value={IptuStatus.PENDING}>PENDENTE</option>
+              <option value={IptuStatus.OPEN}>EM ABERTO</option>
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
+          </div>
         </div>
       </div>
 
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
           {filteredProperties.map(property => {
-            const currentYear = 2026; // Fixado em 2026 conforme solicitado pelo usuário
             const currentYearStatus = getPropertyStatus(property, currentYear);
             const hasPreviousDebts = property.iptuHistory.some(h => h.year < currentYear && getDynamicStatus(h) !== IptuStatus.PAID);
 
@@ -364,7 +386,6 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
               </thead>
               <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3644]">
                 {filteredProperties.map(property => {
-                  const currentYear = 2026;
                   const currentYearStatus = getPropertyStatus(property, currentYear);
                   const hasPreviousDebts = property.iptuHistory.some(h => h.year < currentYear && getDynamicStatus(h) !== IptuStatus.PAID);
 
