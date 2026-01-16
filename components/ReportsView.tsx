@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logo from '../assets/logo-report.png';
 import { Property, IptuStatus } from '../types';
+import { getPropertyStatus } from '../utils/iptu';
 
 interface ReportsViewProps {
   properties: Property[];
@@ -161,6 +162,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
   const [filterYear, setFilterYear] = useState<number>(2026); // Ano para filtros gerais
   const [baseYear, setBaseYear] = useState<number>(2025);
   const [compareYear, setCompareYear] = useState<number>(2026);
+  const [projAnualStatusFilter, setProjAnualStatusFilter] = useState<string>('TODOS');
   const [exportFormat, setExportFormat] = useState<'XLSX' | 'PDF'>('XLSX');
 
   const availableCities = useMemo(() => {
@@ -188,7 +190,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
 
       switch (selectedReport.id) {
         case 'proj_anual': {
-          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          let filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+
+          if (projAnualStatusFilter !== 'TODOS') {
+            filteredProps = filteredProps.filter(p => getPropertyStatus(p, compareYear) === projAnualStatusFilter);
+          }
 
           exportData = filteredProps.flatMap(prop => {
             const unitsBase = prop.units.filter(u => u.year === baseYear);
@@ -615,6 +621,22 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                           placeholder="Ex: 2026"
                           className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
                         />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Status (Projeção)</label>
+                        <select
+                          value={projAnualStatusFilter}
+                          onChange={(e) => setProjAnualStatusFilter(e.target.value)}
+                          title="Filtro de Status para o Ano de Projeção"
+                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                        >
+                          <option value="TODOS">TODOS</option>
+                          <option value={IptuStatus.PAID}>PAGO</option>
+                          <option value={IptuStatus.IN_PROGRESS}>EM ANDAMENTO</option>
+                          <option value={IptuStatus.PENDING}>PENDENTE</option>
+                          <option value={IptuStatus.OPEN}>EM ABERTO</option>
+                        </select>
                       </div>
                     </>
                   ) : (
