@@ -142,7 +142,9 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
         const totalIptuValue = units
             .filter(u => u.year === baseYear)
             .reduce((acc, unit) => {
-                return acc + (unit.chosenMethod === 'Parcelado' ? (Number(unit.installmentValue) || 0) : (Number(unit.singleValue) || 0));
+                const baseValue = unit.chosenMethod === 'Parcelado' ? (Number(unit.installmentValue) || 0) : (Number(unit.singleValue) || 0);
+                const wasteValue = unit.hasWasteTax ? (Number(unit.wasteTaxValue) || 0) : 0;
+                return acc + baseValue + wasteValue;
             }, 0);
 
         if (singleTenant) {
@@ -313,32 +315,68 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                 {/* Campos Financeiros: Visíveis se não for apenas cadastro ou se estiver editando um sequencial específico */}
                                                 {(initialSection !== 'units' || initialSequential) && (
                                                     <>
-                                                        <div className="sm:col-span-4 flex flex-col gap-1.5">
-                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-emerald-500">Valor Cota Única</label>
-                                                            <input type="number" step="0.01" value={unit.singleValue} onChange={(e) => handleUnitChange(unit, 'singleValue', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold text-emerald-600" />
-                                                        </div>
-                                                        <div className="sm:col-span-3 flex flex-col gap-1.5">
-                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-orange-500">Valor Parcelado</label>
-                                                            <input type="number" step="0.01" value={unit.installmentValue} onChange={(e) => handleUnitChange(unit, 'installmentValue', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold text-orange-600" />
-                                                        </div>
-                                                        <div className="sm:col-span-2 flex flex-col gap-1.5">
-                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase leading-none">Parcelas</label>
-                                                            <input type="number" min="1" max="12" value={unit.installmentsCount} onChange={(e) => handleUnitChange(unit, 'installmentsCount', Number(e.target.value))} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold text-[#111418] dark:text-white" />
-                                                        </div>
-                                                        <div className="sm:col-span-3 flex flex-col gap-1.5">
-                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Forma</label>
-                                                            <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(unit, 'chosenMethod', e.target.value as PaymentMethod)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-semibold">
-                                                                <option value="Cota Única">Cota Única</option>
-                                                                <option value="Parcelado">Parcelado</option>
-                                                            </select>
-                                                        </div>
-                                                        <div className="sm:col-span-3 flex flex-col gap-1.5">
-                                                            <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Status</label>
-                                                            <select value={unit.status} onChange={(e) => handleUnitChange(unit, 'status', e.target.value as IptuStatus)} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-semibold">
-                                                                {Object.values(IptuStatus).map(status => (
-                                                                    <option key={status} value={status}>{status}</option>
-                                                                ))}
-                                                            </select>
+                                                        <div className="sm:col-span-12 grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-12 gap-3 items-end">
+                                                            <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
+                                                                <label className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-tighter">Cota Única</label>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-600/50">R$</span>
+                                                                    <input type="number" step="0.01" value={unit.singleValue} onChange={(e) => handleUnitChange(unit, 'singleValue', Number(e.target.value))} className="w-full h-10 pl-8 pr-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-emerald-50/30 dark:bg-emerald-500/5 text-xs font-bold text-emerald-700 dark:text-emerald-400 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
+                                                                <label className="text-[10px] font-bold text-orange-600 dark:text-orange-500 uppercase tracking-tighter">Parcelado</label>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-orange-600/50">R$</span>
+                                                                    <input type="number" step="0.01" value={unit.installmentValue} onChange={(e) => handleUnitChange(unit, 'installmentValue', Number(e.target.value))} className="w-full h-10 pl-8 pr-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-orange-50/30 dark:bg-orange-500/5 text-xs font-bold text-orange-700 dark:text-orange-400 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all" />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="sm:col-span-1 lg:col-span-1 flex flex-col gap-1">
+                                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter text-center">Parc.</label>
+                                                                <input type="number" min="1" max="12" value={unit.installmentsCount} onChange={(e) => handleUnitChange(unit, 'installmentsCount', Number(e.target.value))} className="w-full h-10 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-xs font-bold text-[#111418] dark:text-white text-center focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                                                            </div>
+
+                                                            <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
+                                                                <div className="flex items-center justify-start gap-2 px-1">
+                                                                    <label className="text-[10px] font-bold text-primary uppercase tracking-tighter">Taxa Lixo</label>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={unit.hasWasteTax || false}
+                                                                        onChange={(e) => handleUnitChange(unit, 'hasWasteTax', e.target.checked)}
+                                                                        className="size-3 accent-primary cursor-pointer"
+                                                                    />
+                                                                </div>
+                                                                <div className={`relative transition-all duration-300 ${unit.hasWasteTax ? 'opacity-100 scale-100' : 'opacity-30 scale-95 pointer-events-none'}`}>
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary/50">R$</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        disabled={!unit.hasWasteTax}
+                                                                        value={unit.wasteTaxValue || 0}
+                                                                        onChange={(e) => handleUnitChange(unit, 'wasteTaxValue', Number(e.target.value))}
+                                                                        className="w-full h-10 pl-8 pr-3 rounded-lg border border-primary/20 bg-primary/5 text-xs font-bold text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                                                        placeholder="0,00"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="sm:col-span-3 lg:col-span-3 flex flex-col gap-1">
+                                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Forma de Pagamento</label>
+                                                                <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(unit, 'chosenMethod', e.target.value as PaymentMethod)} className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer">
+                                                                    <option value="Cota Única">Cota Única</option>
+                                                                    <option value="Parcelado">Parcelado</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
+                                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Status</label>
+                                                                <select value={unit.status} onChange={(e) => handleUnitChange(unit, 'status', e.target.value as IptuStatus)} className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer">
+                                                                    {Object.values(IptuStatus).map(status => (
+                                                                        <option key={status} value={status}>{status}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
                                                         </div>
                                                     </>
                                                 )}

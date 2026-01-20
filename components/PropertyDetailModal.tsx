@@ -315,15 +315,22 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       let percentage: number;
                       let apportionment: number;
 
+                      // Calcula o valor total com taxa de lixo para este ano
+                      const yearTotalWithWaste = yearUnits.reduce((acc, u) => {
+                        const base = u.chosenMethod === 'Parcelado' ? (u.installmentValue || 0) : (u.singleValue || 0);
+                        const waste = u.hasWasteTax ? (u.wasteTaxValue || 0) : 0;
+                        return acc + base + waste;
+                      }, 0);
+
                       if (isSingle) {
                         percentage = 100;
-                        apportionment = totalIptu;
+                        apportionment = yearTotalWithWaste;
                       } else if (isManualMode && tenant.manualPercentage !== undefined) {
                         percentage = tenant.manualPercentage;
-                        apportionment = (tenant.manualPercentage / 100) * totalIptu;
+                        apportionment = (tenant.manualPercentage / 100) * yearTotalWithWaste;
                       } else {
                         percentage = totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0;
-                        apportionment = totalArea > 0 ? (tenant.occupiedArea / totalArea) * totalIptu : 0;
+                        apportionment = totalArea > 0 ? (tenant.occupiedArea / totalArea) * yearTotalWithWaste : 0;
                       }
 
                       return (
@@ -383,6 +390,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Sequencial</th>
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Cota Única</th>
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Parcelado</th>
+                    <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Taxa de Lixo</th>
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Forma</th>
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Status</th>
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px] text-right">Ações</th>
@@ -456,14 +464,19 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   {(() => {
                     const yearUnits = property.units.filter(u => u.year === 2026);
                     if (yearUnits.length === 0) return null;
-                    const totalByMethod = yearUnits.reduce((acc, u) => acc + (u.chosenMethod === 'Parcelado' ? (u.installmentValue || 0) : (u.singleValue || 0)), 0);
-                    const totalSingle = yearUnits.reduce((acc, u) => acc + (u.singleValue || 0), 0);
-                    const totalInstall = yearUnits.reduce((acc, u) => acc + (u.installmentValue || 0), 0);
+                    const totalByMethod = yearUnits.reduce((acc, u) => {
+                      const base = u.chosenMethod === 'Parcelado' ? (u.installmentValue || 0) : (u.singleValue || 0);
+                      const waste = u.hasWasteTax ? (u.wasteTaxValue || 0) : 0;
+                      return acc + base + waste;
+                    }, 0);
+                    const totalSingle = yearUnits.reduce((acc, u) => acc + (u.singleValue || 0) + (u.hasWasteTax ? (u.wasteTaxValue || 0) : 0), 0);
+                    const totalInstall = yearUnits.reduce((acc, u) => acc + (u.installmentValue || 0) + (u.hasWasteTax ? (u.wasteTaxValue || 0) : 0), 0);
                     return (
                       <tr>
                         <td className="px-6 py-4 font-bold text-[#111418] dark:text-white uppercase text-xs">Total ({yearUnits.length} seq.)</td>
                         <td className="px-6 py-4 font-bold text-emerald-600 text-sm">{currencyFormatter.format(totalSingle)}</td>
                         <td className="px-6 py-4 font-bold text-orange-600 text-sm">{currencyFormatter.format(totalInstall)}</td>
+                        <td className="px-6 py-4 font-bold text-gray-400">---</td>
                         <td colSpan={2} className="px-6 py-4"><div className="flex flex-col"><span className="text-[9px] uppercase font-bold text-gray-500">Valor Conf. Forma</span><span className="font-bold text-primary text-lg">{currencyFormatter.format(totalByMethod)}</span></div></td>
                         <td></td>
                       </tr>

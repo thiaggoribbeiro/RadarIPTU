@@ -40,6 +40,8 @@ export interface PropertyUnit {
   year: number;
   chosenMethod: PaymentMethod;
   status: IptuStatus;
+  hasWasteTax?: boolean;
+  wasteTaxValue?: number;
 }
 
 export interface Tenant {
