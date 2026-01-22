@@ -42,6 +42,7 @@ export interface PropertyUnit {
   status: IptuStatus;
   hasWasteTax?: boolean;
   wasteTaxValue?: number;
+  dueDate?: string;
 }
 
 export interface Tenant {
@@ -103,6 +104,17 @@ export interface AuditLog {
   user_name: string;
   action: string;
   details: string;
+}
+
+export interface AppNotification {
+  id: string;
+  type: 'warning' | 'error' | 'info';
+  title: string;
+  message: string;
+  date: string;
+  propertyId: string;
+  read: boolean;
+  daysDiff?: number;
 }
 
 export type ViewType = 'dashboard' | 'properties' | 'financial' | 'reports' | 'login' | 'team' | 'audit';

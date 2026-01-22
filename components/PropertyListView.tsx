@@ -271,6 +271,15 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
         </div>
       </div>
 
+      <div className="flex items-center justify-end px-1">
+        <div className="flex items-center gap-2 bg-gray-50/50 dark:bg-[#1a2634]/50 px-3 py-1.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] group hover:border-primary/50 transition-colors">
+          <span className="material-symbols-outlined text-[18px] text-primary">data_usage</span>
+          <span className="text-[11px] font-bold text-[#617289] dark:text-[#9ca3af]">
+            <span className="text-primary">{filteredProperties.length}</span> de <span className="text-[#111418] dark:text-white">{properties.length}</span> imóveis exibidos
+          </span>
+        </div>
+      </div>
+
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
           {filteredProperties.map(property => {
@@ -422,13 +431,13 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase whitespace-nowrap ${property.possession === 'Grupo' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${property.possession === 'Grupo' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
                           {property.possession}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
-                          <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase whitespace-nowrap ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
+                          <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
                             currentYearStatus === IptuStatus.OPEN ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                             }`}>
                             {currentYearStatus}
@@ -445,7 +454,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                         <div className="flex items-center justify-end gap-3">
                           <button
                             onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'newCharge'); }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 whitespace-nowrap"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100"
                           >
                             <span className="material-symbols-outlined text-[16px]">receipt_long</span>
                             NOVO IPTU

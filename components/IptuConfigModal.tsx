@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Property, PropertyUnit, Tenant, PaymentMethod, IptuStatus } from '../types';
 
 interface IptuConfigModalProps {
@@ -24,12 +24,6 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
     );
     const [isNewChargeModalOpen, setIsNewChargeModalOpen] = useState(initialSection === 'newCharge');
     const [newChargeYear, setNewChargeYear] = useState<number>(new Date().getFullYear());
-
-    // Sincronizar units e tenants quando a prop property mudar (ex: após salvar no banco)
-    useEffect(() => {
-        setUnits((property.units || []).map(u => ({ ...u, tempId: crypto.randomUUID() })));
-        setTenants(property.tenants || []);
-    }, [property.units, property.tenants]);
 
     const handleUnitChange = (unitToUpdate: (PropertyUnit & { tempId?: string }), field: keyof PropertyUnit, value: any) => {
         setUnits(prev => prev.map(u => u.tempId === unitToUpdate.tempId ? { ...u, [field]: value } : u));
@@ -214,6 +208,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                 required
                                 type="number"
                                 value={baseYear}
+                                placeholder="Ano base"
+                                title="Ano de Referência"
                                 onChange={(e) => setBaseYear(parseInt(e.target.value))}
                                 className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold focus:ring-2 focus:ring-primary outline-none"
                             />
@@ -251,8 +247,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                     return yearUnits.map((unit) => (
                                         <div key={unit.tempId} className="p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
                                             <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
-                                                <div className="sm:col-span-8 grid grid-cols-12 gap-4">
-                                                    <div className="col-span-4 flex flex-col gap-1.5">
+                                                <div className="sm:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div className="flex flex-col gap-1.5">
                                                         <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Sequencial</label>
                                                         <input
                                                             required
@@ -261,7 +257,7 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                             className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-mono"
                                                         />
                                                     </div>
-                                                    <div className="col-span-8 flex flex-col gap-1.5">
+                                                    <div className="flex flex-col gap-1.5">
                                                         <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase">Inscrição</label>
                                                         <input
                                                             value={unit.registrationNumber || ''}
@@ -288,6 +284,27 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                             placeholder="Ex: Sala 101, Bloco A"
                                                             className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm"
                                                             title="Endereço do Sequencial"
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex flex-col gap-1.5 sm:col-span-6">
+                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-emerald-500">Área Total (m²)</label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={unit.landArea || 0}
+                                                            onChange={(e) => handleUnitChange(unit, 'landArea', Number(e.target.value))}
+                                                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold"
+                                                        />
+                                                    </div>
+                                                    <div className="flex flex-col gap-1.5 sm:col-span-6">
+                                                        <label className="text-xs font-semibold text-[#111418] dark:text-slate-300 uppercase underline decoration-blue-500">Área Construída (m²)</label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={unit.builtArea || 0}
+                                                            onChange={(e) => handleUnitChange(unit, 'builtArea', Number(e.target.value))}
+                                                            className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold"
                                                         />
                                                     </div>
                                                 </div>
@@ -346,17 +363,28 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                                 </div>
                                                             </div>
 
-                                                            <div className="sm:col-span-3 lg:col-span-3 flex flex-col gap-1">
+                                                            <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
+                                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Vencimento</label>
+                                                                <input
+                                                                    type="date"
+                                                                    title="Data de Vencimento"
+                                                                    value={unit.dueDate || ''}
+                                                                    onChange={(e) => handleUnitChange(unit, 'dueDate', e.target.value)}
+                                                                    className="w-full h-10 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer"
+                                                                />
+                                                            </div>
+
+                                                            <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
                                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Forma de Pagamento</label>
-                                                                <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(unit, 'chosenMethod', e.target.value as PaymentMethod)} className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer">
+                                                                <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(unit, 'chosenMethod', e.target.value as PaymentMethod)} className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer">
                                                                     <option value="Cota Única">Cota Única</option>
                                                                     <option value="Parcelado">Parcelado</option>
                                                                 </select>
                                                             </div>
 
-                                                            <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
+                                                            <div className="sm:col-span-1 lg:col-span-1 flex flex-col gap-1">
                                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Status</label>
-                                                                <select value={unit.status} onChange={(e) => handleUnitChange(unit, 'status', e.target.value as IptuStatus)} className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer">
+                                                                <select value={unit.status} onChange={(e) => handleUnitChange(unit, 'status', e.target.value as IptuStatus)} className="w-full h-10 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer">
                                                                     {Object.values(IptuStatus).map(status => (
                                                                         <option key={status} value={status}>{status}</option>
                                                                     ))}

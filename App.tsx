@@ -17,6 +17,7 @@ import AuditLogsView from './components/AuditLogsView';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { logAction } from './lib/auditLogger';
+import { AppNotification } from './types';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
@@ -47,6 +48,7 @@ const App: React.FC = () => {
   const [userName, setUserName] = useState<string>('');
   const [userRole, setUserRole] = useState<UserRole>('Usuário');
   const [isAdminOverride, setIsAdminOverride] = useState<boolean>(false);
+  const [readNotifications, setReadNotifications] = useState<string[]>([]);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +129,68 @@ const App: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const notifications = useMemo<AppNotification[]>(() => {
+    const alerts: AppNotification[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    properties.forEach(property => {
+      property.units.forEach(unit => {
+        if (unit.dueDate && unit.status !== 'Pago') {
+          const dueDate = new Date(unit.dueDate);
+          dueDate.setHours(0, 0, 0, 0);
+
+          const diffTime = dueDate.getTime() - today.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          const baseId = `${property.id}-${unit.sequential}-${unit.year}`;
+
+          if (diffDays === 15 || diffDays === 10 || diffDays === 5 || diffDays === 1) {
+            alerts.push({
+              id: `${baseId}-${diffDays}`,
+              type: 'warning',
+              title: 'Vencimento Próximo',
+              message: `O IPTU do imóvel ${property.name} (Seq. ${unit.sequential}) vence em ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}.`,
+              date: new Date().toISOString(),
+              propertyId: property.id,
+              read: readNotifications.includes(`${baseId}-${diffDays}`),
+              daysDiff: diffDays
+            });
+          } else if (diffDays === 0) {
+            alerts.push({
+              id: `${baseId}-today`,
+              type: 'error',
+              title: 'Vence Hoje',
+              message: `O IPTU do imóvel ${property.name} (Seq. ${unit.sequential}) vence hoje!`,
+              date: new Date().toISOString(),
+              propertyId: property.id,
+              read: readNotifications.includes(`${baseId}-today`),
+              daysDiff: 0
+            });
+          } else if (diffDays < 0) {
+            const overdueDays = Math.abs(diffDays);
+            alerts.push({
+              id: `${baseId}-overdue`,
+              type: 'error',
+              title: 'IPTU Vencido',
+              message: `O IPTU do imóvel ${property.name} (Seq. ${unit.sequential}) está vencido há ${overdueDays} ${overdueDays === 1 ? 'dia' : 'dias'}.`,
+              date: new Date().toISOString(),
+              propertyId: property.id,
+              read: readNotifications.includes(`${baseId}-overdue`),
+              daysDiff: diffDays
+            });
+          }
+        }
+      });
+    });
+
+    return alerts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [properties, readNotifications]);
+
+  const handleMarkNotificationAsRead = (id: string) => {
+    setReadNotifications(prev => [...prev, id]);
   };
 
   const fetchManagers = async () => {
@@ -328,6 +392,12 @@ const App: React.FC = () => {
         onOpenProfile={() => { setIsProfileModalOpen(true); setIsProfileMenuOpen(false); }}
         onLogout={handleLogout}
         isDemoMode={isDemoMode}
+        notifications={notifications}
+        onMarkNotificationAsRead={handleMarkNotificationAsRead}
+        onSelectProperty={(id) => {
+          setSelectedPropertyId(id);
+          setCurrentView('properties');
+        }}
       />
 
       <main className="flex-1 max-w-[1200px] mx-auto w-full px-6 py-8 relative">
@@ -404,7 +474,14 @@ const App: React.FC = () => {
           }}
         />
       )}
-      {isProfileModalOpen && <ProfileModal userName={userName} userEmail={userEmail} userRole={userRole} onClose={() => setIsProfileModalOpen(false)} />}
+      {isProfileModalOpen && (
+        <ProfileModal
+          userName={userName}
+          userEmail={userEmail}
+          userRole={userRole}
+          onClose={() => setIsProfileModalOpen(false)}
+        />
+      )}
       {isAddPropertyModalOpen && (
         <AddPropertyModal
           onClose={() => { setIsAddPropertyModalOpen(false); setPropertyToEdit(null); }}
@@ -507,7 +584,7 @@ const App: React.FC = () => {
       )}
       {isIptuConfigModalOpen && propertyForConfig && (
         <IptuConfigModal
-          property={properties.find(p => p.id === propertyForConfig.id) || propertyForConfig}
+          property={propertyForConfig}
           initialSection={iptuConfigInitialSection}
           initialYear={iptuConfigInitialYear}
           initialSequential={iptuConfigInitialSequential}
