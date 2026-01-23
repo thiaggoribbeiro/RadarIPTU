@@ -12,7 +12,8 @@ interface PropertyDetailModalProps {
   onDeleteProperty: (propertyId: string) => void;
   onAddIptu: (propertyId: string, newIptu: IptuRecord) => void;
   onDeleteIptu: (propertyId: string, iptuId: string) => void;
-  onOpenIptuConfig: (property: Property, section?: 'units' | 'tenants' | 'newCharge', year?: number, sequential?: string) => void;
+  onDeleteUnit: (propertyId: string, sequential: string, year: number, registrationNumber?: string) => void;
+  onOpenIptuConfig: (property: Property, section?: 'units' | 'tenants' | 'newCharge', year?: number, sequential?: string, registrationNumber?: string) => void;
 }
 
 const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
@@ -22,6 +23,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   onEditProperty,
   onDeleteProperty,
   onAddIptu,
+  onDeleteUnit,
   onOpenIptuConfig
 }) => {
   const [isAddIptuOpen, setIsAddIptuOpen] = useState(false);
@@ -432,6 +434,15 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                             </div>
                           </td>
                           <td className="px-6 py-4">
+                            {unit.hasWasteTax ? (
+                              <span className="px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase bg-primary/10 text-primary">
+                                {currencyFormatter.format(unit.wasteTaxValue || 0)}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-300 font-bold uppercase">---</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
                             <span className={`px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase ${unit.chosenMethod === 'Cota Única' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
                               'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
                               }`}>
@@ -448,9 +459,24 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <button onClick={() => onOpenIptuConfig(property, 'units', 2026, unit.sequential)} className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-all">
-                              <span className="material-symbols-outlined text-[18px]">edit</span>
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => onOpenIptuConfig(property, 'units', 2026, unit.sequential, unit.registrationNumber)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-primary hover:bg-primary/10 rounded-lg transition-all text-[9px] font-bold uppercase"
+                                title="Editar Sequencial"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => onDeleteUnit(property.id, unit.sequential, 2026, unit.registrationNumber)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 rounded-lg transition-all text-[9px] font-bold uppercase"
+                                title="Excluir Sequencial"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                                Excluir
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -500,6 +526,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Sequencial</th>
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Cota Única</th>
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Parcelado</th>
+                    <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Taxa de Lixo</th>
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Forma</th>
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Status</th>
                     <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px] text-right">Ações</th>
@@ -533,6 +560,15 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                             </div>
                           </td>
                           <td className="px-6 py-4">
+                            {unit.hasWasteTax ? (
+                              <span className="px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase bg-primary/10 text-primary">
+                                {currencyFormatter.format(unit.wasteTaxValue || 0)}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-300 font-bold uppercase">---</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
                             <span className={`px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase ${unit.chosenMethod === 'Cota Única' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
                               'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
                               }`}>
@@ -549,9 +585,24 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <button onClick={() => onOpenIptuConfig(property, 'units', 2025, unit.sequential)} className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-all">
-                              <span className="material-symbols-outlined text-[18px]">edit</span>
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => onOpenIptuConfig(property, 'units', 2025, unit.sequential, unit.registrationNumber)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-primary hover:bg-primary/10 rounded-lg transition-all text-[9px] font-bold uppercase"
+                                title="Editar Sequencial"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => onDeleteUnit(property.id, unit.sequential, 2025, unit.registrationNumber)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 rounded-lg transition-all text-[9px] font-bold uppercase"
+                                title="Excluir Sequencial"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                                Excluir
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))

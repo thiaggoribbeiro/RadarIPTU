@@ -14,6 +14,7 @@ import Navbar from './components/Navbar';
 import IptuConfigModal from './components/IptuConfigModal';
 import GerenciamentoView from './components/GerenciamentoView';
 import AuditLogsView from './components/AuditLogsView';
+import ConfirmModal from './components/ConfirmModal';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { logAction } from './lib/auditLogger';
@@ -37,6 +38,7 @@ const App: React.FC = () => {
   const [iptuConfigInitialSection, setIptuConfigInitialSection] = useState<'units' | 'tenants' | 'newCharge' | undefined>(undefined);
   const [iptuConfigInitialYear, setIptuConfigInitialYear] = useState<number | undefined>(undefined);
   const [iptuConfigInitialSequential, setIptuConfigInitialSequential] = useState<string | undefined>(undefined);
+  const [iptuConfigInitialRegistrationNumber, setIptuConfigInitialRegistrationNumber] = useState<string | undefined>(undefined);
   const [showRestrictedAccess, setShowRestrictedAccess] = useState<boolean>(false);
   const [propertyIdToDelete, setPropertyIdToDelete] = useState<string | null>(null);
   const [availableManagers, setAvailableManagers] = useState<{ name: string, email: string }[]>([]);
@@ -49,6 +51,18 @@ const App: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('Usuário');
   const [isAdminOverride, setIsAdminOverride] = useState<boolean>(false);
   const [readNotifications, setReadNotifications] = useState<string[]>([]);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { }
+  });
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -74,25 +88,6 @@ const App: React.FC = () => {
           const rawUnits = item.units || [];
           const rawTenants = item.tenants || [];
 
-          // Lógica de Sincronização: Se tem em 2025 mas não em 2026, replica zerado
-          const units2025 = rawUnits.filter((u: any) => u.year === 2025);
-          const units2026 = rawUnits.filter((u: any) => u.year === 2026);
-          const sequentials2026 = new Set(units2026.map((u: any) => u.sequential));
-
-          const missingUnits2026 = units2025
-            .filter((u: any) => !sequentials2026.has(u.sequential))
-            .map((u: any) => ({
-              ...u,
-              year: 2026,
-              singleValue: 0,
-              installmentValue: 0,
-              installmentsCount: 1, // Padrão
-              chosenMethod: 'Cota Única',
-              status: 'Pendente' // IptuStatus.PENDING
-            }));
-
-          const syncedUnits = [...rawUnits, ...missingUnits2026];
-
           return {
             id: item.id,
             name: item.name,
@@ -107,7 +102,7 @@ const App: React.FC = () => {
             registrationNumber: item.registration_number || '',
             sequential: item.sequential || '',
             isComplex: item.is_complex || false,
-            units: syncedUnits,
+            units: rawUnits,
             landArea: item.land_area || 0,
             builtArea: item.built_area || 0,
             type: item.type || 'Apartamento',
@@ -294,12 +289,20 @@ const App: React.FC = () => {
 
   const handleDeleteProperty = async (id: string) => {
     // Agora todos os perfis (Usuário, Gestor, Administrador) precisam de confirmação via modal
-    setPropertyIdToDelete(id);
-    setShowRestrictedAccess(true);
-    setOverrideError(null);
-    setOverrideEmail('');
-    setOverridePassword('');
-    setIsAdminOverride(false);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Confirmar Exclusão',
+      message: 'Esta ação irá solicitar autorização de um gestor para excluir permanentemente este imóvel.',
+      onConfirm: () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setPropertyIdToDelete(id);
+        setShowRestrictedAccess(true);
+        setOverrideError(null);
+        setOverrideEmail('');
+        setOverridePassword('');
+        setIsAdminOverride(false);
+      }
+    });
   };
 
   const handleManagerOverride = async () => {
@@ -412,11 +415,12 @@ const App: React.FC = () => {
               setIsAddPropertyModalOpen(true);
             }}
             onDeleteProperty={handleDeleteProperty}
-            onOpenIptuConfig={(p, section, year, sequential) => {
+            onOpenIptuConfig={(p, section, year, sequential, registrationNumber) => {
               setPropertyForConfig(p);
               setIptuConfigInitialSection(section);
               setIptuConfigInitialYear(year);
               setIptuConfigInitialSequential(sequential);
+              setIptuConfigInitialRegistrationNumber(registrationNumber);
               setIsIptuConfigModalOpen(true);
             }}
             userRole={userRole}
@@ -456,13 +460,52 @@ const App: React.FC = () => {
           onDeleteIptu={async (pid, iptuId) => {
             const target = properties.find(p => p.id === pid);
             const iptu = target?.iptuHistory.find(h => h.id === iptuId);
-            if (target && confirm(`Excluir este lançamento de IPTU?`)) {
-              const newHistory = target.iptuHistory.filter(h => h.id !== iptuId);
-              const { error } = await supabase.from('properties').update({ iptu_history: newHistory }).eq('id', pid);
-              if (!error) {
-                fetchProperties();
-                logAction('Exclusão de IPTU', `Imóvel: ${target.name}, Ano: ${iptu?.year}`);
-              }
+            if (target) {
+              setConfirmModal({
+                isOpen: true,
+                title: 'Excluir Lançamento',
+                message: `Deseja realmente excluir o lançamento de IPTU do ano ${iptu?.year}?`,
+                onConfirm: async () => {
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                  const newHistory = target.iptuHistory.filter(h => h.id !== iptuId);
+                  const { error } = await supabase.from('properties').update({ iptu_history: newHistory }).eq('id', pid);
+                  if (!error) {
+                    fetchProperties();
+                    logAction('Exclusão de IPTU', `Imóvel: ${target.name}, Ano: ${iptu?.year}`);
+                  }
+                }
+              });
+            }
+          }}
+          onDeleteUnit={async (pid, sequential, year, registrationNumber?) => {
+            const target = properties.find(p => p.id === pid);
+            if (target) {
+              const identifier = sequential || (registrationNumber ? `Insc: ${registrationNumber}` : '(vazio)');
+              setConfirmModal({
+                isOpen: true,
+                title: 'Excluir Sequencial',
+                message: `Deseja realmente excluir o sequencial ${identifier} do ano ${year}?`,
+                onConfirm: async () => {
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                  const newUnits = target.units.filter(u =>
+                    !(u.sequential === sequential && u.year === year && u.registrationNumber === registrationNumber)
+                  );
+                  const { error } = await supabase
+                    .from('properties')
+                    .update({
+                      units: newUnits,
+                      last_updated: new Date().toLocaleDateString('pt-BR')
+                    })
+                    .eq('id', pid);
+
+                  if (!error) {
+                    fetchProperties();
+                    logAction('Exclusão de Sequencial', `Imóvel: ${target.name}, Sequencial: ${sequential}, Ano: ${year}`);
+                  } else {
+                    alert('Erro ao excluir sequencial: ' + error.message);
+                  }
+                }
+              });
             }
           }}
           onOpenIptuConfig={(p, section, year, sequential) => {
@@ -588,12 +631,14 @@ const App: React.FC = () => {
           initialSection={iptuConfigInitialSection}
           initialYear={iptuConfigInitialYear}
           initialSequential={iptuConfigInitialSequential}
+          initialRegistrationNumber={iptuConfigInitialRegistrationNumber}
           onClose={() => {
             setIsIptuConfigModalOpen(false);
             setPropertyForConfig(null);
             setIptuConfigInitialSection(undefined);
             setIptuConfigInitialYear(undefined);
             setIptuConfigInitialSequential(undefined);
+            setIptuConfigInitialRegistrationNumber(undefined);
           }}
           onSubmit={async (propertyId, units, tenants, baseYear) => {
             setLoading(true);
@@ -728,6 +773,15 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        type={confirmModal.type}
+      />
     </div>
   );
 };

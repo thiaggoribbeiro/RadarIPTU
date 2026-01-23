@@ -8,7 +8,7 @@ interface PropertyListViewProps {
   onAddProperty: () => void;
   onEditProperty: (property: Property) => void;
   onDeleteProperty: (id: string) => void;
-  onOpenIptuConfig: (property: Property, section?: 'units' | 'tenants' | 'newCharge', year?: number, sequential?: string) => void;
+  onOpenIptuConfig: (property: Property, section?: 'units' | 'tenants' | 'newCharge', year?: number, sequential?: string, registrationNumber?: string) => void;
   properties: Property[];
   userRole: UserRole;
 }

@@ -7,14 +7,16 @@ interface IptuConfigModalProps {
     initialSection?: 'units' | 'tenants' | 'newCharge';
     initialYear?: number;
     initialSequential?: string;
+    initialRegistrationNumber?: string;
     onClose: () => void;
     onSubmit: (propertyId: string, units: PropertyUnit[], tenants: Tenant[], baseYear: number) => void;
 }
 
-const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSection, initialYear, initialSequential, onClose, onSubmit }) => {
+const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSection, initialYear, initialSequential, initialRegistrationNumber, onClose, onSubmit }) => {
     const [baseYear, setBaseYear] = useState<number>(initialYear || property.baseYear || new Date().getFullYear());
     // When editing a single sequential, only show that one; otherwise show all
     const [editingSingleUnit] = useState<string | undefined>(initialSequential);
+    const [editingSingleRegNum] = useState<string | undefined>(initialRegistrationNumber);
     const [units, setUnits] = useState<(PropertyUnit & { tempId?: string })[]>(
         (property.units || []).map(u => ({ ...u, tempId: crypto.randomUUID() }))
     );
@@ -234,8 +236,11 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                 {(() => {
                                     let yearUnits = units.filter(u => u.year === baseYear);
                                     // If editing a single sequential, filter to only that one
-                                    if (editingSingleUnit) {
-                                        yearUnits = yearUnits.filter(u => u.sequential === editingSingleUnit);
+                                    if (initialSequential !== undefined || initialRegistrationNumber !== undefined) {
+                                        yearUnits = yearUnits.filter(u =>
+                                            (initialSequential !== undefined && u.sequential === initialSequential) ||
+                                            (initialRegistrationNumber !== undefined && u.registrationNumber === initialRegistrationNumber)
+                                        );
                                     }
                                     if (yearUnits.length === 0) {
                                         return (
@@ -315,7 +320,7 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                 </div>
 
                                                 {/* Campos Financeiros: Visíveis se não for apenas cadastro ou se estiver editando um sequencial específico */}
-                                                {(initialSection !== 'units' || initialSequential) && (
+                                                {(initialSection !== 'units' || initialSequential !== undefined || initialRegistrationNumber !== undefined) && (
                                                     <>
                                                         <div className="sm:col-span-12 grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-12 gap-3 items-end">
                                                             <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
@@ -461,9 +466,15 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                             {!isManualApportionment && (
                                                 <div className="sm:col-span-2 flex flex-col gap-1.5">
                                                     <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Área (m²)</label>
-                                                    <div className="h-10 flex items-center px-4 rounded-lg text-sm font-bold transition-colors bg-gray-100 dark:bg-gray-800 text-primary">
-                                                        {tenant.occupiedArea.toLocaleString('pt-BR')} m²
-                                                    </div>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={tenant.occupiedArea}
+                                                        onChange={(e) => handleTenantChange(tenant, 'occupiedArea', Number(e.target.value))}
+                                                        className="h-10 px-4 rounded-lg border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-bold transition-colors text-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                                                        placeholder="0.00"
+                                                        title="Área Ocupada"
+                                                    />
                                                 </div>
                                             )}
 

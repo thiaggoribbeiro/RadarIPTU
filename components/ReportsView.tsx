@@ -150,6 +150,16 @@ const reportSpecs: ReportSpec[] = [
     icon: 'map',
     goal: 'Análise de distribuição regional de IPTU.',
     columns: ['Estado', 'Quantidade de Imóveis', 'Valor Total'],
+  },
+  {
+    id: 'rateio_detalhado',
+    category: 'Gerencial',
+    title: 'Relatório de Rateio Detalhado',
+    description: 'Detalhamento de custos de IPTU por locatário.',
+    icon: 'groups',
+    goal: 'Visualizar a divisão exata de custos entre locatários por imóvel.',
+    columns: ['Nome do Imóvel', 'Endereço', 'Inscrição/Sequencial', 'Locatário', 'Início Contrato', 'Fim Contrato', 'Área (m²)', 'Percentual', 'Valor Rateio'],
+    metrics: ['Área Total Ocupada', 'Total Rateado', 'Média por Locatário']
   }
 ];
 
@@ -207,6 +217,82 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         : selectedReport.title;
 
       switch (selectedReport.id) {
+        case 'rateio_detalhado': {
+          const filteredProps = properties.filter(p =>
+            p.isComplex &&
+            (filterCity === 'TODAS' || p.city === filterCity) &&
+            p.tenants.some(t => t.year === filterYear)
+          );
+
+          exportData = filteredProps.flatMap(prop => {
+            const yearUnits = prop.units.filter(u => u.year === filterYear);
+            const yearTenants = prop.tenants.filter(t => t.year === filterYear);
+
+            // Total do imóvel (mesma lógica do IptuConfigModal)
+            const totalIptuValue = yearUnits.reduce((acc, unit) => {
+              const baseValue = unit.chosenMethod === 'Parcelado' ? (Number(unit.installmentValue) || 0) : (Number(unit.singleValue) || 0);
+              const wasteValue = unit.hasWasteTax ? (Number(unit.wasteTaxValue) || 0) : 0;
+              return acc + baseValue + wasteValue;
+            }, 0);
+
+            const totalArea = yearTenants.reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
+            const singleTenant = yearTenants.find(t => t.isSingleTenant);
+            const isManual = yearTenants.some(t => t.manualPercentage && t.manualPercentage > 0);
+
+            // Sequenciais/Inscrições agrupados
+            const seqInfo = yearUnits.length > 0
+              ? [...new Set(yearUnits.map(u => u.sequential || u.registrationNumber))].join(', ')
+              : prop.sequential || prop.registrationNumber;
+
+            const tenantRows = yearTenants.map(tenant => {
+              let percentage = 0;
+              if (singleTenant) {
+                percentage = tenant.id === singleTenant.id ? 100 : 0;
+              } else if (isManual) {
+                percentage = Number(tenant.manualPercentage) || 0;
+              } else {
+                percentage = totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0;
+              }
+
+              const apportionmentValue = (percentage / 100) * totalIptuValue;
+
+              return {
+                'Nome do Imóvel': prop.name,
+                'Endereço': prop.address,
+                'Inscrição/Sequencial': seqInfo,
+                'Locatário': tenant.name,
+                'Início Contrato': tenant.contractStart || '---',
+                'Fim Contrato': tenant.contractEnd || '---',
+                'Área (m²)': tenant.occupiedArea || 0,
+                'Percentual': `${percentage.toFixed(1)}%`,
+                'Valor Rateio': apportionmentValue
+              };
+            });
+
+            // Adicionar linha de total por imóvel
+            const propTotalValue = tenantRows.reduce((acc, row) => acc + (row['Valor Rateio'] || 0), 0);
+            const propTotalArea = tenantRows.reduce((acc, row) => acc + (row['Área (m²)'] || 0), 0);
+
+            const propertyTotalRow = {
+              'Nome do Imóvel': prop.name, // Mantido para agrupamento no PDF, mas limpo no XLSX se necessário
+              'Endereço': 'TOTAL',
+              'Inscrição/Sequencial': '-',
+              'Locatário': '-',
+              'Início Contrato': '-',
+              'Fim Contrato': '-',
+              'Área (m²)': propTotalArea,
+              'Percentual': '100.0%',
+              'Valor Rateio': propTotalValue,
+              isTotal: true // Flag auxiliar
+            };
+
+            return [...tenantRows, propertyTotalRow];
+          });
+
+          // Removido total global conforme solicitado
+          break;
+        }
+
         case 'proj_anual': {
           let filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
 
@@ -485,63 +571,146 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             filteredRow[key] = row[key];
           }
         });
+
+        // Preservar metadados para agrupamento e formatação sem exibir na tabela
+        filteredRow._isTotal = row.isTotal;
+        filteredRow._groupKey = row['Nome do Imóvel'];
+
         return filteredRow;
       });
 
       if (exportFormat === 'PDF') {
         const doc = new jsPDF('landscape');
-        const tableColumn = Object.keys(filteredExportData[0]);
-        const tableRows = filteredExportData.map(obj => tableColumn.map(col => {
-          const val = obj[col];
-          if (typeof val === 'number') {
-            return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          }
-          return val;
-        }));
+        const tableColumn = Object.keys(filteredExportData[0]).filter(k => !k.startsWith('_'));
 
-        autoTable(doc, {
-          head: [tableColumn],
-          body: tableRows,
-          startY: 40, // Aumentado para acomodar título e subtítulo
-          styles: { fontSize: 8, cellPadding: 2 },
-          headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [245, 245, 245] },
-          didDrawPage: (data) => {
-            // Desenha o Título (Title Case)
-            doc.setFontSize(18);
-            doc.setTextColor(196, 84, 27);
-            doc.text(titleText, 14, 22);
+        if (selectedReport.id === 'rateio_detalhado') {
+          // Agrupar por Imóvel para que cada um fique em sua página
+          const groups: Record<string, any[]> = {};
+          filteredExportData.forEach(row => {
+            const key = row._groupKey || 'OUTROS';
+            if (key === 'TOTAIS') return;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(row);
+          });
 
-            // Desenha a Cidade como subtítulo
-            doc.setFontSize(11);
-            doc.setTextColor(100, 110, 120);
-            doc.text(`Cidade: ${filterCity}`, 14, 30);
+          let isFirst = true;
+          Object.entries(groups).forEach(([propertyName, rows]) => {
+            if (!isFirst) doc.addPage();
+            isFirst = false;
 
-            // Desenha a Logomarca no canto superior direito
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const logoWidth = 45;
-            const logoHeight = 15;
-            const xPos = pageWidth - logoWidth - 14; // Margem de 14mm
+            const tableRows = rows.map(obj => tableColumn.map(col => {
+              let val = obj[col];
+              // Limpar nome do imóvel na linha de total para não repetir, se solicitado
+              if (obj._isTotal && col === 'Nome do Imóvel') val = '';
 
-            try {
-              doc.addImage(logo, 'PNG', xPos, 10, logoWidth, logoHeight);
-            } catch (e) {
-              console.error("Erro ao adicionar logo ao PDF:", e);
+              if (typeof val === 'number') {
+                return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+              }
+              return val;
+            }));
+
+            autoTable(doc, {
+              head: [tableColumn],
+              body: tableRows,
+              startY: 40,
+              styles: { fontSize: 8, cellPadding: 2 },
+              headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
+              alternateRowStyles: { fillColor: [245, 245, 245] },
+              didDrawPage: (data) => {
+                doc.setFontSize(18);
+                doc.setTextColor(196, 84, 27);
+                doc.text(titleText, 14, 22);
+
+                doc.setFontSize(11);
+                doc.setTextColor(100, 110, 120);
+                doc.text(`Nome do Imóvel: ${propertyName}`, 14, 30);
+
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const logoWidth = 45;
+                const logoHeight = 15;
+                const xPos = pageWidth - logoWidth - 14;
+                try {
+                  doc.addImage(logo, 'PNG', xPos, 10, logoWidth, logoHeight);
+                } catch (e) {
+                  console.error("Erro ao adicionar logo ao PDF:", e);
+                }
+              },
+              didParseCell: (data) => {
+                if (data.section === 'body') {
+                  const rowData = rows[data.row.index];
+                  if (rowData._isTotal) {
+                    data.cell.styles.fontStyle = 'bold';
+                    data.cell.styles.fillColor = [255, 240, 230];
+                  }
+                }
+              }
+            });
+          });
+
+          // Removida página de totais consolidados conforme solicitado
+        } else {
+          // Lógica original para os demais relatórios
+          const tableRows = filteredExportData.map(obj => tableColumn.map(col => {
+            const val = obj[col];
+            if (typeof val === 'number') {
+              return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             }
-          },
-          didParseCell: (data) => {
-            if (data.section === 'body' && data.row.index === tableRows.length - 1) {
-              if (data.row.cells[0].text[0] === 'TOTAIS') {
-                data.cell.styles.fontStyle = 'bold';
-                data.cell.styles.fillColor = [255, 240, 230]; // Destaque suave em tom de pêssego
+            return val;
+          }));
+
+          autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 40,
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            didDrawPage: (data) => {
+              doc.setFontSize(18);
+              doc.setTextColor(196, 84, 27);
+              doc.text(titleText, 14, 22);
+
+              doc.setFontSize(11);
+              doc.setTextColor(100, 110, 120);
+              doc.text(`Cidade: ${filterCity}`, 14, 30);
+
+              const pageWidth = doc.internal.pageSize.getWidth();
+              const logoWidth = 45;
+              const logoHeight = 15;
+              const xPos = pageWidth - logoWidth - 14;
+
+              try {
+                doc.addImage(logo, 'PNG', xPos, 10, logoWidth, logoHeight);
+              } catch (e) {
+                console.error("Erro ao adicionar logo ao PDF:", e);
+              }
+            },
+            didParseCell: (data) => {
+              if (data.section === 'body' && data.row.index === tableRows.length - 1) {
+                if (data.row.cells[0].text[0] === 'TOTAIS') {
+                  data.cell.styles.fontStyle = 'bold';
+                  data.cell.styles.fillColor = [255, 240, 230];
+                }
               }
             }
-          }
-        });
+          });
+        }
 
         doc.save(filename);
-      } else {
-        const worksheet = XLSX.utils.json_to_sheet(filteredExportData);
+      }
+      else {
+        // Limpar dados para o Excel (remover metadados e ocultar nome do imóvel nos totais)
+        const cleanXlsxData = filteredExportData.map(row => {
+          const cleanRow = { ...row };
+          if (cleanRow._isTotal) cleanRow['Nome do Imóvel'] = '';
+
+          Object.keys(cleanRow).forEach(key => {
+            if (key.startsWith('_')) delete cleanRow[key];
+          });
+          return cleanRow;
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(cleanXlsxData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório");
 
