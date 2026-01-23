@@ -604,7 +604,15 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               if (obj._isTotal && col === 'Nome do Imóvel') val = '';
 
               if (typeof val === 'number') {
-                return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const isCurrency = col.toLowerCase().includes('valor') ||
+                  col.toLowerCase().includes('rateio') ||
+                  col.toLowerCase().includes('cota') ||
+                  col.toLowerCase().includes('parcelado');
+
+                if (isCurrency) {
+                  return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                }
+                return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
               }
               return val;
             }));
