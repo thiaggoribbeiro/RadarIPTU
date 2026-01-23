@@ -176,9 +176,18 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
+        // Se o rateio manual não estiver ativo, limpar as porcentagens manuais para forçar o cálculo por área
+        const cleanedTenants = tenants.map(t => {
+            if (!isManualApportionment && t.year === baseYear) {
+                const { manualPercentage, ...rest } = t;
+                return rest;
+            }
+            return t;
+        });
+
         // Remover tempId antes de salvar
         const cleanedUnits = units.map(({ tempId, ...u }) => u);
-        onSubmit(property.id, cleanedUnits, tenants, baseYear);
+        onSubmit(property.id, cleanedUnits, cleanedTenants, baseYear);
     };
 
     return (
