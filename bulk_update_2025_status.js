@@ -34,7 +34,10 @@ async function bulkUpdate2025Status() {
         let hasChanges = false;
 
         const newUnits = units.map(unit => {
-            if (unit.year === 2025 && unit.status !== 'Pago') {
+            const year = Number(unit.year);
+            const status = String(unit.status || '').toLowerCase();
+
+            if (year === 2025 && status !== 'pago') {
                 hasChanges = true;
                 return { ...unit, status: 'Pago' };
             }

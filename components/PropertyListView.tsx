@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Property, IptuStatus, UserRole } from '../types';
-import { getDynamicStatus, getPropertyStatus } from '../utils/iptu';
+import { getDynamicStatus, getPropertyStatus, hasPreviousDebts } from '../utils/iptu';
 
 interface PropertyListViewProps {
   onSelectProperty: (id: string) => void;
@@ -284,7 +284,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
           {filteredProperties.map(property => {
             const currentYearStatus = getPropertyStatus(property, currentYear);
-            const hasPreviousDebts = property.iptuHistory.some(h => h.year < currentYear && getDynamicStatus(h) !== IptuStatus.PAID);
+            const showDebtsBadge = hasPreviousDebts(property, currentYear);
 
             return (
               <div key={property.id} className="bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer group flex flex-col">
@@ -295,8 +295,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-sm ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-500 text-white' :
                         currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' : 'bg-primary text-white'
                         }`}>{currentYearStatus}</span>
-
-                      {hasPreviousDebts && (
+                      {showDebtsBadge && (
                         <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-sm bg-red-600 text-white flex items-center gap-1">
                           <span className="material-symbols-outlined text-[12px]">warning</span>
                           DÉBITOS
@@ -396,7 +395,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
               <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3644]">
                 {filteredProperties.map(property => {
                   const currentYearStatus = getPropertyStatus(property, currentYear);
-                  const hasPreviousDebts = property.iptuHistory.some(h => h.year < currentYear && getDynamicStatus(h) !== IptuStatus.PAID);
+                  const showDebtsBadge = hasPreviousDebts(property, currentYear);
 
                   return (
                     <tr key={property.id} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors cursor-pointer" onClick={() => onSelectProperty(property.id)}>
@@ -442,7 +441,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                             }`}>
                             {currentYearStatus}
                           </span>
-                          {hasPreviousDebts && (
+                          {showDebtsBadge && (
                             <span className="w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-red-100 text-red-700 flex items-center gap-1">
                               <span className="material-symbols-outlined text-[12px]">warning</span>
                               DÉBITOS
@@ -489,8 +488,9 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             </table>
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 };
 

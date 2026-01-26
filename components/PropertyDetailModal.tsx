@@ -23,6 +23,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   onEditProperty,
   onDeleteProperty,
   onAddIptu,
+  onDeleteIptu,
   onDeleteUnit,
   onOpenIptuConfig
 }) => {
@@ -365,18 +366,18 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-3 uppercase tracking-tight">
-                <span className="material-symbols-outlined text-primary text-xl font-bold">event_available</span> IPTU 2026
+                <span className="material-symbols-outlined text-primary text-xl font-bold">event_available</span> IPTU {selectedYear}
               </h3>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => onOpenIptuConfig(property, 'newCharge', 2026)}
+                  onClick={() => onOpenIptuConfig(property, 'newCharge', selectedYear)}
                   className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
                 >
                   <span className="material-symbols-outlined text-[18px]">history_edu</span>
                   Novo IPTU
                 </button>
                 <button
-                  onClick={() => onOpenIptuConfig(property, 'units', 2026)}
+                  onClick={() => onOpenIptuConfig(property, 'units', selectedYear)}
                   className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
                 >
                   <span className="material-symbols-outlined text-[18px]">add_circle</span>
@@ -399,9 +400,9 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                  {property.units && property.units.filter(u => u.year === 2026).length > 0 ? (
+                  {property.units && property.units.filter(u => u.year === selectedYear).length > 0 ? (
                     [...property.units]
-                      .filter(u => u.year === 2026)
+                      .filter(u => u.year === selectedYear)
                       .sort((a, b) => a.sequential.localeCompare(b.sequential))
                       .map((unit, idx) => (
                         <tr key={idx} className="hover:bg-primary/5 dark:hover:bg-primary/20 transition-colors group">
@@ -461,7 +462,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <button
-                                onClick={() => onOpenIptuConfig(property, 'units', 2026, unit.sequential, unit.registrationNumber)}
+                                onClick={() => onOpenIptuConfig(property, 'units', selectedYear, unit.sequential, unit.registrationNumber)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-primary hover:bg-primary/10 rounded-lg transition-all text-[9px] font-bold uppercase"
                                 title="Editar Sequencial"
                               >
@@ -469,7 +470,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                                 Editar
                               </button>
                               <button
-                                onClick={() => onDeleteUnit(property.id, unit.sequential, 2026, unit.registrationNumber)}
+                                onClick={() => onDeleteUnit(property.id, unit.sequential, selectedYear, unit.registrationNumber)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 rounded-lg transition-all text-[9px] font-bold uppercase"
                                 title="Excluir Sequencial"
                               >
@@ -488,22 +489,38 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 </tbody>
                 <tfoot className="bg-gray-100 dark:bg-[#1e2a3b] border-t-2 border-primary">
                   {(() => {
-                    const yearUnits = property.units.filter(u => u.year === 2026);
+                    const yearUnits = property.units.filter(u => u.year === selectedYear);
                     if (yearUnits.length === 0) return null;
+
+                    // CÁLCULO DOS TOTAIS
+                    // O total por método deve considerar o valor base (CU ou Parcelado) + a taxa de lixo
                     const totalByMethod = yearUnits.reduce((acc, u) => {
-                      const base = u.chosenMethod === 'Parcelado' ? (u.installmentValue || 0) : (u.singleValue || 0);
-                      const waste = u.hasWasteTax ? (u.wasteTaxValue || 0) : 0;
+                      const base = u.chosenMethod === 'Parcelado' ? (Number(u.installmentValue) || 0) : (Number(u.singleValue) || 0);
+                      const waste = u.hasWasteTax ? (Number(u.wasteTaxValue) || 0) : 0;
                       return acc + base + waste;
                     }, 0);
-                    const totalSingle = yearUnits.reduce((acc, u) => acc + (u.singleValue || 0) + (u.hasWasteTax ? (u.wasteTaxValue || 0) : 0), 0);
-                    const totalInstall = yearUnits.reduce((acc, u) => acc + (u.installmentValue || 0) + (u.hasWasteTax ? (u.wasteTaxValue || 0) : 0), 0);
+
+                    // Totais das colunas mostrarão apenas os valores base para bater com a soma visual
+                    const totalSingleBase = yearUnits.reduce((acc, u) => acc + (Number(u.singleValue) || 0), 0);
+                    const totalInstallBase = yearUnits.reduce((acc, u) => acc + (Number(u.installmentValue) || 0), 0);
+                    const totalWaste = yearUnits.reduce((acc, u) => acc + (u.hasWasteTax ? (Number(u.wasteTaxValue) || 0) : 0), 0);
+
                     return (
                       <tr>
-                        <td className="px-6 py-4 font-bold text-[#111418] dark:text-white uppercase text-xs">Total ({yearUnits.length} seq.)</td>
-                        <td className="px-6 py-4 font-bold text-emerald-600 text-sm">{currencyFormatter.format(totalSingle)}</td>
-                        <td className="px-6 py-4 font-bold text-orange-600 text-sm">{currencyFormatter.format(totalInstall)}</td>
-                        <td className="px-6 py-4 font-bold text-gray-400">---</td>
-                        <td colSpan={2} className="px-6 py-4"><div className="flex flex-col"><span className="text-[9px] uppercase font-bold text-gray-500">Valor Conf. Forma</span><span className="font-bold text-primary text-lg">{currencyFormatter.format(totalByMethod)}</span></div></td>
+                        <td className="px-6 py-4 font-bold text-[#111418] dark:text-white uppercase text-xs">TOTAL ({yearUnits.length} SEQ.)</td>
+                        <td className="px-6 py-4 font-bold text-emerald-600 text-sm">{currencyFormatter.format(totalSingleBase)}</td>
+                        <td className="px-6 py-4 font-bold text-orange-600 text-sm">{currencyFormatter.format(totalInstallBase)}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-primary">{currencyFormatter.format(totalWaste)}</span>
+                          </div>
+                        </td>
+                        <td colSpan={2} className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="text-[9px] uppercase font-bold text-gray-500">VALOR CONF. FORMA</span>
+                            <span className="font-bold text-primary text-lg">{currencyFormatter.format(totalByMethod)}</span>
+                          </div>
+                        </td>
                         <td></td>
                       </tr>
                     );
@@ -513,108 +530,160 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
             </div>
           </section>
 
-          {/* Seção 3: Histórico 2025 */}
-          <section className="space-y-6">
-            <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-3 uppercase tracking-tight">
-              <span className="material-symbols-outlined text-primary text-xl font-bold">history</span> Histórico 2025
-            </h3>
+          {/* Seções de Histórico por Ano */}
+          {(() => {
+            const historyYears = new Set<number>();
+            (property.units || []).forEach(u => {
+              if (Number(u.year) < Number(selectedYear)) historyYears.add(Number(u.year));
+            });
+            (property.iptuHistory || []).forEach(h => {
+              if (Number(h.year) < Number(selectedYear)) historyYears.add(Number(h.year));
+            });
 
-            <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
-                  <tr>
-                    <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Sequencial</th>
-                    <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Cota Única</th>
-                    <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Parcelado</th>
-                    <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Taxa de Lixo</th>
-                    <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Forma</th>
-                    <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Status</th>
-                    <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px] text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                  {property.units && property.units.filter(u => u.year === 2025).length > 0 ? (
-                    [...property.units]
-                      .filter(u => u.year === 2025)
-                      .sort((a, b) => a.sequential.localeCompare(b.sequential))
-                      .map((unit, idx) => (
-                        <tr key={idx} className="hover:bg-primary/5 dark:hover:bg-primary/20 transition-colors group">
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex flex-col">
-                                <span className="font-mono font-bold text-sm text-primary leading-none">{unit.sequential}</span>
-                                {unit.registrationNumber && (
-                                  <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tight">Insc: {unit.registrationNumber}</span>
+            const sortedYears = Array.from(historyYears).sort((a, b) => b - a);
+
+            if (sortedYears.length === 0) {
+              return (
+                <section className="space-y-6">
+                  <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-3 uppercase tracking-tight">
+                    <span className="material-symbols-outlined text-primary text-xl font-bold">history</span> Histórico
+                  </h3>
+                  <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl p-12 text-center text-[#617289] dark:text-[#9ca3af] font-semibold italic text-xs uppercase opacity-40">
+                    Sem dados históricos anteriores a {selectedYear}.
+                  </div>
+                </section>
+              );
+            }
+
+            return sortedYears.map(year => {
+              const yearUnits = (property.units || []).filter(u => Number(u.year) === year);
+              const hasUnits = yearUnits.length > 0;
+
+              // Se houver unidades, mostramos apenas as unidades (prioridade do dado granular)
+              // Se não houver, pegamos o registro do iptuHistory (histórico legado/consolidado)
+              let displayItems = [];
+              if (hasUnits) {
+                displayItems = yearUnits.map(u => ({ ...u, type: 'unit' as const }))
+                  .sort((a, b) => a.sequential.localeCompare(b.sequential));
+              } else {
+                const h = (property.iptuHistory || []).find(hist => Number(hist.year) === year);
+                if (h) {
+                  displayItems = [{
+                    year: h.year,
+                    sequential: 'Histórico Consolidado',
+                    singleValue: h.value,
+                    installmentValue: h.value,
+                    status: h.status || IptuStatus.PENDING,
+                    chosenMethod: 'Cota Única' as const,
+                    type: 'history' as const,
+                    id: h.id,
+                    registrationNumber: ''
+                  }];
+                }
+              }
+
+              if (displayItems.length === 0) return null;
+
+              return (
+                <section key={year} className="space-y-6">
+                  <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-3 uppercase tracking-tight">
+                    <span className="material-symbols-outlined text-primary text-xl font-bold">history</span> Histórico {year}
+                  </h3>
+
+                  <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
+                        <tr>
+                          <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Sequencial</th>
+                          <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Cota Única</th>
+                          <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Parcelado</th>
+                          <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Taxa de Lixo</th>
+                          <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Forma</th>
+                          <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px]">Status</th>
+                          <th className="px-6 py-3 font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest text-[9px] text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                        {displayItems.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-primary/5 dark:hover:bg-primary/20 transition-colors group">
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col gap-1">
+                                <div className="flex flex-col">
+                                  <span className="font-mono font-bold text-sm text-primary leading-none">{item.sequential}</span>
+                                  {item.registrationNumber && (
+                                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tight">Insc: {item.registrationNumber}</span>
+                                  )}
+                                </div>
+                                {item.type === 'unit' && (item as any).address && (
+                                  <span className="text-[10px] font-medium text-[#617289] dark:text-[#9ca3af] italic">{(item as any).address}</span>
                                 )}
                               </div>
-                              {unit.address && (
-                                <span className="text-[10px] font-medium text-[#617289] dark:text-[#9ca3af] italic">{unit.address}</span>
+                            </td>
+                            <td className="px-6 py-4 font-bold text-emerald-600">{currencyFormatter.format(item.singleValue)}</td>
+                            <td className="px-6 py-4 font-semibold text-orange-600">
+                              {currencyFormatter.format(item.installmentValue)}
+                            </td>
+                            <td className="px-6 py-4">
+                              {(item as any).hasWasteTax ? (
+                                <span className="px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase bg-primary/10 text-primary">
+                                  {currencyFormatter.format((item as any).wasteTaxValue || 0)}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-gray-300 font-bold uppercase">---</span>
                               )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 font-bold text-emerald-600">{currencyFormatter.format(unit.singleValue)}</td>
-                          <td className="px-6 py-4 font-semibold text-orange-600">
-                            {currencyFormatter.format(unit.installmentValue)}
-                            <div className="text-[9px] opacity-70 font-bold">
-                              ({unit.installmentsCount}x de {currencyFormatter.format((unit.installmentValue || 0) / (unit.installmentsCount || 1))})
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            {unit.hasWasteTax ? (
-                              <span className="px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase bg-primary/10 text-primary">
-                                {currencyFormatter.format(unit.wasteTaxValue || 0)}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase ${item.chosenMethod === 'Cota Única' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
+                                'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
+                                }`}>
+                                {item.chosenMethod}
                               </span>
-                            ) : (
-                              <span className="text-[10px] text-gray-300 font-bold uppercase">---</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase ${unit.chosenMethod === 'Cota Única' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
-                              'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
-                              }`}>
-                              {unit.chosenMethod}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase ${unit.status === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
-                              unit.status === IptuStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' :
-                                unit.status === IptuStatus.PENDING ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300' :
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase ${String(item.status).toLowerCase() === 'pago' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
+                                String(item.status).toLowerCase().includes('andamento') ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' :
                                   'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'
-                              }`}>
-                              {unit.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => onOpenIptuConfig(property, 'units', 2025, unit.sequential, unit.registrationNumber)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-primary hover:bg-primary/10 rounded-lg transition-all text-[9px] font-bold uppercase"
-                                title="Editar Sequencial"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">edit</span>
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => onDeleteUnit(property.id, unit.sequential, 2025, unit.registrationNumber)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 rounded-lg transition-all text-[9px] font-bold uppercase"
-                                title="Excluir Sequencial"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">delete</span>
-                                Excluir
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-[#617289] dark:text-[#9ca3af] font-semibold italic text-xs uppercase opacity-40">Sem dados para 2025.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                                }`}>
+                                {item.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {item.type === 'unit' && (
+                                  <button
+                                    onClick={() => onOpenIptuConfig(property, 'units', Number(item.year), item.sequential, (item as any).registrationNumber)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-primary hover:bg-primary/10 rounded-lg transition-all text-[9px] font-bold uppercase"
+                                    title="Editar Sequencial"
+                                  >
+                                    <span className="material-symbols-outlined text-[16px]">edit</span>
+                                    Editar
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    if (item.type === 'unit') {
+                                      onDeleteUnit(property.id, item.sequential, Number(item.year), (item as any).registrationNumber);
+                                    } else {
+                                      onDeleteIptu(property.id, (item as any).id);
+                                    }
+                                  }}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 rounded-lg transition-all text-[9px] font-bold uppercase"
+                                  title="Excluir"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                                  Excluir
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              );
+            });
+          })()}
 
           {/* Analítica: Também ocupando toda a largura, abaixo do Histórico */}
           <section className="space-y-6 pt-4">
