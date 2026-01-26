@@ -67,7 +67,7 @@ export interface Property {
   zipCode: string;
   ownerName: string;
   registryOwner: string;
-  possession: 'Grupo' | 'Terceiros';
+  possession: 'Grupo' | 'Terceiros' | 'Específico';
   registrationNumber: string;
   sequential: string;
   isComplex: boolean;

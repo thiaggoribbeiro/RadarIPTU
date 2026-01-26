@@ -6,6 +6,7 @@ import autoTable from 'jspdf-autotable';
 import logo from '../assets/logo-report.png';
 import { Property, IptuStatus } from '../types';
 import { getPropertyStatus } from '../utils/iptu';
+import MultiSelect from './MultiSelect';
 
 interface ReportsViewProps {
   properties: Property[];
@@ -30,7 +31,7 @@ const reportSpecs: ReportSpec[] = [
     description: 'Consolidado de valores totais, pagos e saldos.',
     icon: 'account_balance_wallet',
     goal: 'Controle total da movimentação financeira anual.',
-    columns: ['ID Imóvel', 'Nome', 'Inscrição', 'Ano', 'Valor Total', 'Valor Pago', 'Saldo Devedor', 'Status'],
+    columns: ['ID Imóvel', 'Nome', 'Inscrição', 'Ano', 'Valor Total', 'Valor Pago', 'Saldo Devedor', 'Status', 'Posse'],
     metrics: ['Total Provisionado', 'Total Arrecadado', 'Ticket Médio por Imóvel']
   },
   {
@@ -40,7 +41,7 @@ const reportSpecs: ReportSpec[] = [
     description: 'Listagem de débitos pendentes e vencimentos.',
     icon: 'pending',
     goal: 'Identificar inadimplência e fluxos de caixa futuros.',
-    columns: ['Property', 'Due Date', 'Pending Value', 'Days Overdue', 'Owner'],
+    columns: ['Property', 'Due Date', 'Pending Value', 'Days Overdue', 'Owner', 'Posse'],
     metrics: ['Aging de Dívida', 'Total em Atraso > 30 dias']
   },
   {
@@ -50,7 +51,7 @@ const reportSpecs: ReportSpec[] = [
     description: 'Histórico detalhado de quitações e métodos.',
     icon: 'payments',
     goal: 'Conciliação bancária e comprovação de pagamentos.',
-    columns: ['Property', 'Date Paid', 'Value', 'Method', 'Receipt Reference'],
+    columns: ['Property', 'Date Paid', 'Value', 'Method', 'Receipt Reference', 'Posse'],
     metrics: ['Percentual Cota Única vs Parcelado']
   },
   {
@@ -60,7 +61,7 @@ const reportSpecs: ReportSpec[] = [
     description: 'Raio-X individual de cada unidade da carteira.',
     icon: 'location_city',
     goal: 'Visão operacional rápida para gestores de condomínio/imobiliária.',
-    columns: ['Property Name', 'Type', 'City', 'Last Update', 'Current Status'],
+    columns: ['Property Name', 'Type', 'City', 'Last Update', 'Current Status', 'Posse'],
     metrics: ['Indicador de Regularização Individual']
   },
   {
@@ -70,7 +71,7 @@ const reportSpecs: ReportSpec[] = [
     description: 'Acompanhamento de acordos e parcelas vincendas.',
     icon: 'event_repeat',
     goal: 'Monitorar a evolução de pagamentos fracionados.',
-    columns: ['Property', 'Total Installments', 'Current Installment', 'Next Due Date', 'Value'],
+    columns: ['Property', 'Total Installments', 'Current Installment', 'Next Due Date', 'Value', 'Posse'],
     metrics: ['Projeção de Recebimento Mensal']
   },
   {
@@ -100,7 +101,7 @@ const reportSpecs: ReportSpec[] = [
     description: 'Evolução histórica de valores de IPTU.',
     icon: 'show_chart',
     goal: 'Identificar variações de mercado e aumentos tributários.',
-    columns: ['Property', 'Value 2023', 'Value 2024', 'Variation (%)'],
+    columns: ['Property', 'Value 2023', 'Value 2024', 'Variation (%)', 'Posse'],
     metrics: ['CAGR (Taxa de Crescimento Anual Composta)']
   },
   {
@@ -110,7 +111,7 @@ const reportSpecs: ReportSpec[] = [
     description: 'Analise de multas, juros e descontos aplicados.',
     icon: 'trending_up',
     goal: 'Avaliar economia gerada por pagamentos em cota única.',
-    columns: ['Property', 'Gross Value', 'Discount (Cota Única)', 'Final Value'],
+    columns: ['Property', 'Gross Value', 'Discount (Cota Única)', 'Final Value', 'Posse'],
     metrics: ['Economia Real Gerada (ROI)']
   },
   {
@@ -130,7 +131,7 @@ const reportSpecs: ReportSpec[] = [
     description: 'Relatório comparativo de IPTU com projeção de economia.',
     icon: 'analytics',
     goal: 'Analisar variações anuais e identificar economias via cota única.',
-    columns: ['Proprietário', 'Inscrição', 'Sequencial', 'Endereço', 'Cota Única (Base)', 'Parcelado (Base)', 'Cota Única (Projeção)', 'Parcelado (Projeção)', 'Diferença Cota Única', 'Economia Projetada', '% Variação', 'Situação'],
+    columns: ['Proprietário', 'Inscrição', 'Sequencial', 'Endereço', 'Cota Única (Base)', 'Parcelado (Base)', 'Cota Única (Projeção)', 'Parcelado (Projeção)', 'Diferença Cota Única', 'Economia Projetada', '% Variação', 'Situação', 'Posse'],
     metrics: ['Variação Média da Carteira', 'Total de Economia Projetada']
   },
   {
@@ -158,7 +159,7 @@ const reportSpecs: ReportSpec[] = [
     description: 'Detalhamento de custos de IPTU por locatário.',
     icon: 'groups',
     goal: 'Visualizar a divisão exata de custos entre locatários por imóvel.',
-    columns: ['Nome do Imóvel', 'Endereço', 'Inscrição/Sequencial', 'Locatário', 'Início Contrato', 'Fim Contrato', 'Área (m²)', 'Percentual', 'Valor Rateio'],
+    columns: ['Nome do Imóvel', 'Endereço', 'Inscrição/Sequencial', 'Locatário', 'Início Contrato', 'Fim Contrato', 'Área (m²)', 'Percentual', 'Valor Rateio', 'Posse'],
     metrics: ['Área Total Ocupada', 'Total Rateado', 'Média por Locatário']
   }
 ];
@@ -186,7 +187,13 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
   };
 
   // Filtros
-  const [filterCity, setFilterCity] = useState<string>('TODAS');
+  const [filterCity, setFilterCity] = useState<string[]>([]);
+  const [filterUF, setFilterUF] = useState<string[]>([]);
+  const [filterOwner, setFilterOwner] = useState<string[]>([]);
+  const [filterTenant, setFilterTenant] = useState<string[]>([]);
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState<string[]>([]);
+  const [filterPossession, setFilterPossession] = useState<string[]>([]);
+
   const [filterYear, setFilterYear] = useState<number>(2026); // Ano para filtros gerais
   const [baseYear, setBaseYear] = useState<number>(2025);
   const [compareYear, setCompareYear] = useState<number>(2026);
@@ -194,7 +201,34 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
   const [exportFormat, setExportFormat] = useState<'XLSX' | 'PDF'>('XLSX');
 
   const availableCities = useMemo(() => {
-    return ['TODAS', ...new Set(properties.map(p => p.city))].sort();
+    const filtered = filterUF.length === 0
+      ? properties
+      : properties.filter(p => filterUF.includes(p.state));
+    const cities = filtered.map(p => p.city).filter(Boolean) as string[];
+    return Array.from(new Set(cities)).sort();
+  }, [properties, filterUF]);
+
+  const availableUFs = useMemo(() => {
+    const filtered = filterCity.length === 0
+      ? properties
+      : properties.filter(p => filterCity.includes(p.city));
+    const states = filtered.map(p => p.state).filter(Boolean) as string[];
+    return Array.from(new Set(states)).sort();
+  }, [properties, filterCity]);
+
+  const availableOwners = useMemo(() => {
+    const owners = properties.map(p => p.ownerName?.trim()).filter(Boolean) as string[];
+    return Array.from(new Set(owners)).sort();
+  }, [properties]);
+
+  const availableTenants = useMemo(() => {
+    const tenantsSet = new Set<string>();
+    properties.forEach(p => {
+      p.tenants?.forEach(t => {
+        if (t.name) tenantsSet.add(t.name.trim());
+      });
+    });
+    return Array.from(tenantsSet).sort();
   }, [properties]);
 
   const availableYears = useMemo(() => {
@@ -218,11 +252,18 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
 
       switch (selectedReport.id) {
         case 'rateio_detalhado': {
-          const filteredProps = properties.filter(p =>
-            p.isComplex &&
-            (filterCity === 'TODAS' || p.city === filterCity) &&
-            p.tenants.some(t => t.year === filterYear)
-          );
+          const filteredProps = properties.filter(p => {
+            const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+            const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+            const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+            const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
+            const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
+
+            // Filtro específico de rateio
+            const hasTenantsThisYear = p.tenants?.some(t => t.year === filterYear);
+
+            return p.isComplex && hasTenantsThisYear && matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession;
+          });
 
           exportData = filteredProps.flatMap(prop => {
             const yearUnits = prop.units.filter(u => u.year === filterYear);
@@ -265,7 +306,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                 'Fim Contrato': tenant.contractEnd || '---',
                 'Área (m²)': tenant.occupiedArea || 0,
                 'Percentual': `${percentage.toFixed(1)}%`,
-                'Valor Rateio': apportionmentValue
+                'Valor Rateio': apportionmentValue,
+                'Posse': prop.possession
               };
             });
 
@@ -283,6 +325,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               'Área (m²)': propTotalArea,
               'Percentual': '100.0%',
               'Valor Rateio': propTotalValue,
+              'Posse': prop.possession,
               isTotal: true // Flag auxiliar
             };
 
@@ -294,11 +337,18 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         }
 
         case 'proj_anual': {
-          let filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          let filteredProps = properties.filter(p => {
+            const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+            const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+            const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+            const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
+            const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
 
-          if (projAnualStatusFilter !== 'TODOS') {
-            filteredProps = filteredProps.filter(p => getPropertyStatus(p, compareYear) === projAnualStatusFilter);
-          }
+            const propertyStatus = getPropertyStatus(p, compareYear);
+            const matchesProjStatus = projAnualStatusFilter === 'TODOS' || propertyStatus === projAnualStatusFilter;
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesProjStatus;
+          });
 
           exportData = filteredProps.flatMap(prop => {
             const unitsBase = prop.units.filter(u => u.year === baseYear);
@@ -343,7 +393,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                 'Diferença Cota Única': diferenca,
                 'Economia Projetada': economia,
                 '% Variação': `${variacao.toFixed(2)}%`,
-                'Situação': situacao
+                'Situação': situacao,
+                'Posse': prop.possession
               };
             });
           });
@@ -380,7 +431,18 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         }
 
         case 'fin_geral': {
-          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          const filteredProps = properties.filter(p => {
+            const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+            const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+            const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+            const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
+            const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
+
+            const status = getPropertyStatus(p, filterYear);
+            const matchesStatus = filterPaymentStatus.length === 0 || filterPaymentStatus.includes(status);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus;
+          });
           exportData = filteredProps.flatMap(prop =>
             prop.iptuHistory
               .filter(iptu => iptu.year === filterYear)
@@ -392,14 +454,25 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                 'Valor Total': iptu.value,
                 'Valor Pago': iptu.status === IptuStatus.PAID ? iptu.value : 0,
                 'Saldo Devedor': (iptu.status === IptuStatus.PENDING || iptu.status === IptuStatus.OPEN) ? iptu.value : 0,
-                'Status': iptu.status
+                'Status': iptu.status,
+                'Posse': prop.possession
               }))
           );
           break;
         }
 
         case 'aberto': {
-          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          const filteredProps = properties.filter(p => {
+            const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+            const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+            const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+            const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
+            const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
+
+            // Valores em aberto filter out PAID automatically below, but we can filter by other selected statuses if needed
+            // For now, let's just keep the existing behavior but add the other global filters
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession;
+          });
           exportData = filteredProps.flatMap(prop =>
             prop.iptuHistory
               .filter(iptu => iptu.year === filterYear && (iptu.status === IptuStatus.PENDING || iptu.status === IptuStatus.OPEN))
@@ -413,7 +486,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                   'Due Date': iptu.dueDate || 'Pendente',
                   'Pending Value': iptu.value,
                   'Days Overdue': diffDays > 0 ? diffDays : 0,
-                  'Owner': prop.ownerName
+                  'Owner': prop.ownerName,
+                  'Posse': prop.possession
                 };
               })
           );
@@ -421,7 +495,15 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         }
 
         case 'pagos': {
-          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          const filteredProps = properties.filter(p => {
+            const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+            const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+            const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+            const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
+            const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession;
+          });
           exportData = filteredProps.flatMap(prop =>
             prop.iptuHistory
               .filter(iptu => iptu.year === filterYear && iptu.status === IptuStatus.PAID)
@@ -430,14 +512,26 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                 'Date Paid': iptu.startDate || 'N/A',
                 'Value': iptu.value,
                 'Method': iptu.chosenMethod || 'N/A',
-                'Receipt Reference': iptu.receiptUrl ? 'Anexo' : 'N/A'
+                'Receipt Reference': iptu.receiptUrl ? 'Anexo' : 'N/A',
+                'Posse': prop.possession
               }))
           );
           break;
         }
 
         case 'sit_imovel': {
-          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          const filteredProps = properties.filter(p => {
+            const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+            const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+            const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+            const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
+            const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
+
+            const status = getPropertyStatus(p, filterYear);
+            const matchesStatus = filterPaymentStatus.length === 0 || filterPaymentStatus.includes(status);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus;
+          });
           exportData = filteredProps.map(p => {
             const yearHistory = p.iptuHistory.find(h => h.year === filterYear);
             return {
@@ -445,14 +539,23 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               'Type': p.type,
               'City': p.city,
               'Last Update': p.lastUpdated,
-              'Current Status': yearHistory?.status || 'N/A'
+              'Current Status': yearHistory?.status || 'N/A',
+              'Posse': p.possession
             };
           });
           break;
         }
 
         case 'status_dist': {
-          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          const filteredProps = properties.filter(p => {
+            const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+            const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+            const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+            const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
+            const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession;
+          });
           const stats = filteredProps.reduce((acc: any, prop) => {
             const yearHistory = prop.iptuHistory.find(h => h.year === filterYear);
             const status = yearHistory?.status || 'Pendente';
@@ -520,7 +623,18 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
 
         default: {
           // Export geral para qualquer outro tipo não mapeado especificamente
-          const filteredProps = filterCity === 'TODAS' ? properties : properties.filter(p => p.city === filterCity);
+          const filteredProps = properties.filter(p => {
+            const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+            const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+            const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+            const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
+            const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
+
+            const status = getPropertyStatus(p, filterYear);
+            const matchesStatus = filterPaymentStatus.length === 0 || filterPaymentStatus.includes(status);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus;
+          });
           exportData = filteredProps.map(p => {
             const yearHistory = p.iptuHistory.find(h => h.year === filterYear);
 
@@ -539,7 +653,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               'Valor Avaliação': p.appraisalValue,
               'Status Atual': yearHistory?.status || 'N/A',
               'Current Status': yearHistory?.status || 'N/A',
-              'Last Update': p.lastUpdated
+              'Last Update': p.lastUpdated,
+              'Posse': p.possession
             };
           });
         }
@@ -680,7 +795,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
 
               doc.setFontSize(11);
               doc.setTextColor(100, 110, 120);
-              doc.text(`Cidade: ${filterCity}`, 14, 30);
+
+              const cityLabel = filterCity.length === 0 ? 'TODAS' : filterCity.join(', ');
+              const ufLabel = filterUF.length === 0 ? 'TODAS' : filterUF.join(', ');
+
+              doc.text(`Filtros: Cidade (${cityLabel}) | UF (${ufLabel}) | Ano (${filterYear})`, 14, 30);
 
               const pageWidth = doc.internal.pageSize.getWidth();
               const logoWidth = 45;
@@ -827,23 +946,66 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                   <span className="material-symbols-outlined text-[18px]">filter_alt</span> Configuração da Exportação
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <MultiSelect
+                    label="CIDADE"
+                    icon="location_city"
+                    options={availableCities}
+                    selected={filterCity}
+                    onChange={setFilterCity}
+                  />
+
+                  <MultiSelect
+                    label="UF"
+                    icon="map"
+                    options={availableUFs}
+                    selected={filterUF}
+                    onChange={setFilterUF}
+                  />
+
+                  <MultiSelect
+                    label="PROPRIETÁRIO"
+                    icon="person"
+                    options={availableOwners}
+                    selected={filterOwner}
+                    onChange={setFilterOwner}
+                  />
+
+                  <MultiSelect
+                    label="LOCATÁRIO"
+                    icon="group"
+                    options={availableTenants}
+                    selected={filterTenant}
+                    onChange={setFilterTenant}
+                  />
+
+                  <MultiSelect
+                    label="STATUS"
+                    icon="payments"
+                    options={[
+                      { value: IptuStatus.PAID, label: 'PAGO' },
+                      { value: IptuStatus.IN_PROGRESS, label: 'EM ANDAMENTO' },
+                      { value: IptuStatus.PENDING, label: 'PENDENTE' },
+                      { value: IptuStatus.OPEN, label: 'EM ABERTO' },
+                    ]}
+                    selected={filterPaymentStatus}
+                    onChange={setFilterPaymentStatus}
+                  />
+
+                  <MultiSelect
+                    label="POSSE"
+                    icon="admin_panel_settings"
+                    options={[
+                      { value: 'Grupo', label: 'GRUPO' },
+                      { value: 'Terceiros', label: 'TERCEIROS' },
+                      { value: 'Específico', label: 'ESPECÍFICO' },
+                    ]}
+                    selected={filterPossession}
+                    onChange={setFilterPossession}
+                  />
+
                   {selectedReport.id === 'proj_anual' ? (
                     <>
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cidade</label>
-                        <select
-                          value={filterCity}
-                          onChange={(e) => setFilterCity(e.target.value)}
-                          title="Selecionar Cidade"
-                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
-                        >
-                          {availableCities.map(city => (
-                            <option key={city} value={city}>{city}</option>
-                          ))}
-                        </select>
-                      </div>
-
                       <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano Base</label>
                         <input
@@ -852,7 +1014,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                           onChange={(e) => setBaseYear(Number(e.target.value))}
                           title="Ano Base para Comparação"
                           placeholder="Ex: 2025"
-                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                          className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
                         />
                       </div>
 
@@ -864,7 +1026,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                           onChange={(e) => setCompareYear(Number(e.target.value))}
                           title="Ano Projetado para Comparação"
                           placeholder="Ex: 2026"
-                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                          className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
                         />
                       </div>
 
@@ -874,7 +1036,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                           value={projAnualStatusFilter}
                           onChange={(e) => setProjAnualStatusFilter(e.target.value)}
                           title="Filtro de Status para o Ano de Projeção"
-                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
+                          className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
                         >
                           <option value="TODOS">TODOS</option>
                           <option value={IptuStatus.PAID}>PAGO</option>
@@ -885,51 +1047,31 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                       </div>
                     </>
                   ) : (
-                    <>
-                      {selectedReport.id !== 'iptu_cidade' && selectedReport.id !== 'iptu_estado' && (
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Cidade</label>
-                          <select
-                            value={filterCity}
-                            onChange={(e) => setFilterCity(e.target.value)}
-                            title="Selecionar Cidade"
-                            className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
-                          >
-                            {availableCities.map(city => (
-                              <option key={city} value={city}>{city}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano</label>
-                        <select
-                          value={filterYear}
-                          onChange={(e) => setFilterYear(Number(e.target.value))}
-                          title="Selecionar Ano"
-                          className="h-10 px-4 rounded-xl border border-gray-200 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all"
-                        >
-                          {availableYears.map(year => (
-                            <option key={year} value={year}>{year}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="hidden lg:block"></div>
-                    </>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ano Base</label>
+                      <select
+                        value={filterYear}
+                        onChange={(e) => setFilterYear(Number(e.target.value))}
+                        title="Selecionar Ano"
+                        className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
+                      >
+                        {availableYears.map(year => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
+                    </div>
                   )}
 
                   <div className="flex flex-col gap-2">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Formato de Saída</label>
-                    <div className="flex bg-white dark:bg-[#1a2634] rounded-xl border border-gray-200 p-1">
+                    <div className="flex bg-white dark:bg-[#1a2634] rounded-xl border border-gray-200 dark:border-gray-700 p-1 h-11">
                       <button
                         onClick={() => setExportFormat('XLSX')}
-                        className={`flex-1 h-8 rounded-lg text-[10px] font-black transition-all ${exportFormat === 'XLSX' ? 'bg-primary text-white' : 'text-gray-400'}`}
+                        className={`flex-1 h-full rounded-lg text-[10px] font-black transition-all ${exportFormat === 'XLSX' ? 'bg-primary text-white shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
                       >XLSX</button>
                       <button
                         onClick={() => setExportFormat('PDF')}
-                        className={`flex-1 h-8 rounded-lg text-[10px] font-black transition-all ${exportFormat === 'PDF' ? 'bg-primary text-white' : 'text-gray-400'}`}
+                        className={`flex-1 h-full rounded-lg text-[10px] font-black transition-all ${exportFormat === 'PDF' ? 'bg-primary text-white shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
                       >PDF</button>
                     </div>
                   </div>

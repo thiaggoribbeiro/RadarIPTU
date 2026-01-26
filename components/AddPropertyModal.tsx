@@ -130,6 +130,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
                                         <select name="possession" value={formData.possession} onChange={handleInputChange} className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm outline-none text-[#111418] dark:text-white">
                                             <option value="Grupo" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Grupo</option>
                                             <option value="Terceiros" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Terceiros</option>
+                                            <option value="Específico" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Específico</option>
                                         </select>
                                     </div>
                                 </div>

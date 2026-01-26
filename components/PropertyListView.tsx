@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Property, IptuStatus, UserRole } from '../types';
 import { getDynamicStatus, getPropertyStatus, hasPreviousDebts } from '../utils/iptu';
+import MultiSelect from './MultiSelect';
 
 interface PropertyListViewProps {
   onSelectProperty: (id: string) => void;
@@ -16,27 +17,28 @@ interface PropertyListViewProps {
 const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, onAddProperty, onEditProperty, onDeleteProperty, onOpenIptuConfig, properties, userRole }) => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
-  const [filterCity, setFilterCity] = useState<string>('all');
-  const [filterUF, setFilterUF] = useState<string>('all');
-  const [filterOwner, setFilterOwner] = useState<string>('all');
-  const [filterTenant, setFilterTenant] = useState<string>('all');
-  const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>('all');
+  const [filterCity, setFilterCity] = useState<string[]>([]);
+  const [filterUF, setFilterUF] = useState<string[]>([]);
+  const [filterOwner, setFilterOwner] = useState<string[]>([]);
+  const [filterTenant, setFilterTenant] = useState<string[]>([]);
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState<string[]>([]);
+  const [filterPossession, setFilterPossession] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const currentYear = 2026; // Fixado em 2026 conforme solicitado pelo usuário
 
   const availableCities = React.useMemo(() => {
-    const filtered = filterUF === 'all'
+    const filtered = filterUF.length === 0
       ? properties
-      : properties.filter(p => p.state === filterUF);
+      : properties.filter(p => filterUF.includes(p.state));
     const cities = filtered.map(p => p.city).filter(Boolean) as string[];
     return Array.from(new Set(cities)).sort();
   }, [properties, filterUF]);
 
   const availableUFs = React.useMemo(() => {
-    const filtered = filterCity === 'all'
+    const filtered = filterCity.length === 0
       ? properties
-      : properties.filter(p => p.city === filterCity);
+      : properties.filter(p => filterCity.includes(p.city));
     const states = filtered.map(p => p.state).filter(Boolean) as string[];
     return Array.from(new Set(states)).sort();
   }, [properties, filterCity]);
@@ -56,28 +58,12 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
     return Array.from(tenantsSet).sort();
   }, [properties]);
 
-  const handleCityChange = (city: string) => {
-    setFilterCity(city);
-    if (city !== 'all') {
-      const ufsForCity = properties
-        .filter(p => p.city === city)
-        .map(p => p.state);
-      if (filterUF !== 'all' && !ufsForCity.includes(filterUF)) {
-        setFilterUF('all');
-      }
-    }
+  const handleCityChange = (cities: string[]) => {
+    setFilterCity(cities);
   };
 
-  const handleUFChange = (uf: string) => {
-    setFilterUF(uf);
-    if (uf !== 'all') {
-      const citiesInUF = properties
-        .filter(p => p.state === uf)
-        .map(p => p.city);
-      if (filterCity !== 'all' && !citiesInUF.includes(filterCity)) {
-        setFilterCity('all');
-      }
-    }
+  const handleUFChange = (ufs: string[]) => {
+    setFilterUF(ufs);
   };
 
   const filteredProperties = properties.filter(p => {
@@ -105,16 +91,19 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
     const matchesType = filterType === 'all' ||
       (filterType === 'unico' && !p.isComplex) ||
       (filterType === 'complexo' && p.isComplex);
-    const matchesCity = filterCity === 'all' || p.city === filterCity;
-    const matchesUF = filterUF === 'all' || p.state === filterUF;
-    const matchesOwner = filterOwner === 'all' || p.ownerName?.trim() === filterOwner;
-    const matchesTenant = filterTenant === 'all' || p.tenants?.some(t => t.name?.trim() === filterTenant);
+    const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+    const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+    const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+    const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
 
     // Filtro por status de pagamento
     const propertyStatus = getPropertyStatus(p, currentYear);
-    const matchesPaymentStatus = filterPaymentStatus === 'all' || propertyStatus === filterPaymentStatus;
+    const matchesPaymentStatus = filterPaymentStatus.length === 0 || filterPaymentStatus.includes(propertyStatus);
 
-    return matchesSearch && matchesType && matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPaymentStatus;
+    // Filtro por posse
+    const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
+
+    return matchesSearch && matchesType && matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPaymentStatus && matchesPossession;
   });
 
   const canEdit = true; // Todo usuário autenticado pode editar
@@ -192,82 +181,63 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-[#e5e7eb] dark:border-[#2a3644]">
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">location_city</span>
-            <select
-              value={filterCity}
-              onChange={(e) => handleCityChange(e.target.value)}
-              className="w-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-bold"
-            >
-              <option value="all">CIDADE: TODAS</option>
-              {availableCities.map(city => (
-                <option key={city} value={city}>{city.toUpperCase()}</option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 pt-4 border-t border-[#e5e7eb] dark:border-[#2a3644]">
+          <MultiSelect
+            label="CIDADE"
+            icon="location_city"
+            options={availableCities}
+            selected={filterCity}
+            onChange={handleCityChange}
+          />
 
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">map</span>
-            <select
-              value={filterUF}
-              onChange={(e) => handleUFChange(e.target.value)}
-              className="size-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-bold"
-            >
-              <option value="all">UF: TODOS</option>
-              {availableUFs.map(uf => (
-                <option key={uf} value={uf}>{uf.toUpperCase()}</option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
-          </div>
+          <MultiSelect
+            label="UF"
+            icon="map"
+            options={availableUFs}
+            selected={filterUF}
+            onChange={handleUFChange}
+          />
 
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">person</span>
-            <select
-              value={filterOwner}
-              onChange={(e) => setFilterOwner(e.target.value)}
-              className="size-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-bold"
-            >
-              <option value="all">PROPRIETÁRIO: TODOS</option>
-              {availableOwners.map(owner => (
-                <option key={owner} value={owner}>{owner.toUpperCase()}</option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
-          </div>
+          <MultiSelect
+            label="PROPRIETÁRIO"
+            icon="person"
+            options={availableOwners}
+            selected={filterOwner}
+            onChange={setFilterOwner}
+          />
 
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">group</span>
-            <select
-              value={filterTenant}
-              onChange={(e) => setFilterTenant(e.target.value)}
-              className="size-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-bold"
-            >
-              <option value="all">LOCATÁRIO: TODOS</option>
-              {availableTenants.map(tenant => (
-                <option key={tenant} value={tenant}>{tenant.toUpperCase()}</option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
-          </div>
+          <MultiSelect
+            label="LOCATÁRIO"
+            icon="group"
+            options={availableTenants}
+            selected={filterTenant}
+            onChange={setFilterTenant}
+          />
 
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">payments</span>
-            <select
-              value={filterPaymentStatus}
-              onChange={(e) => setFilterPaymentStatus(e.target.value)}
-              className="size-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-xs focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white appearance-none cursor-pointer font-bold"
-            >
-              <option value="all">STATUS: TODOS</option>
-              <option value={IptuStatus.PAID}>PAGO</option>
-              <option value={IptuStatus.IN_PROGRESS}>EM ANDAMENTO</option>
-              <option value={IptuStatus.PENDING}>PENDENTE</option>
-              <option value={IptuStatus.OPEN}>EM ABERTO</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#617289] pointer-events-none">expand_more</span>
-          </div>
+          <MultiSelect
+            label="STATUS"
+            icon="payments"
+            options={[
+              { value: IptuStatus.PAID, label: 'PAGO' },
+              { value: IptuStatus.IN_PROGRESS, label: 'EM ANDAMENTO' },
+              { value: IptuStatus.PENDING, label: 'PENDENTE' },
+              { value: IptuStatus.OPEN, label: 'EM ABERTO' },
+            ]}
+            selected={filterPaymentStatus}
+            onChange={setFilterPaymentStatus}
+          />
+
+          <MultiSelect
+            label="POSSE"
+            icon="admin_panel_settings"
+            options={[
+              { value: 'Grupo', label: 'GRUPO' },
+              { value: 'Terceiros', label: 'TERCEIROS' },
+              { value: 'Específico', label: 'ESPECÍFICO' },
+            ]}
+            selected={filterPossession}
+            onChange={setFilterPossession}
+          />
         </div>
       </div>
 
@@ -493,5 +463,4 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
     </div >
   );
 };
-
 export default PropertyListView;
