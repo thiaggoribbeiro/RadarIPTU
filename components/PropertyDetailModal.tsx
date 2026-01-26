@@ -254,6 +254,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    title="Selecionar Ano"
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full appearance-none z-10"
                   >
                     {availableYears.map(y => <option key={y} value={y} className="dark:bg-[#1a2634]">{y}</option>)}
@@ -277,12 +278,21 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
             </div>
 
             <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
-                  {(() => {
-                    const yearTenants = property.tenants.filter(t => t.year === selectedYear);
-                    const isManualMode = yearTenants.some(t => t.manualPercentage !== undefined);
-                    return (
+              {(() => {
+                const yearUnits = property.units.filter(u => u.year === selectedYear);
+                const yearTenants = property.tenants.filter(t => t.year === selectedYear);
+                const isManualMode = yearTenants.some(t => t.manualPercentage !== undefined);
+
+                const totalArea = yearTenants.reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
+                const yearTotalWithWaste = yearUnits.reduce((acc, u) => {
+                  const base = u.chosenMethod === 'Parcelado' ? (u.installmentValue || 0) : (u.singleValue || 0);
+                  const waste = u.hasWasteTax ? (u.wasteTaxValue || 0) : 0;
+                  return acc + base + waste;
+                }, 0);
+
+                return (
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-gray-50 dark:bg-[#1e2a3b] border-b-2 border-primary">
                       <tr>
                         <th className="px-6 py-4 text-[9px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Locatário / Empresa</th>
                         {!isManualMode && <th className="px-6 py-4 text-[9px] font-bold uppercase text-[#617289] dark:text-[#9ca3af] tracking-widest">Área Ocupada</th>}
@@ -292,73 +302,73 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                           {property.tenants.some(t => t.year === selectedYear && t.isSingleTenant) ? 'Valor' : 'Valor Rateio'}
                         </th>
                       </tr>
-                    );
-                  })()}
-                </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50 text-sm">
-                  {(() => {
-                    const yearUnits = property.units.filter(u => u.year === selectedYear);
-                    const yearTenants = property.tenants.filter(t => t.year === selectedYear);
-                    const isManualMode = yearTenants.some(t => t.manualPercentage !== undefined);
-
-                    // O valor total a ratear é baseado na forma de pagamento escolhida para cada sequencial
-                    const totalIptu = yearUnits.reduce((acc, u) => acc + (u.chosenMethod === 'Parcelado' ? (u.installmentValue || 0) : (u.singleValue || 0)), 0);
-                    const totalArea = yearTenants.reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
-
-                    if (yearTenants.length === 0) {
-                      return (
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50 text-sm">
+                      {yearTenants.length === 0 ? (
                         <tr>
-                          <td colSpan={isManualMode ? 3 : 4} className="px-6 py-12 text-center text-[#617289] dark:text-[#9ca3af] font-semibold italic opacity-60">Nenhum locatário cadastrado para {selectedYear}.</td>
+                          <td colSpan={isManualMode ? 4 : 5} className="px-6 py-12 text-center text-[#617289] dark:text-[#9ca3af] font-semibold italic opacity-60">Nenhum locatário cadastrado para {selectedYear}.</td>
                         </tr>
-                      );
-                    }
+                      ) : (
+                        yearTenants.map((tenant) => {
+                          const isSingle = tenant.isSingleTenant;
+                          let percentage: number;
+                          let apportionment: number;
 
-                    return yearTenants.map((tenant) => {
-                      const isSingle = tenant.isSingleTenant;
-                      let percentage: number;
-                      let apportionment: number;
+                          if (isSingle) {
+                            percentage = 100;
+                            apportionment = yearTotalWithWaste;
+                          } else if (isManualMode && tenant.manualPercentage !== undefined) {
+                            percentage = tenant.manualPercentage;
+                            apportionment = (tenant.manualPercentage / 100) * yearTotalWithWaste;
+                          } else {
+                            percentage = totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0;
+                            apportionment = totalArea > 0 ? (tenant.occupiedArea / totalArea) * yearTotalWithWaste : 0;
+                          }
 
-                      // Calcula o valor total com taxa de lixo para este ano
-                      const yearTotalWithWaste = yearUnits.reduce((acc, u) => {
-                        const base = u.chosenMethod === 'Parcelado' ? (u.installmentValue || 0) : (u.singleValue || 0);
-                        const waste = u.hasWasteTax ? (u.wasteTaxValue || 0) : 0;
-                        return acc + base + waste;
-                      }, 0);
-
-                      if (isSingle) {
-                        percentage = 100;
-                        apportionment = yearTotalWithWaste;
-                      } else if (isManualMode && tenant.manualPercentage !== undefined) {
-                        percentage = tenant.manualPercentage;
-                        apportionment = (tenant.manualPercentage / 100) * yearTotalWithWaste;
-                      } else {
-                        percentage = totalArea > 0 ? (tenant.occupiedArea / totalArea) * 100 : 0;
-                        apportionment = totalArea > 0 ? (tenant.occupiedArea / totalArea) * yearTotalWithWaste : 0;
-                      }
-
-                      return (
-                        <tr key={tenant.id} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors group">
-                          <td className="px-6 py-4 font-bold text-[#111418] dark:text-white uppercase group-hover:text-primary transition-colors">{tenant.name}</td>
-                          {!isManualMode && <td className="px-6 py-4 font-semibold text-[#617289] dark:text-[#9ca3af]">{tenant.occupiedArea.toLocaleString('pt-BR')} m²</td>}
+                          return (
+                            <tr key={tenant.id} className="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors group">
+                              <td className="px-6 py-4 font-bold text-[#111418] dark:text-white uppercase group-hover:text-primary transition-colors">{tenant.name}</td>
+                              {!isManualMode && <td className="px-6 py-4 font-semibold text-[#617289] dark:text-[#9ca3af]">{tenant.occupiedArea.toLocaleString('pt-BR')} m²</td>}
+                              <td className="px-6 py-4">
+                                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[9px] font-bold tracking-widest">{percentage.toFixed(1)}%</span>
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <span className="text-[10px] font-semibold text-[#617289] dark:text-[#9ca3af]">
+                                  {tenant.contractStart && tenant.contractEnd
+                                    ? `${new Date(tenant.contractStart + 'T00:00:00').toLocaleDateString('pt-BR')} - ${new Date(tenant.contractEnd + 'T00:00:00').toLocaleDateString('pt-BR')}`
+                                    : '---'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 font-bold text-emerald-600 text-right">
+                                {currencyFormatter.format(apportionment)}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                    {yearTenants.length > 0 && (
+                      <tfoot className="bg-gray-50 dark:bg-[#1e2a3b] border-t-2 border-primary">
+                        <tr>
+                          <td className="px-6 py-4 font-black text-[#111418] dark:text-white uppercase tracking-tighter text-xs">TOTAL ({yearTenants.length} LOC.)</td>
+                          {!isManualMode && (
+                            <td className="px-6 py-4 font-black text-[#111418] dark:text-white text-sm">
+                              {totalArea.toLocaleString('pt-BR')} m²
+                            </td>
+                          )}
                           <td className="px-6 py-4">
-                            <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[9px] font-bold tracking-widest">{percentage.toFixed(1)}%</span>
+                            <span className="px-2 py-0.5 bg-primary text-white rounded-full text-[9px] font-bold tracking-widest">100.0%</span>
                           </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className="text-[10px] font-semibold text-[#617289] dark:text-[#9ca3af]">
-                              {tenant.contractStart && tenant.contractEnd
-                                ? `${new Date(tenant.contractStart + 'T00:00:00').toLocaleDateString('pt-BR')} - ${new Date(tenant.contractEnd + 'T00:00:00').toLocaleDateString('pt-BR')}`
-                                : '---'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 font-bold text-emerald-600 text-right">
-                            {currencyFormatter.format(apportionment)}
+                          <td className="px-6 py-4"></td>
+                          <td className="px-6 py-4 font-black text-emerald-600 text-right text-base">
+                            {currencyFormatter.format(yearTotalWithWaste)}
                           </td>
                         </tr>
-                      );
-                    });
-                  })()}
-                </tbody>
-              </table>
+                      </tfoot>
+                    )}
+                  </table>
+                );
+              })()}
             </div>
           </section>
 
@@ -772,7 +782,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
             </div>
           </section>
         </div>
-      </div>
+      </div >
 
       {isAddIptuOpen && (
         <AddIptuModal
@@ -787,15 +797,17 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         />
       )}
 
-      {selectedIptuDetails && (
-        <IptuDetailModal
-          iptu={selectedIptuDetails}
-          property={property}
-          onClose={() => setSelectedIptuDetails(null)}
-          onEdit={() => handleEditIptu(selectedIptuDetails)}
-        />
-      )}
-    </div>
+      {
+        selectedIptuDetails && (
+          <IptuDetailModal
+            iptu={selectedIptuDetails}
+            property={property}
+            onClose={() => setSelectedIptuDetails(null)}
+            onEdit={() => handleEditIptu(selectedIptuDetails)}
+          />
+        )
+      }
+    </div >
   );
 };
 
