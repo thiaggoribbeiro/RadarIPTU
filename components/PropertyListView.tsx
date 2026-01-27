@@ -23,6 +23,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
   const [filterTenant, setFilterTenant] = useState<string[]>([]);
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<string[]>([]);
   const [filterPossession, setFilterPossession] = useState<string[]>([]);
+  const [filterOccupancy, setFilterOccupancy] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const currentYear = 2026; // Fixado em 2026 conforme solicitado pelo usuário
@@ -103,7 +104,12 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
     // Filtro por posse
     const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
 
-    return matchesSearch && matchesType && matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPaymentStatus && matchesPossession;
+    // Filtro por ocupação (Situação: Locado / Disponível)
+    const isOccupied = p.tenants?.some(t => t.year === currentYear);
+    const occupancyStatus = isOccupied ? 'Locado' : 'Disponível';
+    const matchesOccupancy = filterOccupancy.length === 0 || filterOccupancy.includes(occupancyStatus);
+
+    return matchesSearch && matchesType && matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPaymentStatus && matchesPossession && matchesOccupancy;
   });
 
   const canEdit = true; // Todo usuário autenticado pode editar
@@ -181,7 +187,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 pt-4 border-t border-[#e5e7eb] dark:border-[#2a3644]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4 pt-4 border-t border-[#e5e7eb] dark:border-[#2a3644]">
           <MultiSelect
             label="CIDADE"
             icon="location_city"
@@ -237,6 +243,17 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             ]}
             selected={filterPossession}
             onChange={setFilterPossession}
+          />
+
+          <MultiSelect
+            label="SITUAÇÃO"
+            icon="event_busy"
+            options={[
+              { value: 'Locado', label: 'LOCADO' },
+              { value: 'Disponível', label: 'DISPONÍVEL' },
+            ]}
+            selected={filterOccupancy}
+            onChange={setFilterOccupancy}
           />
         </div>
       </div>
@@ -324,7 +341,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                         </span>
                       ))
                     ) : (
-                      <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 italic">Disponível</span>
+                      <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold rounded border border-emerald-100 dark:border-emerald-500/20 uppercase tracking-wider">Disponível</span>
                     )}
                     {property.tenants.filter(t => t.year === currentYear).length > 3 && (
                       <span className="text-[9px] font-bold text-primary">+{property.tenants.filter(t => t.year === currentYear).length - 3}</span>
@@ -393,7 +410,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 italic">Disponível</span>
+                                <span className="px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold rounded border border-emerald-100 dark:border-emerald-500/20 uppercase tracking-wider">Disponível</span>
                               )}
                             </div>
                           </span>

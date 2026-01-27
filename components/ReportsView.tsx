@@ -203,6 +203,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
   const [filterTenant, setFilterTenant] = useState<string[]>([]);
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<string[]>([]);
   const [filterPossession, setFilterPossession] = useState<string[]>([]);
+  const [filterOccupancy, setFilterOccupancy] = useState<string[]>([]);
 
   const [filterYear, setFilterYear] = useState<number>(2026); // Ano para filtros gerais
   const [baseYear, setBaseYear] = useState<number>(2025);
@@ -358,7 +359,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             const propertyStatus = getPropertyStatus(p, compareYear);
             const matchesProjStatus = projAnualStatusFilter === 'TODOS' || propertyStatus === projAnualStatusFilter;
 
-            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesProjStatus;
+            const isOccupied = p.tenants?.some(t => t.year === compareYear);
+            const occupancyStatus = isOccupied ? 'Locado' : 'Disponível';
+            const matchesOccupancy = filterOccupancy.length === 0 || filterOccupancy.includes(occupancyStatus);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesProjStatus && matchesOccupancy;
           });
 
           exportData = filteredProps.map(prop => {
@@ -458,7 +463,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             const status = getPropertyStatus(p, filterYear);
             const matchesStatus = filterPaymentStatus.length === 0 || filterPaymentStatus.includes(status);
 
-            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus;
+            const isOccupied = p.tenants?.some(t => t.year === filterYear);
+            const occupancyStatus = isOccupied ? 'Locado' : 'Disponível';
+            const matchesOccupancy = filterOccupancy.length === 0 || filterOccupancy.includes(occupancyStatus);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus && matchesOccupancy;
           });
 
           exportData = filteredProps.map(prop => {
@@ -547,7 +556,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             const status = getPropertyStatus(p, filterYear);
             const matchesStatus = filterPaymentStatus.length === 0 || filterPaymentStatus.includes(status);
 
-            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus;
+            const isOccupied = p.tenants?.some(t => t.year === filterYear);
+            const occupancyStatus = isOccupied ? 'Locado' : 'Disponível';
+            const matchesOccupancy = filterOccupancy.length === 0 || filterOccupancy.includes(occupancyStatus);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus && matchesOccupancy;
           });
           exportData = filteredProps.flatMap(prop =>
             prop.iptuHistory
@@ -575,9 +588,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
             const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
 
-            // Valores em aberto filter out PAID automatically below, but we can filter by other selected statuses if needed
-            // For now, let's just keep the existing behavior but add the other global filters
-            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession;
+            const isOccupied = p.tenants?.some(t => t.year === filterYear);
+            const occupancyStatus = isOccupied ? 'Locado' : 'Disponível';
+            const matchesOccupancy = filterOccupancy.length === 0 || filterOccupancy.includes(occupancyStatus);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesOccupancy;
           });
           exportData = filteredProps.flatMap(prop =>
             prop.iptuHistory
@@ -608,7 +623,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
             const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
 
-            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession;
+            const isOccupied = p.tenants?.some(t => t.year === filterYear);
+            const occupancyStatus = isOccupied ? 'Locado' : 'Disponível';
+            const matchesOccupancy = filterOccupancy.length === 0 || filterOccupancy.includes(occupancyStatus);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesOccupancy;
           });
           exportData = filteredProps.flatMap(prop =>
             prop.iptuHistory
@@ -636,7 +655,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             const status = getPropertyStatus(p, filterYear);
             const matchesStatus = filterPaymentStatus.length === 0 || filterPaymentStatus.includes(status);
 
-            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus;
+            const isOccupied = p.tenants?.some(t => t.year === filterYear);
+            const occupancyStatus = isOccupied ? 'Locado' : 'Disponível';
+            const matchesOccupancy = filterOccupancy.length === 0 || filterOccupancy.includes(occupancyStatus);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus && matchesOccupancy;
           });
           exportData = filteredProps.map(p => {
             const yearHistory = p.iptuHistory.find(h => h.year === filterYear);
@@ -1113,6 +1136,17 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                     ]}
                     selected={filterPossession}
                     onChange={setFilterPossession}
+                  />
+
+                  <MultiSelect
+                    label="SITUAÇÃO"
+                    icon="event_busy"
+                    options={[
+                      { value: 'Locado', label: 'LOCADO' },
+                      { value: 'Disponível', label: 'DISPONÍVEL' },
+                    ]}
+                    selected={filterOccupancy}
+                    onChange={setFilterOccupancy}
                   />
 
                   {selectedReport.id === 'proj_anual' ? (
