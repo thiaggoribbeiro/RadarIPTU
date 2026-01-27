@@ -32,14 +32,16 @@ const MultiSelect: React.FC<MultiSelectProps> = ({ label, icon, options, selecte
     const isAllSelected = selected.length === 0;
 
     const displayValue = isAllSelected
-        ? `${label}: TODOS`
-        : `${label}: ${selected.length} ${selected.length === 1 ? 'SELECIONADO' : 'SELECIONADOS'}`;
+        ? `TODOS`
+        : `${selected.length} ${selected.length === 1 ? 'SELECIONADO' : 'SELECIONADOS'}`;
 
     return (
-        <div className="relative" ref={containerRef}>
+        <div className="relative flex flex-col gap-2" ref={containerRef}>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label}</label>
             <button
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-transparent text-[10px] focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white text-left font-bold transition-all hover:bg-gray-50 dark:hover:bg-[#22303e]"
+                className="relative w-full h-11 pl-9 pr-10 rounded-xl border border-[#e5e7eb] dark:border-[#2a3644] bg-white dark:bg-[#1a2634] text-[10px] focus:border-primary focus:ring-1 focus:ring-primary outline-none text-[#111418] dark:text-white text-left font-bold transition-all hover:bg-gray-50 dark:hover:bg-[#22303e]"
             >
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617289] dark:text-[#9ca3af] text-[18px]">{icon}</span>
                 <span className="truncate block uppercase">{displayValue}</span>

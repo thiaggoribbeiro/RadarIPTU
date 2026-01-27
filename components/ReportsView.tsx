@@ -161,6 +161,16 @@ const reportSpecs: ReportSpec[] = [
     goal: 'Visualizar a divisão exata de custos entre locatários por imóvel.',
     columns: ['Nome do Imóvel', 'Endereço', 'Inscrição/Sequencial', 'Locatário', 'Início Contrato', 'Fim Contrato', 'Área (m²)', 'Percentual', 'Valor Rateio', 'Posse'],
     metrics: ['Área Total Ocupada', 'Total Rateado', 'Média por Locatário']
+  },
+  {
+    id: 'economia_cota_unica',
+    category: 'Gerencial',
+    title: 'Economia Cota Única',
+    description: 'Análise de economia real ao optar pelo pagamento em cota única.',
+    icon: 'savings',
+    goal: 'Identificar as maiores oportunidades de economia na carteira.',
+    columns: ['Proprietário', 'Inscrição', 'Sequencial', 'Endereço', 'Valor Parcelado', 'Valor Cota Única', 'Economia Real', '% Economia', 'Situação', 'Posse'],
+    metrics: ['Economia Total Potencial', 'Média de Economia por Imóvel']
   }
 ];
 
@@ -198,6 +208,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
   const [baseYear, setBaseYear] = useState<number>(2025);
   const [compareYear, setCompareYear] = useState<number>(2026);
   const [projAnualStatusFilter, setProjAnualStatusFilter] = useState<string>('TODOS');
+  const [filterMinSavings, setFilterMinSavings] = useState<number>(0);
   const [exportFormat, setExportFormat] = useState<'XLSX' | 'PDF'>('XLSX');
 
   const availableCities = useMemo(() => {
@@ -350,53 +361,59 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesProjStatus;
           });
 
-          exportData = filteredProps.flatMap(prop => {
+          exportData = filteredProps.map(prop => {
             const unitsBase = prop.units.filter(u => u.year === baseYear);
             const unitsCompare = prop.units.filter(u => u.year === compareYear);
 
-            // Mapeia todos os sequenciais únicos dos dois anos
-            const allSequentials = new Set([
+            // Soma valores de todas as unidades do imóvel para o ano base
+            const cotaUnicaBase = unitsBase.reduce((acc, u) => acc + (Number(u.singleValue) || 0), 0);
+            const parceladoBase = unitsBase.reduce((acc, u) => acc + (Number(u.installmentValue) || 0), 0);
+
+            // Soma valores de todas as unidades do imóvel para o ano de comparação
+            const cotaUnicaComp = unitsCompare.reduce((acc, u) => acc + (Number(u.singleValue) || 0), 0);
+            const parceladoComp = unitsCompare.reduce((acc, u) => acc + (Number(u.installmentValue) || 0), 0);
+
+            const diferenca = cotaUnicaComp - cotaUnicaBase;
+            const economia = parceladoComp - cotaUnicaComp;
+            const variacao = cotaUnicaBase > 0 ? (diferenca / cotaUnicaBase) * 100 : 0;
+
+            // Consolidação de labels (Inscrição e Sequencial)
+            const allRegistrations = Array.from(new Set([
+              ...unitsBase.map(u => u.registrationNumber),
+              ...unitsCompare.map(u => u.registrationNumber),
+              prop.registrationNumber
+            ].filter(Boolean)));
+
+            const allSequentials = Array.from(new Set([
               ...unitsBase.map(u => u.sequential),
-              ...unitsCompare.map(u => u.sequential)
-            ]);
+              ...unitsCompare.map(u => u.sequential),
+              prop.sequential
+            ].filter(Boolean)));
 
-            // Para imóveis de complexos, agrupa todos os sequenciais em uma única string
-            const allSequentialsArray = Array.from(allSequentials);
-            const sequentialDisplay = allSequentialsArray.join(', ');
+            const registrationDisplay = allRegistrations.join(', ') || '-';
+            const sequentialDisplay = allSequentials.join(', ') || '-';
 
-            return allSequentialsArray.map(seq => {
-              const uBase = unitsBase.find(u => u.sequential === seq);
-              const uComp = unitsCompare.find(u => u.sequential === seq);
+            // Situação: lista locatários do ano de comparação
+            const tenants = prop.tenants.filter(t => t.year === compareYear);
+            const situacao = tenants.length > 0
+              ? Array.from(new Set(tenants.map(t => t.name))).join(', ')
+              : 'DISPONÍVEL';
 
-              const cotaUnicaBase = uBase?.singleValue || 0;
-              const parceladoBase = uBase?.installmentValue || 0;
-
-              const cotaUnicaComp = uComp?.singleValue || 0;
-              const parceladoComp = uComp?.installmentValue || 0;
-
-              const diferenca = cotaUnicaComp - cotaUnicaBase;
-              const economia = parceladoComp - cotaUnicaComp;
-              const variacao = cotaUnicaBase > 0 ? (diferenca / cotaUnicaBase) * 100 : 0;
-
-              const tenants = prop.tenants.filter(t => t.year === compareYear && (t.selectedSequential === seq || !t.selectedSequential));
-              const situacao = tenants.length > 0 ? tenants.map(t => t.name).join(', ') : 'DISPONÍVEL';
-
-              return {
-                'Proprietário': prop.ownerName || 'N/A',
-                'Inscrição': uComp?.registrationNumber || uBase?.registrationNumber || prop.registrationNumber,
-                'Sequencial': allSequentialsArray.length > 1 ? sequentialDisplay : seq,
-                'Endereço': prop.address,
-                [`Cota Única (${baseYear})`]: cotaUnicaBase,
-                [`Parcelado (${baseYear})`]: parceladoBase,
-                [`Cota Única (${compareYear})`]: cotaUnicaComp,
-                [`Parcelado (${compareYear})`]: parceladoComp,
-                'Diferença Cota Única': diferenca,
-                'Economia Projetada': economia,
-                '% Variação': `${variacao.toFixed(2)}%`,
-                'Situação': situacao,
-                'Posse': prop.possession
-              };
-            });
+            return {
+              'Proprietário': prop.ownerName || 'N/A',
+              'Inscrição': registrationDisplay,
+              'Sequencial': sequentialDisplay,
+              'Endereço': prop.address,
+              [`Cota Única (${baseYear})`]: cotaUnicaBase,
+              [`Parcelado (${baseYear})`]: parceladoBase,
+              [`Cota Única (${compareYear})`]: cotaUnicaComp,
+              [`Parcelado (${compareYear})`]: parceladoComp,
+              'Diferença Cota Única': diferenca,
+              'Economia Projetada': economia,
+              '% Variação': `${variacao.toFixed(2)}%`,
+              'Situação': situacao,
+              'Posse': prop.possession
+            };
           });
 
           if (exportData.length > 0) {
@@ -425,6 +442,95 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               'Economia Projetada': totals.economia,
               '% Variação': `${variacaoTotal.toFixed(2)}%`,
               'Situação': '-'
+            });
+          }
+          break;
+        }
+
+        case 'economia_cota_unica': {
+          const filteredProps = properties.filter(p => {
+            const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+            const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+            const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+            const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
+            const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
+
+            const status = getPropertyStatus(p, filterYear);
+            const matchesStatus = filterPaymentStatus.length === 0 || filterPaymentStatus.includes(status);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus;
+          });
+
+          exportData = filteredProps.map(prop => {
+            const yearUnits = prop.units.filter(u => u.year === filterYear);
+
+            const parcelado = yearUnits.reduce((acc, u) => {
+              const base = Number(u.installmentValue) || 0;
+              const waste = u.hasWasteTax ? (Number(u.wasteTaxValue) || 0) : 0;
+              return acc + base + waste;
+            }, 0);
+
+            const cotaUnica = yearUnits.reduce((acc, u) => {
+              const base = Number(u.singleValue) || 0;
+              const waste = u.hasWasteTax ? (Number(u.wasteTaxValue) || 0) : 0;
+              return acc + base + waste;
+            }, 0);
+
+            const economia = parcelado - cotaUnica;
+            const percEconomia = parcelado > 0 ? (economia / parcelado) * 100 : 0;
+
+            const allRegistrations = Array.from(new Set([
+              ...yearUnits.map(u => u.registrationNumber),
+              prop.registrationNumber
+            ].filter(Boolean)));
+
+            const allSequentials = Array.from(new Set([
+              ...yearUnits.map(u => u.sequential),
+              prop.sequential
+            ].filter(Boolean)));
+
+            const registrationDisplay = allRegistrations.join(', ') || '-';
+            const sequentialDisplay = allSequentials.join(', ') || '-';
+
+            const tenants = prop.tenants.filter(t => t.year === filterYear);
+            const situacao = tenants.length > 0
+              ? Array.from(new Set(tenants.map(t => t.name))).join(', ')
+              : 'DISPONÍVEL';
+
+            return {
+              'Proprietário': prop.ownerName || 'N/A',
+              'Inscrição': registrationDisplay,
+              'Sequencial': sequentialDisplay,
+              'Endereço': prop.address,
+              'Valor Parcelado': parcelado,
+              'Valor Cota Única': cotaUnica,
+              'Economia Real': economia,
+              '% Economia': `${percEconomia.toFixed(2)}%`,
+              'Situação': situacao,
+              'Posse': prop.possession,
+              _economiaValor: Number(economia.toFixed(2)) // Forçar precisão numérica para o filtro
+            };
+          }).filter(row => row._economiaValor >= filterMinSavings);
+
+          if (exportData.length > 0) {
+            const totals = exportData.reduce((acc, row) => {
+              acc.parcelado += row['Valor Parcelado'] || 0;
+              acc.cotaUnica += row['Valor Cota Única'] || 0;
+              acc.economia += row['Economia Real'] || 0;
+              return acc;
+            }, { parcelado: 0, cotaUnica: 0, economia: 0 });
+
+            exportData.push({
+              'Proprietário': 'TOTAIS',
+              'Inscrição': '-',
+              'Sequencial': '-',
+              'Endereço': '-',
+              'Valor Parcelado': totals.parcelado,
+              'Valor Cota Única': totals.cotaUnica,
+              'Economia Real': totals.economia,
+              '% Economia': totals.parcelado > 0 ? `${((totals.economia / totals.parcelado) * 100).toFixed(2)}%` : '0.00%',
+              'Situação': '-',
+              'Posse': '-'
             });
           }
           break;
@@ -798,8 +904,13 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
 
               const cityLabel = filterCity.length === 0 ? 'TODAS' : filterCity.join(', ');
               const ufLabel = filterUF.length === 0 ? 'TODAS' : filterUF.join(', ');
+              let filterText = `Filtros: Cidade (${cityLabel}) | UF (${ufLabel}) | Ano (${filterYear})`;
 
-              doc.text(`Filtros: Cidade (${cityLabel}) | UF (${ufLabel}) | Ano (${filterYear})`, 14, 30);
+              if (selectedReport.id === 'economia_cota_unica' && filterMinSavings > 0) {
+                filterText += ` | Economia > ${filterMinSavings.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+              }
+
+              doc.text(filterText, 14, 30);
 
               const pageWidth = doc.internal.pageSize.getWidth();
               const logoWidth = 45;
@@ -1014,7 +1125,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                           onChange={(e) => setBaseYear(Number(e.target.value))}
                           title="Ano Base para Comparação"
                           placeholder="Ex: 2025"
-                          className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
+                          className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
                         />
                       </div>
 
@@ -1026,7 +1137,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                           onChange={(e) => setCompareYear(Number(e.target.value))}
                           title="Ano Projetado para Comparação"
                           placeholder="Ex: 2026"
-                          className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
+                          className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
                         />
                       </div>
 
@@ -1036,7 +1147,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                           value={projAnualStatusFilter}
                           onChange={(e) => setProjAnualStatusFilter(e.target.value)}
                           title="Filtro de Status para o Ano de Projeção"
-                          className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
+                          className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
                         >
                           <option value="TODOS">TODOS</option>
                           <option value={IptuStatus.PAID}>PAGO</option>
@@ -1053,11 +1164,30 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
                         value={filterYear}
                         onChange={(e) => setFilterYear(Number(e.target.value))}
                         title="Selecionar Ano"
-                        className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-sm font-semibold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
+                        className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
                       >
                         {availableYears.map(year => (
                           <option key={year} value={year}>{year}</option>
                         ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {selectedReport.id === 'economia_cota_unica' && (
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Economia Mínima</label>
+                      <select
+                        value={filterMinSavings}
+                        onChange={(e) => setFilterMinSavings(Number(e.target.value))}
+                        title="Filtro de Faixa de Economia"
+                        className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
+                      >
+                        <option value={0}>TOTAL</option>
+                        <option value={1000}>&gt; R$ 1.000</option>
+                        <option value={5000}>&gt; R$ 5.000</option>
+                        <option value={10000}>&gt; R$ 10.000</option>
+                        <option value={25000}>&gt; R$ 25.000</option>
+                        <option value={50000}>&gt; R$ 50.000</option>
                       </select>
                     </div>
                   )}
