@@ -194,6 +194,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             options={availableCities}
             selected={filterCity}
             onChange={handleCityChange}
+            showSearch={true}
           />
 
           <MultiSelect
@@ -202,6 +203,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             options={availableUFs}
             selected={filterUF}
             onChange={handleUFChange}
+            showSearch={true}
           />
 
           <MultiSelect
@@ -210,6 +212,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             options={availableOwners}
             selected={filterOwner}
             onChange={setFilterOwner}
+            showSearch={true}
           />
 
           <MultiSelect
@@ -218,6 +221,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             options={availableTenants}
             selected={filterTenant}
             onChange={setFilterTenant}
+            showSearch={true}
           />
 
           <MultiSelect

@@ -6,16 +6,19 @@ interface MultiSelectProps {
     options: (string | { value: string; label: string })[];
     selected: string[];
     onChange: (selected: string[]) => void;
+    showSearch?: boolean;
 }
 
-const MultiSelect: React.FC<MultiSelectProps> = ({ label, icon, options, selected, onChange }) => {
+const MultiSelect: React.FC<MultiSelectProps> = ({ label, icon, options, selected, onChange, showSearch = false }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
+                setSearchTerm('');
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -35,6 +38,12 @@ const MultiSelect: React.FC<MultiSelectProps> = ({ label, icon, options, selecte
         ? `TODOS`
         : `${selected.length} ${selected.length === 1 ? 'SELECIONADO' : 'SELECIONADOS'}`;
 
+    const filteredOptions = options.filter(opt => {
+        if (!showSearch || searchTerm.length < 3) return true;
+        const lab = typeof opt === 'string' ? opt : opt.label;
+        return lab.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+
     return (
         <div className="relative flex flex-col gap-2" ref={containerRef}>
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label}</label>
@@ -50,22 +59,40 @@ const MultiSelect: React.FC<MultiSelectProps> = ({ label, icon, options, selecte
 
             {isOpen && (
                 <div className="absolute z-50 mt-2 w-full min-w-[200px] bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <div className="p-2 border-b border-[#e5e7eb] dark:border-[#2a3644] flex justify-between items-center bg-gray-50/50 dark:bg-[#22303e]/50">
-                        <button
-                            onClick={() => onChange([])}
-                            className="text-[10px] font-bold text-primary hover:text-secondary uppercase underline px-1"
-                        >
-                            Limpar
-                        </button>
-                        <button
-                            onClick={() => setIsOpen(false)}
-                            className="text-[10px] font-bold text-[#617289] hover:text-[#111418] dark:hover:text-white uppercase px-1"
-                        >
-                            Fechar
-                        </button>
+                    <div className="p-2 border-b border-[#e5e7eb] dark:border-[#2a3644] flex flex-col gap-2 bg-gray-50/50 dark:bg-[#22303e]/50">
+                        <div className="flex justify-between items-center">
+                            <button
+                                onClick={() => onChange([])}
+                                className="text-[10px] font-bold text-primary hover:text-secondary uppercase underline px-1"
+                            >
+                                Limpar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsOpen(false);
+                                    setSearchTerm('');
+                                }}
+                                className="text-[10px] font-bold text-[#617289] hover:text-[#111418] dark:hover:text-white uppercase px-1"
+                            >
+                                Fechar
+                            </button>
+                        </div>
+                        {showSearch && (
+                            <div className="relative px-1 pb-1">
+                                <input
+                                    type="text"
+                                    placeholder="Buscar... (mín. 3 letras)"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full h-8 pl-8 pr-3 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-white dark:bg-[#1a2634] text-[10px] font-bold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
+                                    autoFocus
+                                />
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-[calc(50%+2px)] text-[#617289] dark:text-[#9ca3af] text-[16px]">search</span>
+                            </div>
+                        )}
                     </div>
                     <div className="max-h-60 overflow-y-auto p-1 custom-scrollbar">
-                        {options.map((opt) => {
+                        {filteredOptions.map((opt) => {
                             const val = typeof opt === 'string' ? opt : opt.value;
                             const lab = typeof opt === 'string' ? opt : opt.label;
                             const isSel = selected.includes(val);
@@ -85,9 +112,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({ label, icon, options, selecte
                                 </div>
                             );
                         })}
-                        {options.length === 0 && (
+                        {filteredOptions.length === 0 && (
                             <div className="p-4 text-center text-[#617289] text-[10px] font-bold italic">
-                                Nenhuma opção disponível
+                                {searchTerm.length >= 3 ? 'Nenhuma opção encontrada' : 'Nenhuma opção disponível'}
                             </div>
                         )}
                     </div>
