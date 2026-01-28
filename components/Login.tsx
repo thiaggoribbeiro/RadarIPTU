@@ -102,8 +102,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <div className="size-24 bg-white dark:bg-[#1e293b] rounded-2xl flex items-center justify-center p-2 mb-4 overflow-hidden">
               <img src={logo} alt="RadarIPTU Logo" className="w-full h-full object-contain" />
             </div>
-            <h2 className="text-2xl font-bold leading-tight tracking-tight text-[#1e293b] dark:text-white">
-              RadarIPTU
+            <h2 className="text-2xl leading-tight tracking-tight text-[#1e293b] dark:text-white">
+              <span className="font-light">Radar</span><span className="font-bold">IPTU</span>
             </h2>
             <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">
               Acesso ao Painel de Gestão

@@ -53,7 +53,7 @@ const Navbar: React.FC<NavbarProps> = ({
             {isDemoMode && (
                 <div className="bg-primary text-white text-[10px] font-bold uppercase tracking-widest py-1.5 text-center flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined text-[14px]">verified_user</span>
-                    Painel Administrativo - RadarIPTU (Modo Demonstração)
+                    Painel Administrativo - <span className="font-light">Radar</span>IPTU (Modo Demonstração)
                 </div>
             )}
 
@@ -65,7 +65,9 @@ const Navbar: React.FC<NavbarProps> = ({
                                 <img src={logo} alt="RadarIPTU Logo" className="w-full h-full object-contain" />
                             </div>
                             <div className="flex flex-col">
-                                <h2 className="text-[#111418] dark:text-white text-lg font-bold tracking-tight leading-none">RadarIPTU</h2>
+                                <h2 className="text-[#111418] dark:text-white text-lg tracking-tight leading-none">
+                                    <span className="font-light">Radar</span><span className="font-bold">IPTU</span>
+                                </h2>
                                 <span className="text-[10px] font-bold text-primary dark:text-primary/80 opacity-60">v{packageJson.version}</span>
                             </div>
                         </div>

@@ -1,4 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import logo from '../assets/logo-report.png';
 import { Property, IptuRecord, UserRole, IptuStatus } from '../types';
 import AddIptuModal from './AddIptuModal';
 import IptuDetailModal from './IptuDetailModal';
@@ -50,6 +53,133 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   };
 
   const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const handleGenerateMirror = () => {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Dados do Ano Selecionado
+    const yearUnits = property.units.filter(u => u.year === selectedYear);
+    const yearTenants = property.tenants.filter(t => t.year === selectedYear);
+
+    const totalArea = yearTenants.reduce((acc, t) => acc + (Number(t.occupiedArea) || 0), 0);
+    const yearTotalWithWaste = yearUnits.reduce((acc, u) => {
+      const base = u.chosenMethod === 'Parcelado' ? (u.installmentValue || 0) : (u.singleValue || 0);
+      const waste = u.hasWasteTax ? (u.wasteTaxValue || 0) : 0;
+      return acc + base + waste;
+    }, 0);
+
+    // Cabeçalho do PDF
+    try {
+      doc.addImage(logo, 'PNG', pageWidth - 55, 10, 45, 15);
+    } catch (e) {
+      console.error("Erro ao carregar logo no PDF", e);
+    }
+
+    doc.setFontSize(18);
+    doc.setTextColor(196, 84, 27);
+    doc.setFont('helvetica', 'bold');
+    doc.text(property.name.toUpperCase(), 14, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 110, 120);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Inscrição: #${property.registrationNumber}`, 14, 26);
+    doc.text(`${property.address} - ${property.neighborhood}`, 14, 31);
+    doc.text(`${property.city} - ${property.state}`, 14, 36);
+
+    // Tabela 1: Rateio por Locatário
+    doc.setFontSize(12);
+    doc.setTextColor(196, 84, 27);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`RATEIO POR LOCATÁRIO - ANO ${selectedYear}`, 14, 48);
+
+    const rateioColumns = ['LOCATÁRIO', 'ÁREA', 'PERCENTUAL', 'VALOR RATEIO'];
+    const rateioRows = yearTenants.map(t => {
+      const isSingle = t.isSingleTenant;
+      let percentage = isSingle ? 100 : (totalArea > 0 ? (t.occupiedArea / totalArea) * 100 : 0);
+      if (t.manualPercentage !== undefined) percentage = t.manualPercentage;
+
+      const apportionment = (percentage / 100) * yearTotalWithWaste;
+
+      return [
+        t.name.toUpperCase(),
+        `${t.occupiedArea.toLocaleString('pt-BR')} m²`,
+        `${percentage.toFixed(1)}%`,
+        currencyFormatter.format(apportionment)
+      ];
+    });
+
+    // Adiciona linha de total do rateio
+    rateioRows.push([
+      `TOTAL (${yearTenants.length} LOC.)`,
+      `${totalArea.toLocaleString('pt-BR')} m²`,
+      '100.0%',
+      currencyFormatter.format(yearTotalWithWaste)
+    ]);
+
+    autoTable(doc, {
+      head: [rateioColumns],
+      body: rateioRows,
+      startY: 52,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      didParseCell: (data) => {
+        if (data.row.index === rateioRows.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [255, 245, 240];
+        }
+      }
+    });
+
+    // Tabela 2: IPTU Detalhado
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    doc.setFontSize(12);
+    doc.setTextColor(196, 84, 27);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`DETALHAMENTO IPTU - ANO ${selectedYear}`, 14, finalY);
+
+    const iptuColumns = ['SEQUENCIAL', 'COTA ÚNICA', 'PARCELADO', 'TAXA LIXO', 'FORMA', 'STATUS'];
+    const iptuRows = yearUnits.map(u => [
+      u.sequential,
+      currencyFormatter.format(u.singleValue),
+      currencyFormatter.format(u.installmentValue),
+      u.hasWasteTax ? currencyFormatter.format(u.wasteTaxValue || 0) : '---',
+      u.chosenMethod.toUpperCase(),
+      u.status.toUpperCase()
+    ]);
+
+    const totalSingleBase = yearUnits.reduce((acc, u) => acc + (Number(u.singleValue) || 0), 0);
+    const totalInstallBase = yearUnits.reduce((acc, u) => acc + (Number(u.installmentValue) || 0), 0);
+    const totalWaste = yearUnits.reduce((acc, u) => acc + (u.hasWasteTax ? (Number(u.wasteTaxValue) || 0) : 0), 0);
+
+    iptuRows.push([
+      'TOTAIS',
+      currencyFormatter.format(totalSingleBase),
+      currencyFormatter.format(totalInstallBase),
+      currencyFormatter.format(totalWaste),
+      '---',
+      '---'
+    ]);
+
+    autoTable(doc, {
+      head: [iptuColumns],
+      body: iptuRows,
+      startY: finalY + 4,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      didParseCell: (data) => {
+        if (data.row.index === iptuRows.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [255, 245, 240];
+        }
+      }
+    });
+
+    doc.save(`ESPELHO_${property.name.replace(/\s+/g, '_')}_${selectedYear}.pdf`);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -106,17 +236,24 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     </p>
                     <div className="flex items-center justify-between mt-3">
                       <p className="text-[11px] font-semibold text-primary/70 uppercase tracking-widest">CEP: {property.zipCode}</p>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={handleGenerateMirror}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white hover:bg-primary/90 rounded-xl text-[9px] font-semibold transition-all shadow-md shadow-primary/20 uppercase active:scale-95 whitespace-nowrap"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                          Gerar espelho
+                        </button>
                         <button
                           onClick={() => onEditProperty(property)}
-                          className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-[10px] font-bold transition-all shadow-sm uppercase active:scale-95"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-[9px] font-semibold transition-all shadow-sm uppercase active:scale-95 whitespace-nowrap"
                         >
                           <span className="material-symbols-outlined text-[16px]">edit</span>
                           Editar
                         </button>
                         <button
                           onClick={() => onDeleteProperty(property.id)}
-                          className="flex items-center gap-2 px-4 py-1.5 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/20 rounded-xl text-[10px] font-bold transition-all shadow-sm uppercase active:scale-95 border border-red-200 dark:border-red-500/20"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-xl text-[9px] font-semibold transition-all shadow-sm uppercase active:scale-95 border border-red-100 dark:border-red-500/20 whitespace-nowrap"
                         >
                           <span className="material-symbols-outlined text-[16px]">delete</span>
                           Excluir

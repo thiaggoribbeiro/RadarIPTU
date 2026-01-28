@@ -39,7 +39,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({ label, icon, options, selecte
         : `${selected.length} ${selected.length === 1 ? 'SELECIONADO' : 'SELECIONADOS'}`;
 
     const filteredOptions = options.filter(opt => {
-        if (!showSearch || searchTerm.length < 3) return true;
+        if (!showSearch || searchTerm.length === 0) return true;
         const lab = typeof opt === 'string' ? opt : opt.label;
         return lab.toLowerCase().includes(searchTerm.toLowerCase());
     });
@@ -81,7 +81,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({ label, icon, options, selecte
                             <div className="relative px-1 pb-1">
                                 <input
                                     type="text"
-                                    placeholder="Buscar... (mín. 3 letras)"
+                                    placeholder="Buscar"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full h-8 pl-8 pr-3 rounded-lg border border-[#e5e7eb] dark:border-[#2a3644] bg-white dark:bg-[#1a2634] text-[10px] font-bold outline-none focus:border-primary transition-all text-[#111418] dark:text-white"
@@ -114,7 +114,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({ label, icon, options, selecte
                         })}
                         {filteredOptions.length === 0 && (
                             <div className="p-4 text-center text-[#617289] text-[10px] font-bold italic">
-                                {searchTerm.length >= 3 ? 'Nenhuma opção encontrada' : 'Nenhuma opção disponível'}
+                                {searchTerm.length > 0 ? 'Nenhuma opção encontrada' : 'Nenhuma opção disponível'}
                             </div>
                         )}
                     </div>
