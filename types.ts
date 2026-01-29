@@ -1,9 +1,11 @@
 
 export enum IptuStatus {
-  PAID = 'Pago',
+  OPEN = 'Aberto',
+  IN_ANALYSIS = 'Em análise',
   IN_PROGRESS = 'Em andamento',
-  PENDING = 'Pendente',
-  OPEN = 'Em aberto'
+  LAUNCHED = 'Lançado',
+  PAID = 'Pago',
+  PENDING = 'Pendente'
 }
 
 export type PaymentMethod = 'Cota Única' | 'Parcelado';

@@ -196,7 +196,10 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-bold text-[#111418] dark:text-white uppercase tracking-tight">{property.name}</h2>
                 <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-500 text-white' :
-                  currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' : 'bg-primary text-white'
+                  currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' :
+                    currentYearStatus === IptuStatus.LAUNCHED ? 'bg-indigo-500 text-white' :
+                      currentYearStatus === IptuStatus.IN_ANALYSIS ? 'bg-amber-500 text-white' :
+                        'bg-primary text-white'
                   }`}>{currentYearStatus}</span>
               </div>
               <p className="text-[10px] font-semibold text-primary/80 uppercase tracking-widest">Inscrição: #{property.registrationNumber}</p>
@@ -600,8 +603,10 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                           <td className="px-6 py-4">
                             <span className={`px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase ${unit.status === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
                               unit.status === IptuStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' :
-                                unit.status === IptuStatus.PENDING ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300' :
-                                  'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'
+                                unit.status === IptuStatus.IN_ANALYSIS ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300' :
+                                  unit.status === IptuStatus.LAUNCHED ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300' :
+                                    unit.status === IptuStatus.PENDING ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300' :
+                                      'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'
                               }`}>
                               {unit.status}
                             </span>

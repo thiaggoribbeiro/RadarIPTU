@@ -228,10 +228,12 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
             label="STATUS"
             icon="payments"
             options={[
-              { value: IptuStatus.PAID, label: 'PAGO' },
+              { value: IptuStatus.OPEN, label: 'ABERTO' },
+              { value: IptuStatus.IN_ANALYSIS, label: 'EM ANÁLISE' },
               { value: IptuStatus.IN_PROGRESS, label: 'EM ANDAMENTO' },
+              { value: IptuStatus.LAUNCHED, label: 'LANÇADO' },
+              { value: IptuStatus.PAID, label: 'PAGO' },
               { value: IptuStatus.PENDING, label: 'PENDENTE' },
-              { value: IptuStatus.OPEN, label: 'EM ABERTO' },
             ]}
             selected={filterPaymentStatus}
             onChange={setFilterPaymentStatus}
@@ -284,7 +286,10 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                   <div className="absolute top-3 right-3 animate-in fade-in zoom-in duration-500">
                     <div className="flex flex-col items-end gap-1">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-sm ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-500 text-white' :
-                        currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' : 'bg-primary text-white'
+                        currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' :
+                          currentYearStatus === IptuStatus.LAUNCHED ? 'bg-indigo-500 text-white' :
+                            currentYearStatus === IptuStatus.IN_ANALYSIS ? 'bg-amber-500 text-white' :
+                              'bg-primary text-white'
                         }`}>{currentYearStatus}</span>
                       {showDebtsBadge && (
                         <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-sm bg-red-600 text-white flex items-center gap-1">
@@ -428,7 +433,10 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
-                            currentYearStatus === IptuStatus.OPEN ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                            currentYearStatus === IptuStatus.OPEN ? 'bg-red-100 text-red-700' :
+                              currentYearStatus === IptuStatus.LAUNCHED ? 'bg-indigo-100 text-indigo-700' :
+                                currentYearStatus === IptuStatus.IN_ANALYSIS ? 'bg-amber-100 text-amber-700' :
+                                  'bg-orange-100 text-orange-700'
                             }`}>
                             {currentYearStatus}
                           </span>

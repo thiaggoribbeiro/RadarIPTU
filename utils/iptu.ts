@@ -8,14 +8,11 @@ export const getPropertyStatus = (property: Property, year: number): IptuStatus 
     const yearUnits = property.units.filter(u => u.year === year);
     if (yearUnits.length === 0) return IptuStatus.PENDING;
 
-    const allPaid = yearUnits.every(u => u.status === IptuStatus.PAID);
-    if (allPaid) return IptuStatus.PAID;
-
-    const anyInProgress = yearUnits.some(u => u.status === IptuStatus.IN_PROGRESS);
-    if (anyInProgress) return IptuStatus.IN_PROGRESS;
-
-    const anyOpen = yearUnits.some(u => u.status === IptuStatus.OPEN);
-    if (anyOpen) return IptuStatus.OPEN;
+    if (yearUnits.every(u => u.status === IptuStatus.PAID)) return IptuStatus.PAID;
+    if (yearUnits.some(u => u.status === IptuStatus.IN_PROGRESS)) return IptuStatus.IN_PROGRESS;
+    if (yearUnits.some(u => u.status === IptuStatus.IN_ANALYSIS)) return IptuStatus.IN_ANALYSIS;
+    if (yearUnits.some(u => u.status === IptuStatus.LAUNCHED)) return IptuStatus.LAUNCHED;
+    if (yearUnits.some(u => u.status === IptuStatus.OPEN)) return IptuStatus.OPEN;
 
     return IptuStatus.PENDING;
 };

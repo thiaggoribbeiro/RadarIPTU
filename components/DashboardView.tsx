@@ -107,6 +107,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
     let inProgress = 0;
     let pending = 0;
     let open = 0;
+    let inAnalysis = 0;
+    let launched = 0;
 
     properties.forEach(p => {
       p.units.forEach(u => {
@@ -116,17 +118,21 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             case IptuStatus.IN_PROGRESS: inProgress++; break;
             case IptuStatus.PENDING: pending++; break;
             case IptuStatus.OPEN: open++; break;
+            case IptuStatus.IN_ANALYSIS: inAnalysis++; break;
+            case IptuStatus.LAUNCHED: launched++; break;
           }
         }
       });
     });
 
-    const total = paid + inProgress + pending + open;
+    const total = paid + inProgress + pending + open + inAnalysis + launched;
     return {
       paid: { count: paid, percentage: total > 0 ? (paid / total) * 100 : 0 },
       inProgress: { count: inProgress, percentage: total > 0 ? (inProgress / total) * 100 : 0 },
       pending: { count: pending, percentage: total > 0 ? (pending / total) * 100 : 0 },
       open: { count: open, percentage: total > 0 ? (open / total) * 100 : 0 },
+      inAnalysis: { count: inAnalysis, percentage: total > 0 ? (inAnalysis / total) * 100 : 0 },
+      launched: { count: launched, percentage: total > 0 ? (launched / total) * 100 : 0 },
       total
     };
   }, [properties, selectedYear]);
@@ -579,10 +585,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
                 style={{
                   background: statusData.total > 0
                     ? `conic-gradient(
-                        #10b981 0deg ${statusData.paid.percentage * 3.6}deg,
-                        #3b82f6 ${statusData.paid.percentage * 3.6}deg ${(statusData.paid.percentage + statusData.inProgress.percentage) * 3.6}deg,
-                        #f59e0b ${(statusData.paid.percentage + statusData.inProgress.percentage) * 3.6}deg ${(statusData.paid.percentage + statusData.inProgress.percentage + statusData.pending.percentage) * 3.6}deg,
-                        #ef4444 ${(statusData.paid.percentage + statusData.inProgress.percentage + statusData.pending.percentage) * 3.6}deg 360deg
+                        #ef4444 0deg ${statusData.open.percentage * 3.6}deg,
+                        #f59e0b ${statusData.open.percentage * 3.6}deg ${(statusData.open.percentage + statusData.inAnalysis.percentage) * 3.6}deg,
+                        #3b82f6 ${(statusData.open.percentage + statusData.inAnalysis.percentage) * 3.6}deg ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage) * 3.6}deg,
+                        #6366f1 ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage) * 3.6}deg ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage) * 3.6}deg,
+                        #10b981 ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage) * 3.6}deg ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage + statusData.paid.percentage) * 3.6}deg,
+                        #f97316 ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage + statusData.paid.percentage) * 3.6}deg 360deg
                       )`
                     : '#e5e7eb'
                 }}
@@ -593,33 +601,47 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             </div>
 
             {/* Legenda */}
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-emerald-500"></div>
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
                 <div>
-                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Pago</p>
-                  <p className="text-xs text-[#617289]">{statusData.paid.count} ({statusData.paid.percentage.toFixed(1)}%)</p>
+                  <p className="text-[10px] font-bold text-[#111418] dark:text-white uppercase">Aberto</p>
+                  <p className="text-[9px] text-[#617289]">{statusData.open.count} ({statusData.open.percentage.toFixed(1)}%)</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
                 <div>
-                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Em andamento</p>
-                  <p className="text-xs text-[#617289]">{statusData.inProgress.count} ({statusData.inProgress.percentage.toFixed(1)}%)</p>
+                  <p className="text-[10px] font-bold text-[#111418] dark:text-white uppercase">Em análise</p>
+                  <p className="text-[9px] text-[#617289]">{statusData.inAnalysis.count} ({statusData.inAnalysis.percentage.toFixed(1)}%)</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-amber-500"></div>
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                 <div>
-                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Pendente</p>
-                  <p className="text-xs text-[#617289]">{statusData.pending.count} ({statusData.pending.percentage.toFixed(1)}%)</p>
+                  <p className="text-[10px] font-bold text-[#111418] dark:text-white uppercase">Em andamento</p>
+                  <p className="text-[9px] text-[#617289]">{statusData.inProgress.count} ({statusData.inProgress.percentage.toFixed(1)}%)</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-red-500"></div>
+                <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
                 <div>
-                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Em aberto</p>
-                  <p className="text-xs text-[#617289]">{statusData.open.count} ({statusData.open.percentage.toFixed(1)}%)</p>
+                  <p className="text-[10px] font-bold text-[#111418] dark:text-white uppercase">Lançado</p>
+                  <p className="text-[9px] text-[#617289]">{statusData.launched.count} ({statusData.launched.percentage.toFixed(1)}%)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#111418] dark:text-white uppercase">Pago</p>
+                  <p className="text-[9px] text-[#617289]">{statusData.paid.count} ({statusData.paid.percentage.toFixed(1)}%)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#111418] dark:text-white uppercase">Pendente</p>
+                  <p className="text-[9px] text-[#617289]">{statusData.pending.count} ({statusData.pending.percentage.toFixed(1)}%)</p>
                 </div>
               </div>
             </div>
