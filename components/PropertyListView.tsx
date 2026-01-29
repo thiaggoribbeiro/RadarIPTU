@@ -293,7 +293,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                         }`}>{currentYearStatus}</span>
                       {showDebtsBadge && (
                         <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-sm bg-red-600 text-white flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[12px]">warning</span>
+                          <span className="material-symbols-outlined text-[14px]">warning</span>
                           DÉBITOS
                         </span>
                       )}
@@ -442,7 +442,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                           </span>
                           {showDebtsBadge && (
                             <span className="w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-red-100 text-red-700 flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[12px]">warning</span>
+                              <span className="material-symbols-outlined text-[14px]">warning</span>
                               DÉBITOS
                             </span>
                           )}

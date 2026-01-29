@@ -91,6 +91,26 @@
     select.appearance-none {
       background-image: none !important;
     }
+
+    .pulse-notification {
+      animation: pulseGentleEffect 2s infinite ease-in-out;
+      transform-origin: center;
+      display: inline-block;
+    }
+
+    @keyframes pulseGentleEffect {
+
+      0%,
+      100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0px rgba(196, 84, 27, 0));
+      }
+
+      50% {
+        transform: scale(1.25);
+        filter: drop-shadow(0 0 8px rgba(196, 84, 27, 0.6));
+      }
+    }
   </style>
   <script type="importmap">
 {

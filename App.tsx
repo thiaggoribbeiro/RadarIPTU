@@ -14,6 +14,7 @@ import Navbar from './components/Navbar';
 import IptuConfigModal from './components/IptuConfigModal';
 import GerenciamentoView from './components/GerenciamentoView';
 import AuditLogsView from './components/AuditLogsView';
+import CalendarView from './components/CalendarView';
 import ConfirmModal from './components/ConfirmModal';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
@@ -142,15 +143,27 @@ const App: React.FC = () => {
 
           const baseId = `${property.id}-${unit.sequential}-${unit.year}`;
 
-          if (diffDays === 15 || diffDays === 10 || diffDays === 5 || diffDays === 1) {
+          if (diffDays === 15) {
             alerts.push({
-              id: `${baseId}-${diffDays}`,
+              id: `${baseId}-15`,
               type: 'warning',
-              title: 'Vencimento Próximo',
+              title: 'Vencimento em 15 Dias',
+              message: `O IPTU do imóvel ${property.name} (Seq. ${unit.sequential}) vence em 15 dias.`,
+              date: new Date().toISOString(),
+              propertyId: property.id,
+              read: readNotifications.includes(`${baseId}-15`),
+              daysDiff: 15
+            });
+          } else if (diffDays >= 1 && diffDays <= 10) {
+            // Contagem regressiva diária para menos de 11 dias
+            alerts.push({
+              id: `${baseId}-countdown-${diffDays}`,
+              type: 'warning',
+              title: 'Contagem Regressiva',
               message: `O IPTU do imóvel ${property.name} (Seq. ${unit.sequential}) vence em ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}.`,
               date: new Date().toISOString(),
               propertyId: property.id,
-              read: readNotifications.includes(`${baseId}-${diffDays}`),
+              read: readNotifications.includes(`${baseId}-countdown-${diffDays}`),
               daysDiff: diffDays
             });
           } else if (diffDays === 0) {
@@ -167,13 +180,13 @@ const App: React.FC = () => {
           } else if (diffDays < 0) {
             const overdueDays = Math.abs(diffDays);
             alerts.push({
-              id: `${baseId}-overdue`,
+              id: `${baseId}-overdue-${overdueDays}`,
               type: 'error',
               title: 'IPTU Vencido',
               message: `O IPTU do imóvel ${property.name} (Seq. ${unit.sequential}) está vencido há ${overdueDays} ${overdueDays === 1 ? 'dia' : 'dias'}.`,
               date: new Date().toISOString(),
               propertyId: property.id,
-              read: readNotifications.includes(`${baseId}-overdue`),
+              read: readNotifications.includes(`${baseId}-overdue-${overdueDays}`),
               daysDiff: diffDays
             });
           }
@@ -241,6 +254,25 @@ const App: React.FC = () => {
     };
     checkSession();
   }, []);
+
+  // Efeito para normalizar nomes de cidades existentes (um-tempo)
+  useEffect(() => {
+    const normalizeCities = async () => {
+      if (properties.length > 0) {
+        const needsNormalization = properties.filter(p => p.city && p.city !== p.city.toUpperCase());
+        if (needsNormalization.length > 0) {
+          console.log(`Normalizando ${needsNormalization.length} cidades para CAIXA ALTA...`);
+          for (const p of needsNormalization) {
+            await supabase.from('properties').update({ city: p.city.toUpperCase() }).eq('id', p.id);
+          }
+          fetchProperties();
+        }
+      }
+    };
+    if (isLoggedIn && !isDemoMode) {
+      normalizeCities();
+    }
+  }, [properties.length, isLoggedIn, isDemoMode]);
 
   const handleLoginSuccess = async (name: string, email: string, role?: string, demo: boolean = false, mustChange: boolean = false) => {
     setIsLoggedIn(true);
@@ -426,6 +458,7 @@ const App: React.FC = () => {
             userRole={userRole}
           />
         )}
+        {currentView === 'calendar' && <CalendarView properties={properties} onSelectProperty={(id) => { setSelectedPropertyId(id); setCurrentView('properties'); }} />}
         {currentView === 'reports' && <ReportsView properties={properties} />}
         {currentView === 'team' && <GerenciamentoView userRole={userRole} />}
         {currentView === 'audit' && <AuditLogsView userRole={userRole} />}
@@ -559,7 +592,7 @@ const App: React.FC = () => {
                   name: p.name,
                   address: p.address,
                   neighborhood: p.neighborhood,
-                  city: p.city,
+                  city: p.city.toUpperCase(),
                   state: p.state,
                   zip_code: p.zipCode,
                   owner_name: p.ownerName,
@@ -588,7 +621,7 @@ const App: React.FC = () => {
                   name: p.name,
                   address: p.address,
                   neighborhood: p.neighborhood,
-                  city: p.city,
+                  city: p.city.toUpperCase(),
                   state: p.state,
                   zip_code: p.zipCode,
                   owner_name: p.ownerName,

@@ -171,6 +171,16 @@ const reportSpecs: ReportSpec[] = [
     goal: 'Identificar as maiores oportunidades de economia na carteira.',
     columns: ['Proprietário', 'Inscrição', 'Sequencial', 'Endereço', 'Valor Parcelado', 'Valor Cota Única', 'Economia Real', '% Economia', 'Situação', 'Posse'],
     metrics: ['Economia Total Potencial', 'Média de Economia por Imóvel']
+  },
+  {
+    id: 'iptu_vencimentos',
+    category: 'Financeiro',
+    title: 'Relatório de Vencimentos',
+    description: 'Cronograma detalhado de datas de vencimento de IPTU.',
+    icon: 'calendar_month',
+    goal: 'Acompanhamento do calendário de pagamentos e fluxos de caixa.',
+    columns: ['Imóvel', 'Cidade', 'UF', 'Inscrição', 'Sequencial', 'Ano', 'Vencimento', 'Valor', 'Status', 'Proprietário', 'Posse'],
+    metrics: ['Total Vincendo (Próximos 30 dias)', 'Volume de Pagamentos por Mês']
   }
 ];
 
@@ -750,6 +760,68 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
           break;
         }
 
+        case 'iptu_vencimentos': {
+          const filteredProps = properties.filter(p => {
+            const matchesCity = filterCity.length === 0 || filterCity.includes(p.city);
+            const matchesUF = filterUF.length === 0 || filterUF.includes(p.state);
+            const matchesOwner = filterOwner.length === 0 || filterOwner.includes(p.ownerName?.trim());
+            const matchesTenant = filterTenant.length === 0 || p.tenants?.some(t => filterTenant.includes(t.name?.trim()));
+            const matchesPossession = filterPossession.length === 0 || filterPossession.includes(p.possession);
+
+            const status = getPropertyStatus(p, filterYear);
+            const matchesStatus = filterPaymentStatus.length === 0 || filterPaymentStatus.includes(status);
+
+            const isOccupied = p.tenants?.some(t => t.year === filterYear);
+            const occupancyStatus = isOccupied ? 'Locado' : 'Disponível';
+            const matchesOccupancy = filterOccupancy.length === 0 || filterOccupancy.includes(occupancyStatus);
+
+            return matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPossession && matchesStatus && matchesOccupancy;
+          });
+
+          exportData = filteredProps.flatMap(prop => {
+            const yearUnits = prop.units.filter(u => u.year === filterYear);
+
+            return yearUnits.map(unit => ({
+              'Imóvel': prop.name,
+              'Cidade': prop.city,
+              'UF': prop.state,
+              'Inscrição': unit.registrationNumber || prop.registrationNumber,
+              'Sequencial': unit.sequential || prop.sequential,
+              'Ano': unit.year,
+              'Vencimento': unit.dueDate ? new Date(unit.dueDate).toLocaleDateString('pt-BR') : 'N/A',
+              'Valor': unit.chosenMethod === 'Parcelado' ? unit.installmentValue : unit.singleValue,
+              'Status': unit.status,
+              'Proprietário': prop.ownerName,
+              'Posse': prop.possession,
+              _month: unit.dueDate ? new Date(unit.dueDate).getMonth() : 12
+            }));
+          }).sort((a, b) => {
+            if (a.Vencimento === 'N/A') return 1;
+            if (b.Vencimento === 'N/A') return -1;
+            const [dA, mA, yA] = a.Vencimento.split('/').map(Number);
+            const [dB, mB, yB] = b.Vencimento.split('/').map(Number);
+            return new Date(yA, mA - 1, dA).getTime() - new Date(yB, mB - 1, dB).getTime();
+          });
+
+          if (exportData.length > 0) {
+            const totalValue = exportData.reduce((acc, row) => acc + (Number(row.Valor) || 0), 0);
+            exportData.push({
+              'Imóvel': 'TOTAIS',
+              'Cidade': '-',
+              'UF': '-',
+              'Inscrição': '-',
+              'Sequencial': '-',
+              'Ano': '-',
+              'Vencimento': '-',
+              'Valor': totalValue,
+              'Status': '-',
+              'Proprietário': '-',
+              'Posse': '-'
+            });
+          }
+          break;
+        }
+
         default: {
           // Export geral para qualquer outro tipo não mapeado especificamente
           const filteredProps = properties.filter(p => {
@@ -819,6 +891,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
         // Preservar metadados para agrupamento e formatação sem exibir na tabela
         filteredRow._isTotal = row.isTotal;
         filteredRow._groupKey = row['Nome do Imóvel'];
+        filteredRow._month = row._month;
 
         return filteredRow;
       });
@@ -865,6 +938,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
               head: [tableColumn],
               body: tableRows,
               startY: 40,
+              margin: { top: 40 },
               styles: { fontSize: 8, cellPadding: 2 },
               headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
               alternateRowStyles: { fillColor: [245, 245, 245] },
@@ -900,6 +974,73 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
           });
 
           // Removida página de totais consolidados conforme solicitado
+        } else if (selectedReport.id === 'iptu_vencimentos') {
+          // Agrupar por Mês para que cada um fique em sua página
+          const groups: Record<number, any[]> = {};
+          const monthNames = [
+            'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
+            'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO', 'N/A'
+          ];
+
+          filteredExportData.forEach(row => {
+            if (row.Imóvel === 'TOTAIS') return;
+            const monthIdx = row._month !== undefined ? row._month : 12;
+            if (!groups[monthIdx]) groups[monthIdx] = [];
+            groups[monthIdx].push(row);
+          });
+
+          let isFirst = true;
+          // Ordenar meses
+          const sortedMonths = Object.keys(groups).map(Number).sort((a, b) => a - b);
+
+          sortedMonths.forEach(monthIdx => {
+            const rows = groups[monthIdx];
+            if (!isFirst) doc.addPage();
+            isFirst = false;
+
+            const tableRows = rows.map(obj => tableColumn.map(col => {
+              const val = obj[col];
+              if (typeof val === 'number') {
+                return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+              }
+              return val;
+            }));
+
+            autoTable(doc, {
+              head: [tableColumn],
+              body: tableRows,
+              startY: 40,
+              margin: { top: 40 },
+              styles: { fontSize: 8, cellPadding: 2 },
+              headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
+              alternateRowStyles: { fillColor: [245, 245, 245] },
+              didDrawPage: (data) => {
+                doc.setFontSize(18);
+                doc.setTextColor(196, 84, 27);
+                doc.text(titleText, 14, 22);
+
+                doc.setFontSize(11);
+                doc.setTextColor(100, 110, 120);
+
+                const monthLabel = monthNames[monthIdx];
+                const cityLabel = filterCity.length === 0 ? 'TODAS' : filterCity.join(', ');
+                const ufLabel = filterUF.length === 0 ? 'TODAS' : filterUF.join(', ');
+                const filterText = `Mês: ${monthLabel} | Cidade (${cityLabel}) | UF (${ufLabel}) | Ano (${filterYear})`;
+
+                doc.text(filterText, 14, 30);
+
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const logoWidth = 45;
+                const logoHeight = 15;
+                const xPos = pageWidth - logoWidth - 14;
+                try {
+                  doc.addImage(logo, 'PNG', xPos, 10, logoWidth, logoHeight);
+                } catch (e) {
+                  console.error("Erro ao adicionar logo ao PDF:", e);
+                }
+              }
+            });
+          });
         } else {
           // Lógica original para os demais relatórios
           const tableRows = filteredExportData.map(obj => tableColumn.map(col => {
@@ -914,6 +1055,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ properties }) => {
             head: [tableColumn],
             body: tableRows,
             startY: 40,
+            margin: { top: 40 },
             styles: { fontSize: 8, cellPadding: 2 },
             headStyles: { fillColor: [196, 84, 27], textColor: [255, 255, 255], fontStyle: 'bold' },
             alternateRowStyles: { fillColor: [245, 245, 245] },

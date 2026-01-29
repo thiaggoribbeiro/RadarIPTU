@@ -35,7 +35,11 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onSubmit, 
             : value;
 
         setFormData(prev => {
-            const updated = { ...prev, [name]: numValue };
+            let finalValue = numValue;
+            if (name === 'city' && typeof value === 'string') {
+                finalValue = value.toUpperCase();
+            }
+            const updated = { ...prev, [name]: finalValue };
 
             // Se mudar o ano base, atualiza todos os units e tenants para manter consistência
             if (name === 'baseYear') {

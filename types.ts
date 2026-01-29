@@ -45,6 +45,7 @@ export interface PropertyUnit {
   hasWasteTax?: boolean;
   wasteTaxValue?: number;
   dueDate?: string;
+  iptuNotAvailable?: boolean;
 }
 
 export interface Tenant {
@@ -119,4 +120,4 @@ export interface AppNotification {
   daysDiff?: number;
 }
 
-export type ViewType = 'dashboard' | 'properties' | 'financial' | 'reports' | 'login' | 'team' | 'audit';
+export type ViewType = 'dashboard' | 'properties' | 'calendar' | 'financial' | 'reports' | 'login' | 'team' | 'audit';

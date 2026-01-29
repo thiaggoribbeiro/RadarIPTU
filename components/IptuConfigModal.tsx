@@ -116,7 +116,8 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                     installmentsCount: u.installmentsCount || 10,
                     year: year,
                     chosenMethod: 'Cota Única',
-                    status: IptuStatus.OPEN
+                    status: IptuStatus.OPEN,
+                    iptuNotAvailable: u.iptuNotAvailable
                 });
             }
         });
@@ -378,13 +379,30 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                             </div>
 
                                                             <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
-                                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Vencimento</label>
+                                                                <div className="flex items-center justify-between px-1">
+                                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Vencimento</label>
+                                                                    <label className="flex items-center gap-1 cursor-pointer" title="Não disponível na prefeitura">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={unit.iptuNotAvailable || false}
+                                                                            onChange={(e) => {
+                                                                                handleUnitChange(unit, 'iptuNotAvailable', e.target.checked);
+                                                                                if (e.target.checked) {
+                                                                                    handleUnitChange(unit, 'dueDate', '');
+                                                                                }
+                                                                            }}
+                                                                            className="size-2.5 accent-primary"
+                                                                        />
+                                                                        <span className="text-[8px] font-bold text-primary uppercase">ND (Pref.)</span>
+                                                                    </label>
+                                                                </div>
                                                                 <input
                                                                     type="date"
                                                                     title="Data de Vencimento"
+                                                                    disabled={unit.iptuNotAvailable}
                                                                     value={unit.dueDate || ''}
                                                                     onChange={(e) => handleUnitChange(unit, 'dueDate', e.target.value)}
-                                                                    className="w-full h-10 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer"
+                                                                    className={`w-full h-10 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer ${unit.iptuNotAvailable ? 'opacity-50 grayscale' : ''}`}
                                                                 />
                                                             </div>
 

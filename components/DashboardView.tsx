@@ -137,6 +137,35 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
     };
   }, [properties, selectedYear]);
 
+  // Dados para disponibilidade de IPTU
+  const availabilityData = useMemo(() => {
+    let definedCount = 0;
+    let notAvailableCount = 0;
+    let notFilledCount = 0;
+
+    properties.forEach(p => {
+      p.units.forEach(u => {
+        if (u.year === selectedYear) {
+          if (u.iptuNotAvailable) {
+            notAvailableCount++;
+          } else if (u.dueDate) {
+            definedCount++;
+          } else {
+            notFilledCount++;
+          }
+        }
+      });
+    });
+
+    const total = definedCount + notAvailableCount + notFilledCount;
+    return {
+      defined: { count: definedCount, percentage: total > 0 ? (definedCount / total) * 100 : 0 },
+      notAvailable: { count: notAvailableCount, percentage: total > 0 ? (notAvailableCount / total) * 100 : 0 },
+      notFilled: { count: notFilledCount, percentage: total > 0 ? (notFilledCount / total) * 100 : 0 },
+      total
+    };
+  }, [properties, selectedYear]);
+
   // Função para normalizar nome de cidade (primeira letra maiúscula, restante minúscula)
   const normalizeCity = (city: string) => {
     if (!city) return '';
@@ -478,7 +507,71 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Controle de Disponibilidade e Rankings */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Widget de Disponibilidade */}
+        <div className="bg-white dark:bg-[#1a2634] p-6 rounded-2xl border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm flex flex-col">
+          <div className="flex items-center gap-3 border-b border-[#e5e7eb] dark:border-[#2a3644] pb-4 mb-6">
+            <div className="bg-primary/10 text-primary p-2 rounded-lg">
+              <span className="material-symbols-outlined font-semibold">event_available</span>
+            </div>
+            <h3 className="text-lg font-semibold text-[#111418] dark:text-white uppercase tracking-tight">Status de Disponibilidade</h3>
+          </div>
+
+          <div className="flex-1 flex flex-col justify-center space-y-6">
+            {/* Gráfico de Barras Horizontal Empilhado */}
+            <div className="space-y-2">
+              <div className="h-4 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden flex">
+                <div
+                  className="h-full bg-emerald-500 transition-all duration-1000"
+                  style={{ width: `${availabilityData.defined.percentage}%` }}
+                  title={`Definido: ${availabilityData.defined.count}`}
+                />
+                <div
+                  className="h-full bg-amber-500 transition-all duration-1000"
+                  style={{ width: `${availabilityData.notAvailable.percentage}%` }}
+                  title={`ND (Pref.): ${availabilityData.notAvailable.count}`}
+                />
+                <div
+                  className="h-full bg-gray-400 transition-all duration-1000"
+                  style={{ width: `${availabilityData.notFilled.percentage}%` }}
+                  title={`Não preenchido: ${availabilityData.notFilled.count}`}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] font-bold text-[#617289] uppercase tracking-wider">
+                <span>Total: {availabilityData.total} Sequenciais</span>
+              </div>
+            </div>
+
+            {/* Legenda Detalhada */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="size-2 rounded-full bg-emerald-500"></div>
+                  <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Vencimento Definido</span>
+                </div>
+                <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">{availabilityData.defined.count}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="size-2 rounded-full bg-amber-500"></div>
+                  <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase">ND (Prefeitura)</span>
+                </div>
+                <span className="text-sm font-black text-amber-700 dark:text-amber-400">{availabilityData.notAvailable.count}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-500/5 border border-gray-100 dark:border-gray-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="size-2 rounded-full bg-gray-400"></div>
+                  <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase">Vencimento não definido</span>
+                </div>
+                <span className="text-sm font-black text-gray-500 dark:text-gray-400">{availabilityData.notFilled.count}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Ranking por Cidades */}
         <div className="bg-white dark:bg-[#1a2634] p-6 rounded-2xl border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm space-y-6">
           <div className="flex items-center gap-3 border-b border-[#e5e7eb] dark:border-[#2a3644] pb-4">

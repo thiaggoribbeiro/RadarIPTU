@@ -45,6 +45,7 @@ const Navbar: React.FC<NavbarProps> = ({
     const navItems = [
         { id: 'dashboard', label: 'Dashboard' },
         { id: 'properties', label: 'Imóveis' },
+        { id: 'calendar', label: 'Calendário' },
         { id: 'reports', label: 'Relatórios' },
     ];
 
@@ -96,10 +97,10 @@ const Navbar: React.FC<NavbarProps> = ({
                                     setIsNotificationsOpen(!isNotificationsOpen);
                                     setIsProfileMenuOpen(false);
                                 }}
-                                className={`flex size-10 items-center justify-center rounded-full transition-colors relative ${isNotificationsOpen ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 dark:hover:bg-[#2a3644] text-[#617289]'
+                                className={`flex size-11 items-center justify-center rounded-full transition-colors relative ${isNotificationsOpen ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 dark:hover:bg-[#2a3644] text-[#617289]'
                                     }`}
                             >
-                                <span className="material-symbols-outlined text-[20px]">notifications</span>
+                                <span className="material-symbols-outlined text-[26px] pulse-notification">notifications</span>
                                 {unreadCount > 0 && (
                                     <span className="absolute top-2 right-2 size-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-[#1a2634] animate-in zoom-in duration-300">
                                         {unreadCount}
@@ -132,17 +133,17 @@ const Navbar: React.FC<NavbarProps> = ({
                                                 >
                                                     {!n.read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>}
                                                     <div className="flex gap-3">
-                                                        <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${n.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                            <span className="material-symbols-outlined text-[18px]">
+                                                        <div className={`size-10 rounded-lg flex items-center justify-center shrink-0 pulse-notification ${n.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                            <span className="material-symbols-outlined text-[22px]">
                                                                 {n.type === 'error' ? 'error' : 'warning'}
                                                             </span>
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center justify-between gap-2 mb-1">
-                                                                <h4 className="text-xs font-bold text-[#111418] dark:text-white truncate uppercase">{n.title}</h4>
-                                                                <span className="text-[9px] text-[#617289] font-medium whitespace-nowrap">agora</span>
+                                                                <h4 className="text-sm font-bold text-[#111418] dark:text-white truncate uppercase">{n.title}</h4>
+                                                                <span className="text-[10px] text-[#617289] font-medium whitespace-nowrap">agora</span>
                                                             </div>
-                                                            <p className="text-[11px] text-[#617289] dark:text-[#9ca3af] leading-relaxed line-clamp-2">{n.message}</p>
+                                                            <p className="text-xs text-[#617289] dark:text-[#9ca3af] leading-relaxed line-clamp-2">{n.message}</p>
                                                         </div>
                                                     </div>
                                                 </div>
