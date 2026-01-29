@@ -337,7 +337,14 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                                 <label className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-tighter">Cota Única</label>
                                                                 <div className="relative">
                                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-600/50">R$</span>
-                                                                    <input type="number" step="0.01" value={unit.singleValue} onChange={(e) => handleUnitChange(unit, 'singleValue', Number(e.target.value))} className="w-full h-10 pl-8 pr-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-emerald-50/30 dark:bg-emerald-500/5 text-xs font-bold text-emerald-700 dark:text-emerald-400 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
+                                                                    <input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        disabled={unit.iptuNotAvailable}
+                                                                        value={unit.iptuNotAvailable ? 0 : unit.singleValue}
+                                                                        onChange={(e) => handleUnitChange(unit, 'singleValue', Number(e.target.value))}
+                                                                        className={`w-full h-10 pl-8 pr-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-emerald-50/30 dark:bg-emerald-500/5 text-xs font-bold text-emerald-700 dark:text-emerald-400 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all ${unit.iptuNotAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                    />
                                                                 </div>
                                                             </div>
 
@@ -345,13 +352,28 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                                 <label className="text-[10px] font-bold text-orange-600 dark:text-orange-500 uppercase tracking-tighter">Parcelado</label>
                                                                 <div className="relative">
                                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-orange-600/50">R$</span>
-                                                                    <input type="number" step="0.01" value={unit.installmentValue} onChange={(e) => handleUnitChange(unit, 'installmentValue', Number(e.target.value))} className="w-full h-10 pl-8 pr-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-orange-50/30 dark:bg-orange-500/5 text-xs font-bold text-orange-700 dark:text-orange-400 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all" />
+                                                                    <input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        disabled={unit.iptuNotAvailable}
+                                                                        value={unit.iptuNotAvailable ? 0 : unit.installmentValue}
+                                                                        onChange={(e) => handleUnitChange(unit, 'installmentValue', Number(e.target.value))}
+                                                                        className={`w-full h-10 pl-8 pr-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-orange-50/30 dark:bg-orange-500/5 text-xs font-bold text-orange-700 dark:text-orange-400 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all ${unit.iptuNotAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                    />
                                                                 </div>
                                                             </div>
 
                                                             <div className="sm:col-span-1 lg:col-span-1 flex flex-col gap-1">
                                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter text-center">Parc.</label>
-                                                                <input type="number" min="1" max="12" value={unit.installmentsCount} onChange={(e) => handleUnitChange(unit, 'installmentsCount', Number(e.target.value))} className="w-full h-10 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-xs font-bold text-[#111418] dark:text-white text-center focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    max="12"
+                                                                    disabled={unit.iptuNotAvailable}
+                                                                    value={unit.iptuNotAvailable ? 1 : unit.installmentsCount}
+                                                                    onChange={(e) => handleUnitChange(unit, 'installmentsCount', Number(e.target.value))}
+                                                                    className={`w-full h-10 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-xs font-bold text-[#111418] dark:text-white text-center focus:ring-2 focus:ring-primary/20 outline-none transition-all ${unit.iptuNotAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                />
                                                             </div>
 
                                                             <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
@@ -359,9 +381,10 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                                     <label className="text-[10px] font-bold text-primary uppercase tracking-tighter">Taxa Lixo</label>
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={unit.hasWasteTax || false}
+                                                                        disabled={unit.iptuNotAvailable}
+                                                                        checked={!unit.iptuNotAvailable && (unit.hasWasteTax || false)}
                                                                         onChange={(e) => handleUnitChange(unit, 'hasWasteTax', e.target.checked)}
-                                                                        className="size-3 accent-primary cursor-pointer"
+                                                                        className={`size-3 accent-primary cursor-pointer ${unit.iptuNotAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                     />
                                                                 </div>
                                                                 <div className={`relative transition-all duration-300 ${unit.hasWasteTax ? 'opacity-100 scale-100' : 'opacity-30 scale-95 pointer-events-none'}`}>
@@ -369,10 +392,10 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                                     <input
                                                                         type="number"
                                                                         step="0.01"
-                                                                        disabled={!unit.hasWasteTax}
-                                                                        value={unit.wasteTaxValue || 0}
+                                                                        disabled={unit.iptuNotAvailable || !unit.hasWasteTax}
+                                                                        value={unit.iptuNotAvailable ? 0 : (unit.wasteTaxValue || 0)}
                                                                         onChange={(e) => handleUnitChange(unit, 'wasteTaxValue', Number(e.target.value))}
-                                                                        className="w-full h-10 pl-8 pr-3 rounded-lg border border-primary/20 bg-primary/5 text-xs font-bold text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                                                        className={`w-full h-10 pl-8 pr-3 rounded-lg border border-primary/20 bg-primary/5 text-xs font-bold text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all ${unit.iptuNotAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                         placeholder="0,00"
                                                                     />
                                                                 </div>
@@ -386,12 +409,25 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
                                                                             type="checkbox"
                                                                             checked={unit.iptuNotAvailable || false}
                                                                             onChange={(e) => {
-                                                                                handleUnitChange(unit, 'iptuNotAvailable', e.target.checked);
-                                                                                if (e.target.checked) {
-                                                                                    handleUnitChange(unit, 'dueDate', '');
+                                                                                const isChecked = e.target.checked;
+                                                                                handleUnitChange(unit, 'iptuNotAvailable', isChecked);
+                                                                                if (isChecked) {
+                                                                                    // Quando indisponível, limpamos os outros campos
+                                                                                    setUnits(prev => prev.map(u => u.tempId === unit.tempId ? {
+                                                                                        ...u,
+                                                                                        iptuNotAvailable: true,
+                                                                                        dueDate: '',
+                                                                                        singleValue: 0,
+                                                                                        installmentValue: 0,
+                                                                                        installmentsCount: 1,
+                                                                                        hasWasteTax: false,
+                                                                                        wasteTaxValue: 0,
+                                                                                        chosenMethod: 'Cota Única' as PaymentMethod,
+                                                                                        status: IptuStatus.OPEN
+                                                                                    } : u));
                                                                                 }
                                                                             }}
-                                                                            className="size-2.5 accent-primary"
+                                                                            className="size-2.5 accent-primary cursor-pointer"
                                                                         />
                                                                         <span className="text-[8px] font-bold text-primary uppercase">ND (Pref.)</span>
                                                                     </label>
@@ -408,7 +444,12 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
 
                                                             <div className="sm:col-span-2 lg:col-span-2 flex flex-col gap-1">
                                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Forma de Pagamento</label>
-                                                                <select value={unit.chosenMethod} onChange={(e) => handleUnitChange(unit, 'chosenMethod', e.target.value as PaymentMethod)} className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer">
+                                                                <select
+                                                                    disabled={unit.iptuNotAvailable}
+                                                                    value={unit.iptuNotAvailable ? 'Cota Única' : unit.chosenMethod}
+                                                                    onChange={(e) => handleUnitChange(unit, 'chosenMethod', e.target.value as PaymentMethod)}
+                                                                    className={`w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer ${unit.iptuNotAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                >
                                                                     <option value="Cota Única">Cota Única</option>
                                                                     <option value="Parcelado">Parcelado</option>
                                                                 </select>
@@ -416,7 +457,12 @@ const IptuConfigModal: React.FC<IptuConfigModalProps> = ({ property, initialSect
 
                                                             <div className="sm:col-span-1 lg:col-span-1 flex flex-col gap-1">
                                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Status</label>
-                                                                <select value={unit.status} onChange={(e) => handleUnitChange(unit, 'status', e.target.value as IptuStatus)} className="w-full h-10 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer">
+                                                                <select
+                                                                    disabled={unit.iptuNotAvailable}
+                                                                    value={unit.iptuNotAvailable ? IptuStatus.OPEN : unit.status}
+                                                                    onChange={(e) => handleUnitChange(unit, 'status', e.target.value as IptuStatus)}
+                                                                    className={`w-full h-10 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[10px] font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer ${unit.iptuNotAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                >
                                                                     {Object.values(IptuStatus).map(status => (
                                                                         <option key={status} value={status}>{status}</option>
                                                                     ))}
