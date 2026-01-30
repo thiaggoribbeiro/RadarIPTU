@@ -5,10 +5,11 @@ export enum IptuStatus {
   IN_PROGRESS = 'Em andamento',
   LAUNCHED = 'Lançado',
   PAID = 'Pago',
-  PENDING = 'Pendente'
+  PENDING = 'Pendente',
+  UNDEFINED = 'Indefinido'
 }
 
-export type PaymentMethod = 'Cota Única' | 'Parcelado';
+export type PaymentMethod = 'Cota Única' | 'Parcelado' | 'Indefinido';
 
 export interface IptuRecord {
   id: string;
@@ -24,6 +25,7 @@ export interface IptuRecord {
   value: number;
   receiptUrl?: string;
   selectedSequentials?: string[];
+  iptuNotAvailable?: boolean;
 }
 
 export type PropertyType = 'Loja' | 'Galpão' | 'Terreno' | 'Sala' | 'Apartamento' | 'Casa' | 'Industrial' | 'Comercial' | 'Residencial' | 'Prédio Comercial' | 'Sala Comercial';

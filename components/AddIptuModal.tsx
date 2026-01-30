@@ -27,7 +27,8 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
     status: initialData?.status || IptuStatus.PENDING,
     holmesCompany: initialData?.holmesCompany || HOLMES_COMPANIES[0],
     startDate: initialData?.startDate || new Date().toISOString().split('T')[0],
-    selectedSequentials: initialData?.selectedSequentials || (property.isComplex ? [] : [property.sequential])
+    selectedSequentials: initialData?.selectedSequentials || (property.isComplex ? [] : [property.sequential]),
+    iptuNotAvailable: initialData?.iptuNotAvailable || false
   });
 
   const diffSingleVsParcel = useMemo(() => {
@@ -70,7 +71,6 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
     const newIptu: IptuRecord = {
       ...formData,
       id: initialData?.id || crypto.randomUUID(),
-      status: initialData?.status || IptuStatus.PENDING,
       value: finalValue,
     };
 
@@ -131,6 +131,29 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
                 onChange={e => setFormData({ ...formData, holmesCompany: e.target.value })}
                 className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
               />
+            </div>
+
+            <div className="md:col-span-2 flex items-center gap-3 p-4 bg-orange-50 dark:bg-orange-500/5 rounded-xl border border-orange-100 dark:border-orange-500/10">
+              <label className="relative flex items-center cursor-pointer group">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={formData.iptuNotAvailable}
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    setFormData({
+                      ...formData,
+                      iptuNotAvailable: checked,
+                      chosenMethod: checked ? 'Indefinido' : 'Cota Única',
+                      status: checked ? IptuStatus.UNDEFINED : IptuStatus.PENDING,
+                      singleValue: checked ? 0 : formData.singleValue,
+                      installmentValue: checked ? 0 : formData.installmentValue
+                    });
+                  }}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                <span className="ml-3 text-xs font-black text-orange-600 uppercase tracking-tighter">Não disponibilizado pela prefeitura (ND PREFEITURA)</span>
+              </label>
             </div>
 
             {/* Nova Seção: Seleção de Sequenciais */}
@@ -216,9 +239,11 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
               <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase tracking-tighter">Forma Escolhida</label>
               <select
                 value={formData.chosenMethod}
+                disabled={formData.iptuNotAvailable}
                 onChange={e => setFormData({ ...formData, chosenMethod: e.target.value as PaymentMethod })}
-                className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
+                className={`h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary ${formData.iptuNotAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
+                <option value="Indefinido">Indefinido</option>
                 <option value="Cota Única">Cota Única</option>
                 <option value="Parcelado">Parcelado</option>
               </select>
@@ -228,8 +253,9 @@ const AddIptuModal: React.FC<AddIptuModalProps> = ({ property, initialData, onCl
               <label className="text-xs font-bold text-[#111418] dark:text-slate-300 uppercase tracking-tighter">Status do Pagamento</label>
               <select
                 value={formData.status}
+                disabled={formData.iptuNotAvailable}
                 onChange={e => setFormData({ ...formData, status: e.target.value as IptuStatus })}
-                className="h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
+                className={`h-11 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-primary ${formData.iptuNotAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {Object.values(IptuStatus).map(status => (
                   <option key={status} value={status}>{status}</option>

@@ -199,8 +199,9 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' :
                     currentYearStatus === IptuStatus.LAUNCHED ? 'bg-indigo-500 text-white' :
                       currentYearStatus === IptuStatus.IN_ANALYSIS ? 'bg-amber-500 text-white' :
-                        'bg-primary text-white'
-                  }`}>{currentYearStatus}</span>
+                        currentYearStatus === IptuStatus.UNDEFINED ? 'bg-orange-600 text-white' :
+                          'bg-primary text-white'
+                  }`}>{currentYearStatus === IptuStatus.UNDEFINED ? 'ND PREFEITURA' : currentYearStatus}</span>
               </div>
               <p className="text-[10px] font-semibold text-primary/80 uppercase tracking-widest">Inscrição: #{property.registrationNumber}</p>
             </div>
@@ -575,6 +576,13 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                                   <span className="text-[9px] font-semibold text-blue-600 bg-blue-50 dark:bg-blue-500/10 px-1.5 rounded">C: {unit.builtArea}m²</span>
                                 )}
                               </div>
+                              {unit.iptuNotAvailable && (
+                                <div className="mt-1">
+                                  <span className="px-1.5 py-0.5 bg-orange-600 text-white text-[8px] font-black rounded shadow-sm uppercase tracking-tighter">
+                                    ND PREFEITURA
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="px-6 py-4 font-bold text-emerald-600">{currencyFormatter.format(unit.singleValue)}</td>
@@ -587,28 +595,31 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                           <td className="px-6 py-4">
                             {unit.hasWasteTax ? (
                               <span className="px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase bg-primary/10 text-primary">
-                                {currencyFormatter.format(unit.wasteTaxValue || 0)}
+                                {currencyFormatter.format((unit.wasteTaxValue || 0))}
                               </span>
                             ) : (
                               <span className="text-[10px] text-gray-300 font-bold uppercase">---</span>
                             )}
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase ${unit.chosenMethod === 'Cota Única' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
-                              'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
+                            <span className={`px-2 py-0.5 rounded-lg text-[7px] font-semibold uppercase whitespace-nowrap ${unit.iptuNotAvailable ? 'bg-orange-600 text-white shadow-sm' :
+                              unit.chosenMethod === 'Cota Única' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
+                                unit.chosenMethod === 'Parcelado' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' :
+                                  'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                               }`}>
-                              {unit.chosenMethod}
+                              {unit.iptuNotAvailable ? 'ND PREFEITURA' : unit.chosenMethod}
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`px-2 py-0.5 rounded-lg text-[8px] font-bold uppercase ${unit.status === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
+                            <span className={`px-2 py-0.5 rounded-lg text-[7px] font-semibold uppercase whitespace-nowrap ${unit.status === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
                               unit.status === IptuStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' :
                                 unit.status === IptuStatus.IN_ANALYSIS ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300' :
                                   unit.status === IptuStatus.LAUNCHED ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300' :
                                     unit.status === IptuStatus.PENDING ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300' :
-                                      'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'
+                                      unit.status === IptuStatus.UNDEFINED ? 'bg-orange-600 text-white shadow-sm' :
+                                        'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300'
                               }`}>
-                              {unit.status}
+                              {unit.iptuNotAvailable ? 'ND PREFEITURA' : unit.status}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">

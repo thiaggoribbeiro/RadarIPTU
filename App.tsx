@@ -67,7 +67,7 @@ const App: React.FC = () => {
 
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const fetchProperties = async (demo: boolean = false) => {
+  const fetchProperties = async (demo: boolean = isDemoMode) => {
     if (demo) {
       const saved = localStorage.getItem('radiptu_properties');
       setProperties(saved ? JSON.parse(saved) : fallbackMock);
@@ -483,10 +483,67 @@ const App: React.FC = () => {
               if (historyIndex > -1) newHistory[historyIndex] = data;
               else newHistory = [data, ...newHistory].sort((a, b) => b.year - a.year);
 
-              const { error } = await supabase.from('properties').update({ iptu_history: newHistory, last_updated: new Date().toLocaleDateString('pt-BR') }).eq('id', pid);
+              // Sincronizar unidades
+              let newUnits = [...target.units];
+              if (data.selectedSequentials && data.selectedSequentials.length > 0) {
+                data.selectedSequentials.forEach(seq => {
+                  const unitIndex = newUnits.findIndex(u => u.sequential === seq && u.year === data.year);
+
+                  if (unitIndex > -1) {
+                    // Atualiza unidade existente
+                    newUnits[unitIndex] = {
+                      ...newUnits[unitIndex],
+                      status: data.status,
+                      chosenMethod: data.chosenMethod || 'Cota Única',
+                      singleValue: data.singleValue || 0,
+                      installmentValue: data.installmentValue || 0,
+                      installmentsCount: data.installmentsCount || 1,
+                      iptuNotAvailable: data.iptuNotAvailable || false
+                    };
+                  } else {
+                    // Cria nova unidade para este ano, tentando herdar dados de anos anteriores se possível
+                    const prevUnit = target.units.find(u => u.sequential === seq);
+                    newUnits.push({
+                      sequential: seq,
+                      year: data.year,
+                      status: data.status,
+                      chosenMethod: data.chosenMethod || 'Cota Única',
+                      singleValue: data.singleValue || 0,
+                      installmentValue: data.installmentValue || 0,
+                      installmentsCount: data.installmentsCount || 1,
+                      iptuNotAvailable: data.iptuNotAvailable || false,
+                      address: prevUnit?.address || target.address,
+                      registrationNumber: prevUnit?.registrationNumber || target.registrationNumber,
+                      ownerName: prevUnit?.ownerName || target.ownerName,
+                      registryOwner: prevUnit?.registryOwner || target.registryOwner,
+                      landArea: prevUnit?.landArea || (target.isComplex ? 0 : target.landArea),
+                      builtArea: prevUnit?.builtArea || (target.isComplex ? 0 : target.builtArea),
+                      hasWasteTax: prevUnit?.hasWasteTax || false,
+                      wasteTaxValue: prevUnit?.wasteTaxValue || 0
+                    });
+                  }
+                });
+              }
+
+              const { error } = await supabase.from('properties').update({
+                iptu_history: newHistory,
+                units: newUnits,
+                last_updated: new Date().toLocaleDateString('pt-BR')
+              }).eq('id', pid);
+
               if (!error) {
+                // Atualização local imediata para refletir na UI sem delay
+                setProperties(prev => prev.map(p => p.id === pid ? {
+                  ...p,
+                  iptuHistory: newHistory,
+                  units: newUnits,
+                  lastUpdated: new Date().toLocaleDateString('pt-BR')
+                } : p));
+
                 fetchProperties();
                 logAction('Lançamento de IPTU', `Imóvel: ${target.name}, Ano: ${data.year}, Valor: R$ ${data.value.toLocaleString('pt-BR')}`);
+              } else {
+                alert('Erro ao salvar IPTU: ' + error.message);
               }
             }
           }}
@@ -503,6 +560,7 @@ const App: React.FC = () => {
                   const newHistory = target.iptuHistory.filter(h => h.id !== iptuId);
                   const { error } = await supabase.from('properties').update({ iptu_history: newHistory }).eq('id', pid);
                   if (!error) {
+                    setProperties(prev => prev.map(p => p.id === pid ? { ...p, iptuHistory: newHistory } : p));
                     fetchProperties();
                     logAction('Exclusão de IPTU', `Imóvel: ${target.name}, Ano: ${iptu?.year}`);
                   }
@@ -532,6 +590,7 @@ const App: React.FC = () => {
                     .eq('id', pid);
 
                   if (!error) {
+                    setProperties(prev => prev.map(p => p.id === pid ? { ...p, units: newUnits } : p));
                     fetchProperties();
                     logAction('Exclusão de Sequencial', `Imóvel: ${target.name}, Sequencial: ${sequential}, Ano: ${year}`);
                   } else {
@@ -687,6 +746,14 @@ const App: React.FC = () => {
                 .eq('id', propertyId);
 
               if (error) throw error;
+
+              setProperties(prev => prev.map(p => p.id === propertyId ? {
+                ...p,
+                units,
+                tenants,
+                baseYear,
+                lastUpdated: new Date().toLocaleDateString('pt-BR')
+              } : p));
 
               fetchProperties();
               setIsIptuConfigModalOpen(false);

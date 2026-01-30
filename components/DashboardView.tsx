@@ -83,20 +83,23 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
   const paymentMethodData = useMemo(() => {
     let cotaUnicaCount = 0;
     let parceladoCount = 0;
+    let undefinedCount = 0;
 
     properties.forEach(p => {
       p.units.forEach(u => {
         if (u.year === selectedYear) {
           if (u.chosenMethod === 'Cota Única') cotaUnicaCount++;
           else if (u.chosenMethod === 'Parcelado') parceladoCount++;
+          else if (u.chosenMethod === 'Indefinido') undefinedCount++;
         }
       });
     });
 
-    const total = cotaUnicaCount + parceladoCount;
+    const total = cotaUnicaCount + parceladoCount + undefinedCount;
     return {
       cotaUnica: { count: cotaUnicaCount, percentage: total > 0 ? (cotaUnicaCount / total) * 100 : 0 },
       parcelado: { count: parceladoCount, percentage: total > 0 ? (parceladoCount / total) * 100 : 0 },
+      undefined: { count: undefinedCount, percentage: total > 0 ? (undefinedCount / total) * 100 : 0 },
       total
     };
   }, [properties, selectedYear]);
@@ -109,6 +112,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
     let open = 0;
     let inAnalysis = 0;
     let launched = 0;
+    let undefinedStatus = 0;
 
     properties.forEach(p => {
       p.units.forEach(u => {
@@ -120,12 +124,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
             case IptuStatus.OPEN: open++; break;
             case IptuStatus.IN_ANALYSIS: inAnalysis++; break;
             case IptuStatus.LAUNCHED: launched++; break;
+            case IptuStatus.UNDEFINED: undefinedStatus++; break;
           }
         }
       });
     });
 
-    const total = paid + inProgress + pending + open + inAnalysis + launched;
+    const total = paid + inProgress + pending + open + inAnalysis + launched + undefinedStatus;
     return {
       paid: { count: paid, percentage: total > 0 ? (paid / total) * 100 : 0 },
       inProgress: { count: inProgress, percentage: total > 0 ? (inProgress / total) * 100 : 0 },
@@ -133,6 +138,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
       open: { count: open, percentage: total > 0 ? (open / total) * 100 : 0 },
       inAnalysis: { count: inAnalysis, percentage: total > 0 ? (inAnalysis / total) * 100 : 0 },
       launched: { count: launched, percentage: total > 0 ? (launched / total) * 100 : 0 },
+      undefined: { count: undefinedStatus, percentage: total > 0 ? (undefinedStatus / total) * 100 : 0 },
       total
     };
   }, [properties, selectedYear]);
@@ -631,7 +637,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
                   background: paymentMethodData.total > 0
                     ? `conic-gradient(
                         #10b981 0deg ${paymentMethodData.cotaUnica.percentage * 3.6}deg,
-                        #6366f1 ${paymentMethodData.cotaUnica.percentage * 3.6}deg 360deg
+                        #6366f1 ${paymentMethodData.cotaUnica.percentage * 3.6}deg ${(paymentMethodData.cotaUnica.percentage + paymentMethodData.parcelado.percentage) * 3.6}deg,
+                        #94a3b8 ${(paymentMethodData.cotaUnica.percentage + paymentMethodData.parcelado.percentage) * 3.6}deg 360deg
                       )`
                     : '#e5e7eb'
                 }}
@@ -651,10 +658,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-indigo-500"></div>
+                <div className="w-4 h-4 rounded-full bg-slate-400"></div>
                 <div>
-                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Parcelado</p>
-                  <p className="text-xs text-[#617289]">{paymentMethodData.parcelado.count} ({paymentMethodData.parcelado.percentage.toFixed(1)}%)</p>
+                  <p className="text-sm font-semibold text-[#111418] dark:text-white">Indefinido</p>
+                  <p className="text-xs text-[#617289]">{paymentMethodData.undefined.count} ({paymentMethodData.undefined.percentage.toFixed(1)}%)</p>
                 </div>
               </div>
             </div>
@@ -683,7 +690,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
                         #3b82f6 ${(statusData.open.percentage + statusData.inAnalysis.percentage) * 3.6}deg ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage) * 3.6}deg,
                         #6366f1 ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage) * 3.6}deg ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage) * 3.6}deg,
                         #10b981 ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage) * 3.6}deg ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage + statusData.paid.percentage) * 3.6}deg,
-                        #f97316 ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage + statusData.paid.percentage) * 3.6}deg 360deg
+                        #f97316 ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage + statusData.paid.percentage) * 3.6}deg ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage + statusData.paid.percentage + statusData.pending.percentage) * 3.6}deg,
+                        #94a3b8 ${(statusData.open.percentage + statusData.inAnalysis.percentage + statusData.inProgress.percentage + statusData.launched.percentage + statusData.paid.percentage + statusData.pending.percentage) * 3.6}deg 360deg
                       )`
                     : '#e5e7eb'
                 }}
@@ -735,6 +743,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
                 <div>
                   <p className="text-[10px] font-bold text-[#111418] dark:text-white uppercase">Pendente</p>
                   <p className="text-[9px] text-[#617289]">{statusData.pending.count} ({statusData.pending.percentage.toFixed(1)}%)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-slate-400"></div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#111418] dark:text-white uppercase">Indefinido</p>
+                  <p className="text-[9px] text-[#617289]">{statusData.undefined.count} ({statusData.undefined.percentage.toFixed(1)}%)</p>
                 </div>
               </div>
             </div>

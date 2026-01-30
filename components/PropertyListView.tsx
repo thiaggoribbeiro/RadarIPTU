@@ -234,6 +234,7 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
               { value: IptuStatus.LAUNCHED, label: 'LANÇADO' },
               { value: IptuStatus.PAID, label: 'PAGO' },
               { value: IptuStatus.PENDING, label: 'PENDENTE' },
+              { value: IptuStatus.UNDEFINED, label: 'ND PREFEITURA' },
             ]}
             selected={filterPaymentStatus}
             onChange={setFilterPaymentStatus}
@@ -289,8 +290,9 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                         currentYearStatus === IptuStatus.OPEN ? 'bg-red-500 text-white' :
                           currentYearStatus === IptuStatus.LAUNCHED ? 'bg-indigo-500 text-white' :
                             currentYearStatus === IptuStatus.IN_ANALYSIS ? 'bg-amber-500 text-white' :
-                              'bg-primary text-white'
-                        }`}>{currentYearStatus}</span>
+                              currentYearStatus === IptuStatus.UNDEFINED ? 'bg-orange-600 text-white' :
+                                'bg-primary text-white'
+                        }`}>{currentYearStatus === IptuStatus.UNDEFINED ? 'ND PREFEITURA' : currentYearStatus}</span>
                       {showDebtsBadge && (
                         <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-sm bg-red-600 text-white flex items-center gap-1">
                           <span className="material-symbols-outlined text-[14px]">warning</span>
@@ -435,10 +437,10 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
                           <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${currentYearStatus === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
                             currentYearStatus === IptuStatus.OPEN ? 'bg-red-100 text-red-700' :
                               currentYearStatus === IptuStatus.LAUNCHED ? 'bg-indigo-100 text-indigo-700' :
-                                currentYearStatus === IptuStatus.IN_ANALYSIS ? 'bg-amber-100 text-amber-700' :
+                                currentYearStatus === IptuStatus.UNDEFINED ? 'bg-orange-600 text-white border-2 border-orange-700/10' :
                                   'bg-orange-100 text-orange-700'
                             }`}>
-                            {currentYearStatus}
+                            {currentYearStatus === IptuStatus.UNDEFINED ? 'ND PREFEITURA' : currentYearStatus}
                           </span>
                           {showDebtsBadge && (
                             <span className="w-fit px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-red-100 text-red-700 flex items-center gap-1">

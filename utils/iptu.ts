@@ -11,6 +11,7 @@ export const getPropertyStatus = (property: Property, year: number): IptuStatus 
     if (yearUnits.every(u => u.status === IptuStatus.PAID)) return IptuStatus.PAID;
     if (yearUnits.some(u => u.status === IptuStatus.IN_PROGRESS)) return IptuStatus.IN_PROGRESS;
     if (yearUnits.some(u => u.status === IptuStatus.IN_ANALYSIS)) return IptuStatus.IN_ANALYSIS;
+    if (yearUnits.some(u => u.status === IptuStatus.UNDEFINED)) return IptuStatus.UNDEFINED;
     if (yearUnits.some(u => u.status === IptuStatus.LAUNCHED)) return IptuStatus.LAUNCHED;
     if (yearUnits.some(u => u.status === IptuStatus.OPEN)) return IptuStatus.OPEN;
 
