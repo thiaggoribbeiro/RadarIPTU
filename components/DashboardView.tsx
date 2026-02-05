@@ -337,44 +337,44 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
         </div>
 
         {/* Card 2: Valor Total de IPTU */}
-        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-indigo-500 hover:shadow-md transition-all">
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-primary hover:shadow-md transition-all">
           <div className="flex items-center gap-2.5">
-            <div className="bg-indigo-50 text-indigo-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+            <div className="bg-primary/10 text-primary p-1.5 rounded-lg group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined font-semibold text-[20px]">account_balance_wallet</span>
             </div>
             <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Valor Total de IPTU</p>
           </div>
           <div>
             <p className="text-[#111418] dark:text-white text-xl font-bold tracking-tight">{formatCurrency(stats.totalIptuValue)}</p>
-            <p className="text-[10px] font-semibold mt-0.5 text-indigo-600">Referência: {selectedYear}</p>
+            <p className="text-[10px] font-semibold mt-0.5 text-[#617289] dark:text-[#9ca3af]">Referência: {selectedYear}</p>
           </div>
         </div>
 
         {/* Card 3: Valor Regularizado */}
-        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-emerald-500 hover:shadow-md transition-all">
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-primary hover:shadow-md transition-all">
           <div className="flex items-center gap-2.5">
-            <div className="bg-emerald-50 text-emerald-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+            <div className="bg-primary/10 text-primary p-1.5 rounded-lg group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined font-semibold text-[20px]">check_circle</span>
             </div>
             <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Valor Regularizado</p>
           </div>
           <div>
-            <p className="text-emerald-600 text-xl font-bold tracking-tight">{formatCurrency(stats.totalRegularized)}</p>
-            <p className="text-[10px] font-semibold mt-0.5 text-emerald-600/80">Total liquidado ou em dia</p>
+            <p className="text-[#111418] dark:text-white text-xl font-bold tracking-tight">{formatCurrency(stats.totalRegularized)}</p>
+            <p className="text-[10px] font-semibold mt-0.5 text-[#617289] dark:text-[#9ca3af]">Total liquidado ou em dia</p>
           </div>
         </div>
 
         {/* Card 4: % de Adimplência da Carteira */}
-        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-blue-500 hover:shadow-md transition-all">
+        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-primary hover:shadow-md transition-all">
           <div className="flex items-center gap-2.5">
-            <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+            <div className="bg-primary/10 text-primary p-1.5 rounded-lg group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined font-semibold text-[20px]">trending_up</span>
             </div>
             <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">% Adimplência</p>
           </div>
           <div>
-            <p className="text-blue-600 text-2xl font-bold tracking-tight">{stats.adimplenciaPercentage.toFixed(1)}%</p>
-            <p className="text-[10px] font-semibold mt-0.5 text-blue-600/80">Saúde financeira</p>
+            <p className="text-[#111418] dark:text-white text-2xl font-bold tracking-tight">{stats.adimplenciaPercentage.toFixed(1)}%</p>
+            <p className="text-[10px] font-semibold mt-0.5 text-[#617289] dark:text-[#9ca3af]">Saúde financeira</p>
           </div>
         </div>
       </div>
