@@ -30,6 +30,7 @@ const App: React.FC = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState<boolean>(false);
+  const [isFilterByAlertsActive, setIsFilterByAlertsActive] = useState<boolean>(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
   const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState<boolean>(false);
   const [propertyToEdit, setPropertyToEdit] = useState<Property | null>(null);
@@ -147,8 +148,8 @@ const App: React.FC = () => {
             alerts.push({
               id: `${baseId}-15`,
               type: 'warning',
-              title: 'Vencimento em 15 Dias',
-              message: `O IPTU do imóvel ${property.name} (Seq. ${unit.sequential}) vence em 15 dias.`,
+              title: property.name,
+              message: `IPTU sequencial ${unit.sequential}, vence em 15 dias.`,
               date: new Date().toISOString(),
               propertyId: property.id,
               read: readNotifications.includes(`${baseId}-15`),
@@ -159,8 +160,8 @@ const App: React.FC = () => {
             alerts.push({
               id: `${baseId}-countdown-${diffDays}`,
               type: 'warning',
-              title: 'Contagem Regressiva',
-              message: `O IPTU do imóvel ${property.name} (Seq. ${unit.sequential}) vence em ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}.`,
+              title: property.name,
+              message: `IPTU sequencial ${unit.sequential}, vence em ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}.`,
               date: new Date().toISOString(),
               propertyId: property.id,
               read: readNotifications.includes(`${baseId}-countdown-${diffDays}`),
@@ -170,8 +171,8 @@ const App: React.FC = () => {
             alerts.push({
               id: `${baseId}-today`,
               type: 'error',
-              title: 'Vence Hoje',
-              message: `O IPTU do imóvel ${property.name} (Seq. ${unit.sequential}) vence hoje!`,
+              title: property.name,
+              message: `IPTU sequencial ${unit.sequential}, vence hoje!`,
               date: new Date().toISOString(),
               propertyId: property.id,
               read: readNotifications.includes(`${baseId}-today`),
@@ -182,8 +183,8 @@ const App: React.FC = () => {
             alerts.push({
               id: `${baseId}-overdue-${overdueDays}`,
               type: 'error',
-              title: 'IPTU Vencido',
-              message: `O IPTU do imóvel ${property.name} (Seq. ${unit.sequential}) está vencido há ${overdueDays} ${overdueDays === 1 ? 'dia' : 'dias'}.`,
+              title: property.name,
+              message: `IPTU sequencial ${unit.sequential}, está vencido há ${overdueDays} ${overdueDays === 1 ? 'dia' : 'dias'}.`,
               date: new Date().toISOString(),
               propertyId: property.id,
               read: readNotifications.includes(`${baseId}-overdue-${overdueDays}`),
@@ -433,6 +434,10 @@ const App: React.FC = () => {
           setSelectedPropertyId(id);
           setCurrentView('properties');
         }}
+        onOpenAlertsFilter={() => {
+          setIsFilterByAlertsActive(true);
+          setCurrentView('properties');
+        }}
       />
 
       <main className="flex-1 max-w-[1200px] mx-auto w-full px-6 py-8 relative">
@@ -456,6 +461,9 @@ const App: React.FC = () => {
               setIsIptuConfigModalOpen(true);
             }}
             userRole={userRole}
+            isFilterByAlertsActive={isFilterByAlertsActive}
+            setIsFilterByAlertsActive={setIsFilterByAlertsActive}
+            notifications={notifications}
           />
         )}
         {currentView === 'calendar' && <CalendarView properties={properties} onSelectProperty={(id) => { setSelectedPropertyId(id); setCurrentView('properties'); }} />}

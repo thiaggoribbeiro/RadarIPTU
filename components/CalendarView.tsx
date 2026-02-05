@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Property, IptuStatus } from '../types';
+import { parseLocalDate } from '../utils/iptu';
 
 interface CalendarViewProps {
     properties: Property[];
@@ -11,6 +12,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ properties, onSelectPropert
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [showAllEvents, setShowAllEvents] = useState(false);
 
     const months = [
         'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -30,7 +32,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ properties, onSelectPropert
                         propertyName: property.name,
                         city: property.city,
                         sequential: unit.sequential,
-                        dueDate: new Date(unit.dueDate),
+                        dueDate: parseLocalDate(unit.dueDate) || new Date(),
                         value: unit.chosenMethod === 'Parcelado' ? unit.installmentValue : unit.singleValue,
                         status: unit.status,
                         year: unit.year
@@ -45,6 +47,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ properties, onSelectPropert
         const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
         setCurrentDate(newDate);
         setSelectedDate(null);
+        setShowAllEvents(false);
     };
 
     // Grid View Helper Functions
@@ -175,53 +178,69 @@ const CalendarView: React.FC<CalendarViewProps> = ({ properties, onSelectPropert
                                         </td>
                                     </tr>
                                 ) : (
-                                    (selectedDate ? activeDateEvents : monthEvents).map((event: any) => (
-                                        <tr key={event.id} className="hover:bg-gray-50 dark:hover:bg-[#22303e] transition-colors group">
-                                            {!selectedDate && (
+                                    (selectedDate ? activeDateEvents : monthEvents)
+                                        .slice(0, showAllEvents ? undefined : 5)
+                                        .map((event: any) => (
+                                            <tr key={event.id} className="hover:bg-gray-50 dark:hover:bg-[#22303e] transition-colors group">
+                                                {!selectedDate && (
+                                                    <td className="px-6 py-4">
+                                                        <span className="text-sm font-bold text-[#111418] dark:text-white">
+                                                            {event.dueDate.getDate().toString().padStart(2, '0')}/{(event.dueDate.getMonth() + 1).toString().padStart(2, '0')}
+                                                        </span>
+                                                    </td>
+                                                )}
                                                 <td className="px-6 py-4">
-                                                    <span className="text-sm font-bold text-[#111418] dark:text-white">
-                                                        {event.dueDate.getDate().toString().padStart(2, '0')}/{(event.dueDate.getMonth() + 1).toString().padStart(2, '0')}
+                                                    <span className="text-sm font-semibold text-[#111418] dark:text-white truncate block max-w-[200px]" title={event.propertyName}>
+                                                        {event.propertyName}
                                                     </span>
                                                 </td>
-                                            )}
-                                            <td className="px-6 py-4">
-                                                <span className="text-sm font-semibold text-[#111418] dark:text-white truncate block max-w-[200px]" title={event.propertyName}>
-                                                    {event.propertyName}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-xs font-bold text-primary uppercase">{event.city}</span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-[11px] font-bold text-primary">{event.sequential}</span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-sm font-bold text-[#111418] dark:text-white">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(event.value)}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${event.status === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
-                                                    event.status === IptuStatus.OPEN ? 'bg-red-100 text-red-700' :
-                                                        'bg-orange-100 text-orange-700'
-                                                    }`}>
-                                                    {event.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => onSelectProperty(event.propertyId)}
-                                                    className="p-1 px-3 text-[10px] font-bold text-primary hover:bg-primary hover:text-white rounded-lg transition-all border border-primary/20 uppercase"
-                                                >
-                                                    Detalhes
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                <td className="px-6 py-4">
+                                                    <span className="text-xs font-bold text-primary uppercase">{event.city}</span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="text-[11px] font-bold text-primary">{event.sequential}</span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="text-sm font-bold text-[#111418] dark:text-white">
+                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(event.value)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${event.status === IptuStatus.PAID ? 'bg-emerald-100 text-emerald-700' :
+                                                        event.status === IptuStatus.OPEN ? 'bg-red-100 text-red-700' :
+                                                            'bg-orange-100 text-orange-700'
+                                                        }`}>
+                                                        {event.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <button
+                                                        onClick={() => onSelectProperty(event.propertyId)}
+                                                        className="p-1 px-3 text-[10px] font-bold text-primary hover:bg-primary hover:text-white rounded-lg transition-all border border-primary/20 uppercase"
+                                                    >
+                                                        Detalhes
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
                                 )}
                             </tbody>
                         </table>
                     </div>
+
+                    {(selectedDate ? activeDateEvents : monthEvents).length > 5 && (
+                        <div className="p-4 bg-gray-50/50 dark:bg-[#22303e]/30 border-t border-[#e5e7eb] dark:border-[#2a3644] text-center">
+                            <button
+                                onClick={() => setShowAllEvents(!showAllEvents)}
+                                className="text-xs font-bold text-primary hover:underline uppercase tracking-wider flex items-center justify-center gap-2 mx-auto"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">
+                                    {showAllEvents ? 'expand_less' : 'expand_more'}
+                                </span>
+                                {showAllEvents ? 'Mostrar menos' : 'Mostrar mais'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         );

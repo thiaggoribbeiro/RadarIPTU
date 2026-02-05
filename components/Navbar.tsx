@@ -20,6 +20,7 @@ interface NavbarProps {
     notifications: AppNotification[];
     onMarkNotificationAsRead: (id: string) => void;
     onSelectProperty: (id: string) => void;
+    onOpenAlertsFilter: () => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -37,9 +38,25 @@ const Navbar: React.FC<NavbarProps> = ({
     isDemoMode = false,
     notifications,
     onMarkNotificationAsRead,
-    onSelectProperty
+    onSelectProperty,
+    onOpenAlertsFilter
 }) => {
     const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+    const notificationsRef = React.useRef<HTMLDivElement>(null);
+    const profileRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+                setIsNotificationsOpen(false);
+            }
+            if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+                setIsProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [setIsProfileMenuOpen]);
 
     const unreadCount = notifications.filter(n => !n.read).length;
     const navItems = [
@@ -91,7 +108,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
                     <div className="flex items-center gap-2">
                         {/* Notificações */}
-                        <div className="relative">
+                        <div className="relative" ref={notificationsRef}>
                             <button
                                 onClick={() => {
                                     setIsNotificationsOpen(!isNotificationsOpen);
@@ -102,7 +119,7 @@ const Navbar: React.FC<NavbarProps> = ({
                             >
                                 <span className="material-symbols-outlined text-[26px] pulse-notification">notifications</span>
                                 {unreadCount > 0 && (
-                                    <span className="absolute top-2 right-2 size-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-[#1a2634] animate-in zoom-in duration-300">
+                                    <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-[#1a2634] shadow-sm animate-in zoom-in duration-300">
                                         {unreadCount}
                                     </span>
                                 )}
@@ -141,7 +158,6 @@ const Navbar: React.FC<NavbarProps> = ({
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center justify-between gap-2 mb-1">
                                                                 <h4 className="text-sm font-bold text-[#111418] dark:text-white truncate uppercase">{n.title}</h4>
-                                                                <span className="text-[10px] text-[#617289] font-medium whitespace-nowrap">agora</span>
                                                             </div>
                                                             <p className="text-xs text-[#617289] dark:text-[#9ca3af] leading-relaxed line-clamp-2">{n.message}</p>
                                                         </div>
@@ -152,7 +168,15 @@ const Navbar: React.FC<NavbarProps> = ({
                                     </div>
                                     {notifications.length > 0 && (
                                         <div className="p-3 bg-gray-50/50 dark:bg-[#22303e]/50 text-center border-t border-[#e5e7eb] dark:border-[#2a3644]">
-                                            <button className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wider">Ver todos os alertas</button>
+                                            <button
+                                                onClick={() => {
+                                                    onOpenAlertsFilter();
+                                                    setIsNotificationsOpen(false);
+                                                }}
+                                                className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wider"
+                                            >
+                                                Ver todos os alertas
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -160,7 +184,7 @@ const Navbar: React.FC<NavbarProps> = ({
                         </div>
                         <div className="h-6 w-px bg-gray-200 dark:bg-[#2a3644] mx-2"></div>
 
-                        <div className="relative">
+                        <div className="relative" ref={profileRef}>
                             <div
                                 className="flex items-center gap-3 pl-2 cursor-pointer group py-2"
                                 onClick={() => {

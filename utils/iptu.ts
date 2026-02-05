@@ -1,5 +1,18 @@
 import { IptuRecord, IptuStatus, Property } from '../types';
 
+/**
+ * Parses a date string in "YYYY-MM-DD" format as a local Date object.
+ * This avoids the 1-day offset issue caused by new Date("YYYY-MM-DD") parsing as UTC.
+ */
+export const parseLocalDate = (dateString?: string): Date | null => {
+    if (!dateString) return null;
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return new Date(dateString);
+    const [year, month, day] = parts.map(p => parseInt(p, 10));
+    // month is 0-indexed in Date constructor
+    return new Date(year, month - 1, day);
+};
+
 export const getDynamicStatus = (iptu: IptuRecord) => {
     return iptu.status || IptuStatus.PENDING;
 };

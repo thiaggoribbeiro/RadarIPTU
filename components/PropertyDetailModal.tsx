@@ -5,7 +5,7 @@ import logo from '../assets/logo-report.png';
 import { Property, IptuRecord, UserRole, IptuStatus } from '../types';
 import AddIptuModal from './AddIptuModal';
 import IptuDetailModal from './IptuDetailModal';
-import { getPropertyStatus } from '../utils/iptu';
+import { getPropertyStatus, parseLocalDate } from '../utils/iptu';
 
 interface PropertyDetailModalProps {
   property: Property;
@@ -476,7 +476,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                               <td className="px-6 py-4 text-center">
                                 <span className="text-[10px] font-semibold text-[#617289] dark:text-[#9ca3af]">
                                   {tenant.contractStart && tenant.contractEnd
-                                    ? `${new Date(tenant.contractStart + 'T00:00:00').toLocaleDateString('pt-BR')} - ${new Date(tenant.contractEnd + 'T00:00:00').toLocaleDateString('pt-BR')}`
+                                    ? `${parseLocalDate(tenant.contractStart)?.toLocaleDateString('pt-BR')} - ${parseLocalDate(tenant.contractEnd)?.toLocaleDateString('pt-BR')}`
                                     : '---'}
                                 </span>
                               </td>

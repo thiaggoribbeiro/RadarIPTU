@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Property, IptuStatus, UserRole } from '../types';
+import { Property, IptuStatus, UserRole, AppNotification } from '../types';
 import { getDynamicStatus, getPropertyStatus, hasPreviousDebts } from '../utils/iptu';
 import MultiSelect from './MultiSelect';
 
@@ -12,9 +12,23 @@ interface PropertyListViewProps {
   onOpenIptuConfig: (property: Property, section?: 'units' | 'tenants' | 'newCharge', year?: number, sequential?: string, registrationNumber?: string) => void;
   properties: Property[];
   userRole: UserRole;
+  isFilterByAlertsActive: boolean;
+  setIsFilterByAlertsActive: (active: boolean) => void;
+  notifications: AppNotification[];
 }
 
-const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, onAddProperty, onEditProperty, onDeleteProperty, onOpenIptuConfig, properties, userRole }) => {
+const PropertyListView: React.FC<PropertyListViewProps> = ({
+  onSelectProperty,
+  onAddProperty,
+  onEditProperty,
+  onDeleteProperty,
+  onOpenIptuConfig,
+  properties,
+  userRole,
+  isFilterByAlertsActive,
+  setIsFilterByAlertsActive,
+  notifications
+}) => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCity, setFilterCity] = useState<string[]>([]);
@@ -109,7 +123,11 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
     const occupancyStatus = isOccupied ? 'Locado' : 'Disponível';
     const matchesOccupancy = filterOccupancy.length === 0 || filterOccupancy.includes(occupancyStatus);
 
-    return matchesSearch && matchesType && matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPaymentStatus && matchesPossession && matchesOccupancy;
+    // Filtro inteligente de alertas
+    const hasAlert = notifications.some(n => n.propertyId === p.id && !n.read);
+    const matchesAlertFilter = !isFilterByAlertsActive || hasAlert;
+
+    return matchesSearch && matchesType && matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPaymentStatus && matchesPossession && matchesOccupancy && matchesAlertFilter;
   });
 
   const canEdit = true; // Todo usuário autenticado pode editar
@@ -130,6 +148,27 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({ onSelectProperty, o
           <span>Adicionar Imóvel</span>
         </button>
       </div>
+
+      {isFilterByAlertsActive && (
+        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-4 rounded-2xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-amber-600">
+              <span className="material-symbols-outlined font-bold">priority_high</span>
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-amber-800 dark:text-amber-500 uppercase">Filtro de Alertas Ativo</h4>
+              <p className="text-xs text-amber-700 dark:text-amber-400/80 font-medium">Exibindo apenas imóveis que possuem notificações pendentes.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsFilterByAlertsActive(false)}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-amber-600/20 flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+            LIMPAR FILTRO
+          </button>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-[#1a2634] p-5 rounded-2xl shadow-sm border border-[#e5e7eb] dark:border-[#2a3644] flex flex-col gap-5">
         <div className="flex flex-col xl:flex-row gap-4">
