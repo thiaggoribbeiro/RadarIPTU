@@ -364,21 +364,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
           </div>
         </div>
 
-        {/* Card 4: Valor em Aberto */}
-        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-red-500 hover:shadow-md transition-all">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-red-50 text-red-500 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-semibold text-[20px]">pending_actions</span>
-            </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Valor em Aberto</p>
-          </div>
-          <div>
-            <p className="text-red-600 text-xl font-bold tracking-tight">{formatCurrency(stats.totalOpen)}</p>
-            <p className="text-[10px] font-semibold mt-0.5 text-red-500/80">Pendente de pagamento</p>
-          </div>
-        </div>
-
-        {/* Card 5: % de Adimplência da Carteira */}
+        {/* Card 4: % de Adimplência da Carteira */}
         <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-blue-500 hover:shadow-md transition-all">
           <div className="flex items-center gap-2.5">
             <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
@@ -389,52 +375,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
           <div>
             <p className="text-blue-600 text-2xl font-bold tracking-tight">{stats.adimplenciaPercentage.toFixed(1)}%</p>
             <p className="text-[10px] font-semibold mt-0.5 text-blue-600/80">Saúde financeira</p>
-          </div>
-        </div>
-
-        {/* Card 6: Qtd. de Imóveis Irregulares */}
-        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-orange-500 hover:shadow-md transition-all">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-orange-50 text-orange-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-semibold text-[20px]">warning</span>
-            </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Imóveis Irregulares</p>
-          </div>
-          <div>
-            <p className="text-orange-600 text-2xl font-bold tracking-tight">{stats.irregularCount}</p>
-            <p className="text-[10px] font-semibold mt-0.5 text-orange-600/80">Com pendências</p>
-          </div>
-        </div>
-
-        {/* Card 7: IPTU mais alto Cota Única */}
-        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-amber-500 hover:shadow-md transition-all">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-amber-50 text-amber-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-semibold text-[20px]">star</span>
-            </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Maior Cota Única</p>
-          </div>
-          <div>
-            <p className="text-amber-600 text-sm font-bold tracking-tight truncate mb-0.5" title={highestIptu.single.propertyName}>
-              {highestIptu.single.propertyName}
-            </p>
-            <p className="text-[#111418] dark:text-white text-base font-bold">{formatCurrency(highestIptu.single.value)}</p>
-          </div>
-        </div>
-
-        {/* Card 8: IPTU mais alto Parcelado */}
-        <div className="group flex flex-col gap-3 rounded-xl p-4 bg-white dark:bg-[#1a2634] border border-[#e5e7eb] dark:border-[#2a3644] shadow-sm border-l-4 border-l-cyan-500 hover:shadow-md transition-all">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-cyan-50 text-cyan-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-semibold text-[20px]">star_half</span>
-            </div>
-            <p className="text-[#617289] dark:text-[#9ca3af] text-[9px] font-bold uppercase tracking-widest">Maior Parcelado</p>
-          </div>
-          <div>
-            <p className="text-cyan-600 text-sm font-bold tracking-tight truncate mb-0.5" title={highestIptu.parcelado.propertyName}>
-              {highestIptu.parcelado.propertyName}
-            </p>
-            <p className="text-[#111418] dark:text-white text-base font-bold">{formatCurrency(highestIptu.parcelado.value)}</p>
           </div>
         </div>
       </div>
