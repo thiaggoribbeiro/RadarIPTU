@@ -103,10 +103,23 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ onClose }) =>
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 bg-primary text-[#111418] rounded-xl font-bold uppercase tracking-widest text-xs mt-4 shadow-lg shadow-primary/20 hover:bg-secondary disabled:opacity-50"
+            className="w-full h-12 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs mt-4 shadow-lg shadow-primary/20 hover:bg-[#a64614] disabled:opacity-50"
           >
             {isLoading ? 'ATUALIZANDO...' : 'DEFINIR NOVA SENHA'}
           </button>
+
+          <div className="pt-4 border-t border-gray-100 dark:border-[#2a3644] mt-4 text-center">
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.reload();
+              }}
+              className="text-[10px] font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest"
+            >
+              Sair e entrar com outra conta
+            </button>
+          </div>
         </form>
       </div>
     </div>

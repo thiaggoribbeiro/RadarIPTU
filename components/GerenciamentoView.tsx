@@ -1,8 +1,10 @@
-
-import React, { useState, useEffect } from 'react';
-import { AppUser, UserRole } from '../types';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { logAction } from '../lib/auditLogger';
+
+// Configuração do Supabase (mesmos dados do singleton, mas instanciado localmente)
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://aqwuxqfsxnzfyhvjvugu.supabase.co';
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxd3V4cWZzeG56Znlodmp2dWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyMTA5MTgsImV4cCI6MjA4MTc4NjkxOH0.YyR9T2DS5vgbIVid1mb7dAqXgh_a8TRnJPqGrfzlOb0';
 
 interface GerenciamentoViewProps {
   userRole: UserRole;
@@ -64,8 +66,19 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
       setError(null);
       setLoading(true);
 
-      // 1. Criar o usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // SOLUÇÃO PROFISSIONAL: 
+      // Criamos um cliente temporário COM persistência de sessão DESATIVADA.
+      // Isso permite que o signUp aconteça sem que o Supabase troque a sua sessão local de administrador.
+      const tempSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      });
+
+      // 1. Criar o usuário no Supabase Auth usando o cliente isolado
+      const { data: authData, error: authError } = await tempSupabase.auth.signUp({
         email: newUser.email,
         password: newUser.password,
         options: {
@@ -82,30 +95,10 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
       }
 
       if (authData.user) {
-        // 2. Inserir na tabela pública 'users'
-        const { error: dbError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email: newUser.email,
-            full_name: newUser.fullName,
-            role: newUser.role,
-            must_change_password: true,
-            status: 'Ativo'
-          });
-
-        if (dbError) {
-          console.error("Erro detalhado do banco:", dbError);
-          // Tratamento específico para o erro de permissão (RLS)
-          const errorMsg = dbError.message || JSON.stringify(dbError);
-          if (dbError.code === '42501') {
-            throw new Error("Você não tem permissão para inserir na tabela 'users'. Verifique as políticas RLS no Supabase.");
-          }
-          throw new Error(`Usuário criado, mas falha ao registrar dados: ${errorMsg}`);
-        }
-
         alert("Usuário criado com sucesso!");
         logAction('Criação de Usuário', `Nome: ${newUser.fullName}, E-mail: ${newUser.email}, Role: ${newUser.role}`);
+
+        // Recarregar lista (o trigger no banco cuidou do insert na tabela pública)
         fetchUsers();
         setIsAddUserModalOpen(false);
       }
@@ -115,7 +108,7 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
       let finalMsg = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
 
       if (finalMsg.includes('User already registered')) {
-        finalMsg = "Este e-mail já está registrado no sistema de autenticação, mas pode não estar na tabela de usuários. Se você acabou de tentar criar um perfil 'Visitante' e falhou, execute o script SQL de atualização de cargos no Supabase e delete o usuário órfão no painel de Autenticação do Supabase antes de tentar novamente.";
+        finalMsg = "Este e-mail já está registrado no sistema de autenticação. Se você acabou de tentar criar um perfil e falhou, pode haver um usuário órfão. Delete o usuário no painel de Autenticação do Supabase antes de tentar novamente.";
       }
 
       setError(finalMsg);
