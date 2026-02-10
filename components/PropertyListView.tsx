@@ -130,8 +130,9 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({
     return matchesSearch && matchesType && matchesCity && matchesUF && matchesOwner && matchesTenant && matchesPaymentStatus && matchesPossession && matchesOccupancy && matchesAlertFilter;
   });
 
-  const canEdit = true; // Todo usuário autenticado pode editar
-  const canDelete = true; // Botão de excluir agora visível para todos os cargos (regra de acesso tratada no clique)
+  const isVisitor = userRole === 'Visitante';
+  const canEdit = !isVisitor; // Visitantes não podem editar
+  const canDelete = !isVisitor; // Visitantes não podem excluir
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -140,13 +141,15 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({
           <h1 className="text-3xl font-semibold tracking-tight text-[#111418] dark:text-white">Imóveis</h1>
           <p className="text-[#617289] dark:text-[#9ca3af] font-medium">Gestão detalhada do Imposto Predial e Territorial Urbano.</p>
         </div>
-        <button
-          onClick={onAddProperty}
-          className="flex items-center justify-center gap-2 rounded-xl h-11 px-6 bg-primary hover:bg-[#a64614] transition-colors text-white font-semibold shadow-lg shadow-primary/30"
-        >
-          <span className="material-symbols-outlined font-semibold">add</span>
-          <span>Adicionar Imóvel</span>
-        </button>
+        {userRole !== 'Visitante' && (
+          <button
+            onClick={onAddProperty}
+            className="flex items-center justify-center gap-2 rounded-xl h-11 px-6 bg-primary hover:bg-[#a64614] transition-colors text-white font-semibold shadow-lg shadow-primary/30"
+          >
+            <span className="material-symbols-outlined font-semibold">add</span>
+            <span>Adicionar Imóvel</span>
+          </button>
+        )}
       </div>
 
       {isFilterByAlertsActive && (
@@ -398,16 +401,18 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({
                     )}
                   </div>
                   <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#2a3644] flex justify-between items-center">
-                    <div className="flex items-center">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'newCharge'); }}
-                        className="h-8 px-3 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md text-[9px] font-bold uppercase tracking-tight"
-                        title="Configurar Sequenciais e Locatários"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">receipt_long</span>
-                        NOVO IPTU
-                      </button>
-                    </div>
+                    {userRole !== 'Visitante' && (
+                      <div className="flex items-center">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'newCharge'); }}
+                          className="h-8 px-3 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md text-[9px] font-bold uppercase tracking-tight"
+                          title="Configurar Sequenciais e Locatários"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                          NOVO IPTU
+                        </button>
+                      </div>
+                    )}
                     <button className="text-primary font-bold text-[10px] flex items-center gap-0.5 hover:text-secondary uppercase tracking-tight">
                       DETALHES <span className="material-symbols-outlined text-[14px]">chevron_right</span>
                     </button>
@@ -491,13 +496,15 @@ const PropertyListView: React.FC<PropertyListViewProps> = ({
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-3">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'newCharge'); }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">receipt_long</span>
-                            NOVO IPTU
-                          </button>
+                          {userRole !== 'Visitante' && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onOpenIptuConfig(property, 'newCharge'); }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                              NOVO IPTU
+                            </button>
+                          )}
                           {(canEdit || canDelete) && (
                             <div className="flex gap-1 border-l border-gray-100 dark:border-gray-700 pl-3 ml-1">
                               {canEdit && (

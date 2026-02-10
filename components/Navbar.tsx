@@ -226,7 +226,7 @@ const Navbar: React.FC<NavbarProps> = ({
                                             <span className="material-symbols-outlined text-primary">person</span> Ver perfil
                                         </button>
 
-                                        {userRole === 'Administrador' && (
+                                        {(userRole === 'Administrador' || userRole === 'Gestor') && (
                                             <>
                                                 <button
                                                     onClick={() => { setCurrentView('team'); setIsProfileMenuOpen(false); }}

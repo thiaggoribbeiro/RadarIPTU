@@ -47,7 +47,14 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ onClose }) =>
       logAction('Troca de Senha', 'Sua senha pessoal foi atualizada.');
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Erro ao atualizar senha.');
+      console.error('Erro ao atualizar senha:', err);
+      let message = err.message || 'Erro ao atualizar senha.';
+
+      if (message.includes('JWT does not exist')) {
+        message = "Sua sessão atual é inválida (usuário não encontrado no banco). Por favor, saia do sistema (Logout) e entre novamente antes de tentar atualizar a senha.";
+      }
+
+      setError(message);
     } finally {
       setIsLoading(false);
     }

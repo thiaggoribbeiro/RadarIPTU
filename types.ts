@@ -88,7 +88,7 @@ export interface Property {
   iptuHistory: IptuRecord[];
 }
 
-export type UserRole = 'Usuário' | 'Gestor' | 'Administrador';
+export type UserRole = 'Usuário' | 'Gestor' | 'Administrador' | 'Visitante';
 
 // Fix: Added missing AppUser interface required by GerenciamentoView.tsx
 export interface AppUser {

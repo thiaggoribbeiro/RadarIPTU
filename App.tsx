@@ -441,7 +441,7 @@ const App: React.FC = () => {
       />
 
       <main className="flex-1 max-w-[1200px] mx-auto w-full px-6 py-8 relative">
-        {currentView === 'dashboard' && <DashboardView onSelectProperty={(id) => setSelectedPropertyId(id)} properties={properties} onAddProperty={() => setIsAddPropertyModalOpen(true)} />}
+        {currentView === 'dashboard' && <DashboardView onSelectProperty={(id) => setSelectedPropertyId(id)} properties={properties} onAddProperty={() => setIsAddPropertyModalOpen(true)} userRole={userRole} />}
         {currentView === 'properties' && (
           <PropertyListView
             onSelectProperty={(id) => setSelectedPropertyId(id)}

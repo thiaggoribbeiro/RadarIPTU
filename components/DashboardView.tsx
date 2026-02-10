@@ -6,9 +6,10 @@ interface DashboardViewProps {
   onSelectProperty: (id: string) => void;
   onAddProperty: () => void;
   properties: Property[];
+  userRole: UserRole;
 }
 
-const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddProperty, properties }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddProperty, properties, userRole }) => {
   const currentSystemYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<number>(currentSystemYear);
   const [selectedCityForComparison, setSelectedCityForComparison] = useState<string>('Todas');
@@ -310,13 +311,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ onSelectProperty, onAddPr
               ))}
             </select>
           </div>
-          <button
-            onClick={onAddProperty}
-            className="flex items-center gap-2 rounded-xl h-10 px-5 bg-primary hover:bg-[#a64614] transition-all text-white font-semibold shadow-lg shadow-primary/30 active:scale-95"
-          >
-            <span className="material-symbols-outlined text-[20px] font-semibold">add</span>
-            <span>Novo Imóvel</span>
-          </button>
+          {userRole !== 'Visitante' && (
+            <button
+              onClick={onAddProperty}
+              className="flex items-center gap-2 rounded-xl h-10 px-5 bg-primary hover:bg-[#a64614] transition-all text-white font-semibold shadow-lg shadow-primary/30 active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[20px] font-semibold">add</span>
+              <span>Novo Imóvel</span>
+            </button>
+          )}
         </div>
       </div>
 

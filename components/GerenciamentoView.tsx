@@ -15,6 +15,8 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
   const [error, setError] = useState<string | null>(null);
 
   const isAdmin = userRole === 'Administrador';
+  const isManager = userRole === 'Gestor';
+  const canManageUsers = isAdmin || isManager;
 
   const fetchUsers = async () => {
     try {
@@ -108,8 +110,14 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
         setIsAddUserModalOpen(false);
       }
     } catch (err: any) {
+      console.error('Erro detalhado:', err);
       // Garante que o erro seja uma string amigável
-      const finalMsg = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
+      let finalMsg = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
+
+      if (finalMsg.includes('User already registered')) {
+        finalMsg = "Este e-mail já está registrado no sistema de autenticação, mas pode não estar na tabela de usuários. Se você acabou de tentar criar um perfil 'Visitante' e falhou, execute o script SQL de atualização de cargos no Supabase e delete o usuário órfão no painel de Autenticação do Supabase antes de tentar novamente.";
+      }
+
       setError(finalMsg);
     } finally {
       setLoading(false);
@@ -123,17 +131,19 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
           <h1 className="text-3xl font-semibold tracking-tight text-[#111418] dark:text-white">Gerenciamento de Equipe</h1>
           <p className="text-[#617289] dark:text-[#9ca3af] font-medium">Controle de acessos e permissões do sistema.</p>
         </div>
-        <button
-          onClick={() => isAdmin && setIsAddUserModalOpen(true)}
-          disabled={!isAdmin || loading}
-          className={`flex items-center justify-center gap-2 rounded-xl h-11 px-6 font-semibold shadow-lg transition-all ${isAdmin
-            ? 'bg-primary hover:bg-[#a64614] text-white shadow-primary/30'
-            : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
-            }`}
-        >
-          <span className="material-symbols-outlined">{loading ? 'sync' : (isAdmin ? 'person_add' : 'lock')}</span>
-          <span>{loading ? 'Processando...' : (isAdmin ? 'Novo Usuário' : 'Acesso Restrito')}</span>
-        </button>
+        {userRole !== 'Visitante' && (
+          <button
+            onClick={() => canManageUsers && setIsAddUserModalOpen(true)}
+            disabled={!canManageUsers || loading}
+            className={`flex items-center justify-center gap-2 rounded-xl h-11 px-6 font-semibold shadow-lg transition-all ${canManageUsers
+              ? 'bg-primary hover:bg-[#a64614] text-white shadow-primary/30'
+              : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
+              }`}
+          >
+            <span className="material-symbols-outlined">{loading ? 'sync' : (canManageUsers ? 'person_add' : 'lock')}</span>
+            <span>{loading ? 'Processando...' : (canManageUsers ? 'Novo Usuário' : 'Acesso Restrito')}</span>
+          </button>
+        )}
       </div>
 
       {error && (
@@ -181,7 +191,8 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase border ${user.role === 'Administrador' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                         user.role === 'Gestor' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                          'bg-gray-50 text-gray-700 border-gray-200'
+                          user.role === 'Visitante' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                            'bg-gray-50 text-gray-700 border-gray-200'
                         }`}>
                         {user.role}
                       </span>
@@ -193,9 +204,11 @@ const GerenciamentoView: React.FC<GerenciamentoViewProps> = ({ userRole }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-[#2a3644] rounded-lg transition-colors text-[#617289]">
-                        <span className="material-symbols-outlined text-[20px]">edit_note</span>
-                      </button>
+                      {userRole !== 'Visitante' && (
+                        <button className="p-2 hover:bg-gray-100 dark:hover:bg-[#2a3644] rounded-lg transition-colors text-[#617289]">
+                          <span className="material-symbols-outlined text-[20px]">edit_note</span>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -259,6 +272,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onAdd }) => {
               <option value="Usuário" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Usuário</option>
               <option value="Gestor" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Gestor</option>
               <option value="Administrador" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Administrador</option>
+              <option value="Visitante" className="bg-white dark:bg-[#1a2634] text-[#111418] dark:text-white">Visitante</option>
             </select>
           </div>
           <div className="space-y-1.5">

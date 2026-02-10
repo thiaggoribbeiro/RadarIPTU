@@ -248,20 +248,24 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                           <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
                           Gerar espelho
                         </button>
-                        <button
-                          onClick={() => onEditProperty(property)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-[9px] font-semibold transition-all shadow-sm uppercase active:scale-95 whitespace-nowrap"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">edit</span>
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => onDeleteProperty(property.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-xl text-[9px] font-semibold transition-all shadow-sm uppercase active:scale-95 border border-red-100 dark:border-red-500/20 whitespace-nowrap"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">delete</span>
-                          Excluir
-                        </button>
+                        {userRole !== 'Visitante' && (
+                          <>
+                            <button
+                              onClick={() => onEditProperty(property)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-[9px] font-semibold transition-all shadow-sm uppercase active:scale-95 whitespace-nowrap"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">edit</span>
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => onDeleteProperty(property.id)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-xl text-[9px] font-semibold transition-all shadow-sm uppercase active:scale-95 border border-red-100 dark:border-red-500/20 whitespace-nowrap"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                              Excluir
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -401,20 +405,24 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     {availableYears.map(y => <option key={y} value={y} className="dark:bg-[#1a2634]">{y}</option>)}
                   </select>
                 </div>
-                <button
-                  onClick={() => onOpenIptuConfig(property, 'tenants', selectedYear)}
-                  className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-[10px] font-bold transition-all shadow-sm uppercase active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[18px]">edit</span>
-                  Editar Rateio
-                </button>
-                <button
-                  onClick={() => onOpenIptuConfig(property, 'tenants', selectedYear)}
-                  className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[18px]">person_add</span>
-                  Inserir Locatário
-                </button>
+                {userRole !== 'Visitante' && (
+                  <>
+                    <button
+                      onClick={() => onOpenIptuConfig(property, 'tenants', selectedYear)}
+                      className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-[10px] font-bold transition-all shadow-sm uppercase active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">edit</span>
+                      Editar Rateio
+                    </button>
+                    <button
+                      onClick={() => onOpenIptuConfig(property, 'tenants', selectedYear)}
+                      className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">person_add</span>
+                      Inserir Locatário
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -519,22 +527,24 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-3 uppercase tracking-tight">
                 <span className="material-symbols-outlined text-primary text-xl font-bold">event_available</span> IPTU {selectedYear}
               </h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onOpenIptuConfig(property, 'newCharge', selectedYear)}
-                  className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[18px]">history_edu</span>
-                  Novo IPTU
-                </button>
-                <button
-                  onClick={() => onOpenIptuConfig(property, 'units', selectedYear)}
-                  className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                  Inserir Sequencial
-                </button>
-              </div>
+              {userRole !== 'Visitante' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => onOpenIptuConfig(property, 'newCharge', selectedYear)}
+                    className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">history_edu</span>
+                    Novo IPTU
+                  </button>
+                  <button
+                    onClick={() => onOpenIptuConfig(property, 'units', selectedYear)}
+                    className="flex items-center gap-2 px-5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-bold transition-all shadow-md uppercase active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                    Inserir Sequencial
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="bg-white dark:bg-[#1a2634] border border-gray-100 dark:border-[#2a3644] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
@@ -623,24 +633,26 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => onOpenIptuConfig(property, 'units', selectedYear, unit.sequential, unit.registrationNumber)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-primary hover:bg-primary/10 rounded-lg transition-all text-[9px] font-bold uppercase"
-                                title="Editar Sequencial"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">edit</span>
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => onDeleteUnit(property.id, unit.sequential, selectedYear, unit.registrationNumber)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 rounded-lg transition-all text-[9px] font-bold uppercase"
-                                title="Excluir Sequencial"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">delete</span>
-                                Excluir
-                              </button>
-                            </div>
+                            {userRole !== 'Visitante' && (
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => onOpenIptuConfig(property, 'units', selectedYear, unit.sequential, unit.registrationNumber)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-primary hover:bg-primary/10 rounded-lg transition-all text-[9px] font-bold uppercase"
+                                  title="Editar Sequencial"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                                  Editar
+                                </button>
+                                <button
+                                  onClick={() => onDeleteUnit(property.id, unit.sequential, selectedYear, unit.registrationNumber)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 rounded-lg transition-all text-[9px] font-bold uppercase"
+                                  title="Excluir Sequencial"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                                  Excluir
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -811,32 +823,34 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                               </span>
                             </td>
                             <td className="px-6 py-4 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                {item.type === 'unit' && (
+                              {userRole !== 'Visitante' && (
+                                <div className="flex items-center justify-end gap-1">
+                                  {item.type === 'unit' && (
+                                    <button
+                                      onClick={() => onOpenIptuConfig(property, 'units', Number(item.year), item.sequential, (item as any).registrationNumber)}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-primary hover:bg-primary/10 rounded-lg transition-all text-[9px] font-bold uppercase"
+                                      title="Editar Sequencial"
+                                    >
+                                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                                      Editar
+                                    </button>
+                                  )}
                                   <button
-                                    onClick={() => onOpenIptuConfig(property, 'units', Number(item.year), item.sequential, (item as any).registrationNumber)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 text-primary hover:bg-primary/10 rounded-lg transition-all text-[9px] font-bold uppercase"
-                                    title="Editar Sequencial"
+                                    onClick={() => {
+                                      if (item.type === 'unit') {
+                                        onDeleteUnit(property.id, item.sequential, Number(item.year), (item as any).registrationNumber);
+                                      } else {
+                                        onDeleteIptu(property.id, (item as any).id);
+                                      }
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 rounded-lg transition-all text-[9px] font-bold uppercase"
+                                    title="Excluir"
                                   >
-                                    <span className="material-symbols-outlined text-[16px]">edit</span>
-                                    Editar
+                                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                                    Excluir
                                   </button>
-                                )}
-                                <button
-                                  onClick={() => {
-                                    if (item.type === 'unit') {
-                                      onDeleteUnit(property.id, item.sequential, Number(item.year), (item as any).registrationNumber);
-                                    } else {
-                                      onDeleteIptu(property.id, (item as any).id);
-                                    }
-                                  }}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 rounded-lg transition-all text-[9px] font-bold uppercase"
-                                  title="Excluir"
-                                >
-                                  <span className="material-symbols-outlined text-[16px]">delete</span>
-                                  Excluir
-                                </button>
-                              </div>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}
